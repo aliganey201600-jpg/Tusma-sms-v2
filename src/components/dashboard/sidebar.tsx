@@ -1,0 +1,146 @@
+"use client"
+
+import * as React from "react"
+import Link from "next/link"
+import { usePathname } from "next/navigation"
+import {
+  LayoutDashboard,
+  Users,
+  UserRound,
+  GraduationCap,
+  BookOpen,
+  CalendarDays,
+  Settings,
+  Bell,
+  LogOut,
+  ChevronRight,
+  Menu,
+  CheckCircle2,
+} from "lucide-react"
+
+import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+
+interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {
+  role: "ADMIN" | "TEACHER" | "STUDENT" | "PARENT" | "SUPER_ADMIN"
+}
+
+export function Sidebar({ className, role }: SidebarProps) {
+  const pathname = usePathname()
+
+  const routes = {
+    SUPER_ADMIN: [
+      { label: "Overview", icon: LayoutDashboard, href: "/dashboard/super-admin" },
+      { label: "Schools", icon: GraduationCap, href: "/dashboard/super-admin/schools" },
+      { label: "Admins", icon: Users, href: "/dashboard/super-admin/admins" },
+      { label: "Messages", icon: Bell, href: "/dashboard/messages" },
+      { label: "Logs", icon: BookOpen, href: "/dashboard/super-admin/logs" },
+      { label: "Settings", icon: Settings, href: "/dashboard/super-admin/settings" },
+    ],
+    ADMIN: [
+      { label: "Overview", icon: LayoutDashboard, href: "/dashboard/admin" },
+      { label: "Students", icon: UserRound, href: "/dashboard/admin/students" },
+      { label: "Batch", icon: CalendarDays, href: "/dashboard/admin/batch" },
+      { label: "Teachers", icon: Users, href: "/dashboard/admin/teachers" },
+      { label: "Classes", icon: GraduationCap, href: "/dashboard/admin/classes" },
+      { label: "Courses", icon: BookOpen, href: "/dashboard/admin/courses" },
+      { label: "Attendance", icon: CheckCircle2, href: "/dashboard/admin/attendance" },
+      { label: "Finance", icon: GraduationCap, href: "/dashboard/admin/finance" },
+      { label: "Messages", icon: Bell, href: "/dashboard/messages" },
+      { label: "Events", icon: CalendarDays, href: "/dashboard/admin/events" },
+    ],
+    TEACHER: [
+      { label: "Overview", icon: LayoutDashboard, href: "/dashboard/teacher" },
+      { label: "My Classes", icon: Users, href: "/dashboard/teacher/classes" },
+      { label: "Materials", icon: BookOpen, href: "/dashboard/teacher/materials" },
+      { label: "Assignments", icon: LayoutDashboard, href: "/dashboard/teacher/assignments" },
+      { label: "Attendance", icon: CalendarDays, href: "/dashboard/teacher/attendance" },
+      { label: "Messages", icon: Bell, href: "/dashboard/messages" },
+    ],
+    STUDENT: [
+      { label: "Overview", icon: LayoutDashboard, href: "/dashboard/student" },
+      { label: "My Courses", icon: BookOpen, href: "/dashboard/student/courses" },
+      { label: "Assignments", icon: LayoutDashboard, href: "/dashboard/student/assignments" },
+      { label: "My Grades", icon: GraduationCap, href: "/dashboard/student/grades" },
+      { label: "Attendance", icon: CalendarDays, href: "/dashboard/student/attendance" },
+      { label: "Messages", icon: Bell, href: "/dashboard/messages" },
+    ],
+    PARENT: [
+      { label: "Overview", icon: LayoutDashboard, href: "/dashboard/parent" },
+      { label: "Children", icon: Users, href: "/dashboard/parent/children" },
+      { label: "Attendance", icon: CalendarDays, href: "/dashboard/parent/attendance" },
+      { label: "Teachers", icon: Users, href: "/dashboard/parent/teachers" },
+      { label: "Messages", icon: Bell, href: "/dashboard/messages" },
+    ],
+  }
+
+  const currentRoutes = routes[role] || []
+
+  return (
+    <div className={cn("pb-12 h-full flex flex-col", className)}>
+      <div className="px-6 py-6 border-b">
+        <Link href="/" className="flex items-center gap-2">
+          <div className="h-8 w-8 bg-primary rounded-lg flex items-center justify-center text-primary-foreground font-bold">
+            T
+          </div>
+          <span className="font-bold text-xl tracking-tight">Tusmo School</span>
+        </Link>
+      </div>
+      <div className="flex-1 py-4">
+        <div className="px-3 py-2">
+          <div className="space-y-1">
+            {currentRoutes.map((route) => (
+              <Button
+                key={route.href}
+                variant={pathname === route.href ? "secondary" : "ghost"}
+                className={cn(
+                  "w-full justify-start",
+                  pathname === route.href && "bg-secondary font-medium"
+                )}
+                asChild
+              >
+                <Link href={route.href}>
+                  <route.icon className="mr-2 h-4 w-4" />
+                  {route.label}
+                </Link>
+              </Button>
+            ))}
+          </div>
+        </div>
+      </div>
+      <div className="px-3 py-2 border-t mt-auto">
+        <Button variant="ghost" className="w-full justify-start text-muted-foreground hover:text-destructive" asChild>
+          <Link href="/sign-in">
+            <LogOut className="mr-2 h-4 w-4" />
+            Logout
+          </Link>
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+export function SidebarMobile({ role }: { role: SidebarProps["role"] }) {
+  return (
+    <Sheet>
+      <SheetTrigger asChild>
+        <Button variant="ghost" size="icon" className="md:hidden">
+          <Menu className="h-5 w-5" />
+        </Button>
+      </SheetTrigger>
+      <SheetContent side="left" className="p-0 w-[240px]">
+        <Sidebar role={role} />
+      </SheetContent>
+    </Sheet>
+  )
+}
