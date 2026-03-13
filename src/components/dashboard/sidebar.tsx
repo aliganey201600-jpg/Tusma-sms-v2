@@ -16,6 +16,7 @@ import {
   ChevronRight,
   Menu,
   CheckCircle2,
+  CreditCard,
 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
@@ -55,7 +56,8 @@ export function Sidebar({ className, role }: SidebarProps) {
       { label: "Classes", icon: GraduationCap, href: "/dashboard/admin/classes" },
       { label: "Courses", icon: BookOpen, href: "/dashboard/admin/courses" },
       { label: "Attendance", icon: CheckCircle2, href: "/dashboard/admin/attendance" },
-      { label: "Finance", icon: GraduationCap, href: "/dashboard/admin/finance" },
+      { label: "Finance", icon: CreditCard, href: "/dashboard/admin/finance" },
+      { label: "Exams", icon: GraduationCap, href: "/dashboard/admin/exams" },
       { label: "Messages", icon: Bell, href: "/dashboard/messages" },
       { label: "Events", icon: CalendarDays, href: "/dashboard/admin/events" },
     ],

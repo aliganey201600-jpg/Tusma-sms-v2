@@ -63,6 +63,8 @@ model Student {
   enrollments   Enrollment[]
   grades        Grade[]
   attendances   Attendance[]
+  feePayments   FeePayment[]
+  examResults   ExamResult[]
 
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -186,6 +188,7 @@ model Course {
   
   enrollments   Enrollment[]
   assignments   Assignment[]
+  exams         Exam[]
 
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -358,5 +361,41 @@ enum PaymentStatus {
   COMPLETED
   FAILED
   REFUNDED
+}enum ExamType {
+  MIDTERM
+  FINAL
+  QUIZ
+  ASSIGNMENT
+  OTHER
+}
+
+model Exam {
+  id            String   @id @default(uuid())
+  title         String
+  description   String?
+  type          ExamType @default(MIDTERM)
+  courseId      String
+  course        Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  maxMarks      Float    @default(100)
+  examDate      DateTime @default(now())
+  status        String   @default("SCHEDULED")
+  results       ExamResult[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model ExamResult {
+  id            String   @id @default(uuid())
+  examId        String
+  exam          Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
+  studentId     String
+  student       Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  marksObtained Float
+  remarks       String?
+  gradedAt      DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([examId, studentId])
 }
 
