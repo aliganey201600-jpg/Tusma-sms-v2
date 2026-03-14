@@ -202,3 +202,57 @@ export async function fetchTeacherLoad(teacherId: string) {
     return []
   }
 }
+
+/**
+ * Rollover all assignments from one year to another
+ */
+export async function rolloverAssignments(fromYear: string, toYear: string) {
+  try {
+    const sourceAssignments: any[] = await prisma.$queryRawUnsafe(
+      `SELECT "teacherId", "courseId", "classId", semester FROM "TeacherAssignment" WHERE "academicYear" = $1`, 
+      fromYear
+    )
+
+    if (sourceAssignments.length === 0) {
+      return { success: false, error: `Ma jirto xog laga helay sanadka ${fromYear}.` }
+    }
+
+    const queries = []
+    for (const a of sourceAssignments) {
+        const id = crypto.randomUUID()
+        queries.push(
+            prisma.$executeRawUnsafe(`
+                INSERT INTO "TeacherAssignment" (id, "teacherId", "courseId", "classId", "academicYear", semester, "updatedAt")
+                VALUES ($1, $2, $3, $4, $5, $6, NOW())
+                ON CONFLICT ("courseId", "classId") DO UPDATE 
+                SET "teacherId" = EXCLUDED."teacherId", "academicYear" = EXCLUDED."academicYear", semester = EXCLUDED.semester, "updatedAt" = NOW()
+            `, id, a.teacherId, a.courseId, a.classId, toYear, a.semester || "")
+        )
+    }
+
+    await Promise.all(queries)
+    revalidatePath("/dashboard/admin/teachers/assignments")
+    return { success: true, count: sourceAssignments.length }
+  } catch (error) {
+    console.error("Rollover error:", error)
+    return { success: false, error: "Khalad ayaa dhacay xilliga rollover-ka." }
+  }
+}
+
+/**
+ * Get courses that are not assigned in a specific year
+ */
+export async function fetchUnassignedSubjects(academicYear: string) {
+  try {
+    return await prisma.$queryRawUnsafe(`
+      SELECT id, name FROM "Course"
+      WHERE id NOT IN (
+        SELECT "courseId" FROM "TeacherAssignment" 
+        WHERE "academicYear" = $1
+      )
+    `, academicYear)
+  } catch (error) {
+    return []
+  }
+}
+

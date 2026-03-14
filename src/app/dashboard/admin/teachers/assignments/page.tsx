@@ -47,8 +47,106 @@ import {
   fetchTeacherAssignments, 
   fetchAssignmentOptions, 
   createBulkAssignments, 
-  deleteAssignment 
+  deleteAssignment,
+  rolloverAssignments,
+  fetchUnassignedSubjects
 } from "./actions"
+
+function MultiSelectCustom({ 
+  items, 
+  selected, 
+  onToggle, 
+  label, 
+  placeholder,
+  className = ""
+}: { 
+  items: any[], 
+  selected: string[], 
+  onToggle: (id: string) => void, 
+  label: string, 
+  placeholder: string,
+  className?: string
+}) {
+  const [isOpen, setIsOpen] = React.useState(false);
+  const containerRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    if (isOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isOpen]);
+
+  return (
+    <div className={`relative w-full ${className}`} ref={containerRef}>
+      <div 
+        onClick={() => setIsOpen(!isOpen)}
+        className="h-14 rounded-2xl bg-white border border-slate-200 px-4 flex items-center justify-between cursor-pointer hover:border-indigo-300 hover:shadow-sm transition-all"
+      >
+        <div className="flex flex-wrap gap-1 overflow-hidden">
+          {selected.length === 0 ? (
+            <span className="text-slate-400 text-sm">{placeholder}</span>
+          ) : (
+            selected.map(id => (
+              <Badge key={id} variant="secondary" className="h-6 px-2 text-[10px] bg-slate-100 font-black border-none text-slate-700">
+                {items.find(i => i.id === id)?.name || id}
+              </Badge>
+            ))
+          )}
+        </div>
+        <Plus className={`h-4 w-4 text-slate-400 transition-transform duration-300 ${isOpen ? 'rotate-45' : ''}`} />
+      </div>
+      
+      {isOpen && (
+        <div className="absolute z-[100] mt-2 w-full max-h-[400px] overflow-y-auto bg-white rounded-3xl shadow-3xl border border-slate-100 p-4 animate-in fade-in zoom-in-95 duration-200">
+           <div className="mb-4 flex justify-between items-center px-2">
+              <p className="text-[10px] font-black uppercase text-indigo-500 tracking-[0.2em]">{label}</p>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-8 rounded-lg text-[10px] font-black uppercase bg-slate-50 hover:bg-indigo-600 hover:text-white"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsOpen(false);
+                }}
+              >
+                Done
+              </Button>
+           </div>
+           <div className="grid grid-cols-1 gap-1">
+             {items.map(item => {
+               const isSelected = selected.includes(item.id);
+               return (
+                 <div 
+                  key={item.id}
+                  onClick={(e) => {
+                    e.stopPropagation(); // BUG FIX: Prevent trigger from toggling
+                    onToggle(item.id);
+                  }}
+                  className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all ${
+                    isSelected ? 'bg-indigo-50 text-indigo-700' : 'hover:bg-slate-50 text-slate-700'
+                  }`}
+                 >
+                   <div className={`h-5 w-5 rounded-md border-2 flex items-center justify-center transition-all ${
+                     isSelected ? 'bg-indigo-600 border-indigo-600 shadow-md shadow-indigo-100' : 'border-slate-200 bg-white'
+                   }`}>
+                     {isSelected && <CheckCircle2 className="h-3.5 w-3.5 text-white" />}
+                   </div>
+                   <span className="text-sm font-bold">{item.name}</span>
+                 </div>
+               )
+             })}
+           </div>
+        </div>
+      )}
+    </div>
+  )
+}
 
 export default function TeacherAssignmentsPage() {
   const [assignments, setAssignments] = React.useState<any[]>([])
@@ -57,42 +155,104 @@ export default function TeacherAssignmentsPage() {
   })
   const [loading, setLoading] = React.useState(true)
   const [isCreateOpen, setIsCreateOpen] = React.useState(false)
+  const [isRolloverOpen, setIsRolloverOpen] = React.useState(false)
   const [searchTerm, setSearchTerm] = React.useState("")
+  const [unassignedCount, setUnassignedCount] = React.useState(0)
+
+  // Rollover state
+  const [rolloverFrom, setRolloverFrom] = React.useState("2023-2024")
+  const [rolloverTo, setRolloverTo] = React.useState("2024-2025")
 
   // New Row-based state
   const [selectedTeacherId, setSelectedTeacherId] = React.useState<string>("")
-  const [assignmentRows, setAssignmentRows] = React.useState<{id: string, courseId: string, classId: string}[]>([
-    { id: Math.random().toString(), courseId: "", classId: "" }
+  const [assignmentRows, setAssignmentRows] = React.useState<{id: string, courseIds: string[], classIds: string[]}[]>([
+    { id: Math.random().toString(), courseIds: [], classIds: [] }
   ])
   const [academicYear, setAcademicYear] = React.useState("2024-2025")
   const [semester, setSemester] = React.useState("Semester 1")
 
   const loadData = React.useCallback(async () => {
     setLoading(true)
-    const [data, opts] = await Promise.all([
+    const [data, opts, unassigned] = await Promise.all([
       fetchTeacherAssignments(),
-      fetchAssignmentOptions()
+      fetchAssignmentOptions(),
+      fetchUnassignedSubjects(academicYear)
     ])
     setAssignments(data as any[])
     setOptions(opts as any)
+    setUnassignedCount((unassigned as any[]).length)
     setLoading(false)
-  }, [])
+  }, [academicYear])
 
   React.useEffect(() => {
     loadData()
   }, [loadData])
 
+  const handleRollover = async () => {
+    if (confirm(`Ma hubtaa inaad ka soo guuriso dhammaan qoondaynta sanadka ${rolloverFrom} una wareejiso ${rolloverTo}?`)) {
+      setLoading(true)
+      const res = await rolloverAssignments(rolloverFrom, rolloverTo)
+      if (res.success) {
+        toast.success(`Guul! ${res.count} xiriir ayaa si toos ah loogu abuuray sanadka ${rolloverTo}.`)
+        setIsRolloverOpen(false)
+        loadData()
+      } else {
+        toast.error(res.error)
+      }
+      setLoading(false)
+    }
+  }
+
   const addRow = () => {
-    setAssignmentRows([...assignmentRows, { id: Math.random().toString(), courseId: "", classId: "" }])
+    setAssignmentRows([...assignmentRows, { id: Math.random().toString(), courseIds: [], classIds: [] }])
   }
 
   const removeRow = (id: string) => {
-    if (assignmentRows.length === 1) return;
+    if (assignmentRows.length === 1) {
+      setAssignmentRows([{ id: Math.random().toString(), courseIds: [], classIds: [] }])
+      return
+    }
     setAssignmentRows(assignmentRows.filter(r => r.id !== id))
   }
 
-  const updateRow = (id: string, field: 'courseId' | 'classId', value: string) => {
-    setAssignmentRows(assignmentRows.map(r => r.id === id ? { ...r, [field]: value } : r))
+  const resetForm = () => {
+    if (confirm("Ma hubtaa inaad nadiifiso dhammaan safafka?")) {
+      setAssignmentRows([{ id: Math.random().toString(), courseIds: [], classIds: [] }])
+      setSelectedTeacherId("")
+    }
+  }
+
+  const exportCSV = () => {
+    const headers = ["Teacher", "Course", "Class", "Year", "Semester"]
+    const rows = filteredAssignments.map(a => [
+      `${a.teacherFirst} ${a.teacherLast}`,
+      a.courseName,
+      a.className,
+      a.academicYear || "2024-2025",
+      a.semester || "Semester 1"
+    ])
+    
+    const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n")
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement("a")
+    link.setAttribute("href", url)
+    link.setAttribute("download", `Teacher_Assignments_${academicYear}.csv`)
+    link.style.visibility = "hidden"
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
+  const updateRow = (id: string, field: 'courseIds' | 'classIds', value: string) => {
+    setAssignmentRows(assignmentRows.map(r => {
+      if (r.id === id) {
+        const current = r[field] as string[]
+        const next = current.includes(value) ? current.filter(i => i !== value) : [...current, value]
+        return { ...r, [field]: next }
+      }
+      return r
+    }))
   }
 
   const handleBulkDeploy = async () => {
@@ -101,25 +261,34 @@ export default function TeacherAssignmentsPage() {
       return
     }
 
-    const validRows = assignmentRows.filter(r => r.courseId && r.classId)
-    if (validRows.length === 0) {
+    const flatAssignments: { courseId: string, classId: string }[] = []
+    assignmentRows.forEach(row => {
+      row.courseIds.forEach(courseId => {
+        row.classIds.forEach(classId => {
+          flatAssignments.push({ courseId, classId })
+        })
+      })
+    })
+
+    if (flatAssignments.length === 0) {
       toast.error("Fadlan ku dar ugu yaraan hal Maaddo iyo hal Fasal")
       return
     }
 
-    // Check for internal duplicates in the UI
-    const duplicates = validRows.filter((row, index) => 
-      validRows.findIndex(r => r.courseId === row.courseId && r.classId === row.classId) !== index
-    )
-
-    if (duplicates.length > 0) {
-      toast.error("Waxaad dooratay maaddo iyo fasal isku mid ah dhowr jeer. Fadlan sax.")
-      return
+    // Check for internal duplicates across rows
+    const uniquePairs = new Set()
+    for (const pair of flatAssignments) {
+       const key = `${pair.courseId}-${pair.classId}`
+       if (uniquePairs.has(key)) {
+          toast.error("Waxaad dooratay maaddo iyo fasal isku mid ah dhowr jeer. Fadlan sax.")
+          return
+       }
+       uniquePairs.add(key)
     }
 
     const res = await createBulkAssignments({
       teacherId: selectedTeacherId,
-      assignments: validRows.map(r => ({ courseId: r.courseId, classId: r.classId })),
+      assignments: flatAssignments,
       academicYear,
       semester
     })
@@ -128,7 +297,7 @@ export default function TeacherAssignmentsPage() {
       toast.success("Si guul leh ayaa loo qoondeeyey!")
       setIsCreateOpen(false)
       loadData()
-      setAssignmentRows([{ id: Math.random().toString(), courseId: "", classId: "" }])
+      setAssignmentRows([{ id: Math.random().toString(), courseIds: [], classIds: [] }])
     } else {
       toast.error(res.error || "Khalad ayaa dhacay")
     }
@@ -150,9 +319,15 @@ export default function TeacherAssignmentsPage() {
     a.className.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
-  const getExistingTeacher = (courseId: string, classId: string) => {
-    if (!courseId || !classId) return null
-    return options.existing?.find(e => e.courseId === courseId && e.classId === classId && e.teacherId !== selectedTeacherId)
+  const getExistingTeacher = (courseIds: string[], classIds: string[]) => {
+    if (courseIds.length === 0 || classIds.length === 0) return null
+    for (const courseId of courseIds) {
+      for (const classId of classIds) {
+        const match = options.existing?.find(e => e.courseId === courseId && e.classId === classId && e.teacherId !== selectedTeacherId)
+        if (match) return match
+      }
+    }
+    return null
   }
 
   return (
@@ -195,11 +370,35 @@ export default function TeacherAssignmentsPage() {
                              <SelectValue placeholder="Select Teacher" />
                           </SelectTrigger>
                           <SelectContent className="rounded-2xl shadow-2xl border-none">
-                             {options.teachers.map(t => (
-                               <SelectItem key={t.id} value={t.id}>{t.firstName} {t.lastName}</SelectItem>
-                             ))}
+                             {options.teachers.map(t => {
+                               const load = assignments.filter(a => a.teacherId === t.id).length
+                               return (
+                                 <SelectItem key={t.id} value={t.id}>
+                                   <div className="flex justify-between items-center w-full gap-2 min-w-[200px]">
+                                     <span>{t.firstName} {t.lastName}</span>
+                                     <Badge variant="secondary" className="bg-slate-100 text-[10px] font-black h-5">{load} Loads</Badge>
+                                   </div>
+                                 </SelectItem>
+                               )
+                             })}
                           </SelectContent>
                        </Select>
+                       {selectedTeacherId && (
+                         <div className="mt-4 p-4 rounded-2xl bg-white/5 border border-white/10">
+                           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Capacity Load</p>
+                           <div className="flex items-center gap-3">
+                             <div className="flex-1 h-2 bg-white/10 rounded-full overflow-hidden">
+                               <div 
+                                 className={`h-full transition-all duration-1000 ${
+                                   (assignments.filter(a => a.teacherId === selectedTeacherId).length >= 18) ? 'bg-rose-500' : 'bg-indigo-500'
+                                 }`}
+                                 style={{ width: `${Math.min((assignments.filter(a => a.teacherId === selectedTeacherId).length / 20) * 100, 100)}%` }}
+                               />
+                             </div>
+                             <span className="text-xs font-black">{assignments.filter(a => a.teacherId === selectedTeacherId).length}/20</span>
+                           </div>
+                         </div>
+                       )}
                     </div>
 
                     <div className="space-y-4">
@@ -219,12 +418,19 @@ export default function TeacherAssignmentsPage() {
                     </div>
                   </div>
 
-                  <div className="pt-10">
+                  <div className="pt-10 space-y-3">
                      <Button 
                       onClick={handleBulkDeploy}
                       className="w-full h-16 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase tracking-widest shadow-xl"
                      >
                        Deploy All
+                     </Button>
+                     <Button 
+                      onClick={resetForm}
+                      variant="ghost"
+                      className="w-full h-12 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 font-bold uppercase text-[10px] tracking-widest"
+                     >
+                       Reset Form
                      </Button>
                   </div>
                </div>
@@ -233,62 +439,67 @@ export default function TeacherAssignmentsPage() {
                <div className="md:col-span-3 p-10 space-y-6">
                   <div className="flex justify-between items-center mb-6">
                     <h3 className="text-2xl font-black tracking-tight text-slate-900 border-l-4 border-indigo-600 pl-4">Assignment Rows</h3>
-                    <Button 
-                      onClick={addRow}
-                      variant="outline"
-                      className="h-12 rounded-xl border-slate-100 bg-slate-50 text-indigo-600 font-black gap-2 hover:bg-indigo-600 hover:text-white transition-all"
-                    >
-                      <PlusCircle className="h-5 w-5" />
-                      Add New Row
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button 
+                        onClick={() => {
+                          const firstClassIds = assignmentRows[0]?.classIds
+                          if (firstClassIds && firstClassIds.length > 0) {
+                            setAssignmentRows(assignmentRows.map(r => ({ ...r, classIds: r.classIds.length === 0 ? [...firstClassIds] : r.classIds })))
+                            toast.success("Fasallada bannaan waa lagu shubay")
+                          }
+                        }}
+                        variant="outline"
+                        className="h-12 rounded-xl border-slate-100 bg-slate-50 text-slate-500 font-bold text-[10px] uppercase tracking-widest hover:bg-slate-100 transition-all px-4"
+                      >
+                        Apply Class to All
+                      </Button>
+                      <Button 
+                        onClick={addRow}
+                        variant="outline"
+                        className="h-12 rounded-xl border-slate-100 bg-slate-50 text-indigo-600 font-black gap-2 hover:bg-indigo-600 hover:text-white transition-all px-4"
+                      >
+                        <PlusCircle className="h-5 w-5" />
+                        Add New Row
+                      </Button>
+                    </div>
                   </div>
 
                   <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-200">
                     {assignmentRows.map((row, index) => {
-                      const conflict = getExistingTeacher(row.courseId, row.classId)
+                      const conflict = getExistingTeacher(row.courseIds, row.classIds)
                       return (
-                        <div key={row.id} className={`grid grid-cols-12 gap-4 items-end p-6 rounded-3xl border transition-all duration-300 animate-in slide-in-from-right-2 ${
+                        <div key={row.id} className={`grid grid-cols-12 gap-4 items-start p-6 rounded-3xl border transition-all duration-300 animate-in slide-in-from-right-2 ${
                           conflict ? "bg-red-50/50 border-red-100 shadow-inner" : "bg-slate-50/50 border-dotted border-slate-200"
                         }`}>
                            <div className="col-span-1 flex flex-col justify-center items-center h-14">
                               <span className="text-[10px] font-black text-slate-300 bg-white h-8 w-8 rounded-full flex items-center justify-center border border-slate-100 shadow-sm">{index + 1}</span>
                            </div>
                            
-                           <div className="col-span-5 space-y-2">
-                              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Course / Subject</Label>
-                              <Select 
-                                value={row.courseId} 
-                                onValueChange={(val) => updateRow(row.id, 'courseId', val)}
-                              >
-                                 <SelectTrigger className="h-14 rounded-2xl bg-white border-slate-200">
-                                    <SelectValue placeholder="Select Subject" />
-                                 </SelectTrigger>
-                                 <SelectContent className="rounded-2xl shadow-2xl border-none">
-                                    {options.courses.map(c => (
-                                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                                    ))}
-                                 </SelectContent>
-                              </Select>
+                           <div className="col-span-10 grid grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Course / Subject(s)</Label>
+                                <MultiSelectCustom 
+                                  items={options.courses}
+                                  selected={row.courseIds}
+                                  onToggle={(id) => updateRow(row.id, 'courseIds', id)}
+                                  label="Select Subject(s)"
+                                  placeholder="Choose Subjects"
+                                />
+                              </div>
+
+                              <div className="space-y-2">
+                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Target Cohort(s)</Label>
+                                <MultiSelectCustom 
+                                  items={options.classes}
+                                  selected={row.classIds}
+                                  onToggle={(id) => updateRow(row.id, 'classIds', id)}
+                                  label="Select Class(es)"
+                                  placeholder="Choose Classes"
+                                />
+                              </div>
                            </div>
   
-                           <div className="col-span-5 space-y-2">
-                              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Target Cohort (Class)</Label>
-                              <Select 
-                                value={row.classId} 
-                                onValueChange={(val) => updateRow(row.id, 'classId', val)}
-                              >
-                                 <SelectTrigger className="h-14 rounded-2xl bg-white border-slate-200">
-                                    <SelectValue placeholder="Select Class" />
-                                 </SelectTrigger>
-                                 <SelectContent className="rounded-2xl shadow-2xl border-none">
-                                    {options.classes.map(cl => (
-                                      <SelectItem key={cl.id} value={cl.id}>{cl.name}</SelectItem>
-                                    ))}
-                                 </SelectContent>
-                              </Select>
-                           </div>
-  
-                           <div className="col-span-1 flex justify-center pb-1">
+                           <div className="col-span-1 flex justify-center pt-8">
                               <Button 
                                 variant="ghost" 
                                 size="icon" 
@@ -314,19 +525,33 @@ export default function TeacherAssignmentsPage() {
                   </div>
   
                   {(() => {
-                    const validRows = assignmentRows.filter(r => r.courseId && r.classId);
-                    const uniqueRows = validRows.filter((row, index) => 
-                      validRows.findIndex(r => r.courseId === row.courseId && r.classId === row.classId) === index
-                    );
-                    const conflicts = uniqueRows.filter(r => getExistingTeacher(r.courseId, r.classId));
-                    const hasDuplicates = validRows.length !== uniqueRows.length;
+                    const flatPairs: any[] = [];
+                    assignmentRows.forEach(row => {
+                      row.courseIds.forEach(c => {
+                        row.classIds.forEach(cl => {
+                          flatPairs.push({ courseId: c, classId: cl })
+                        })
+                      })
+                    })
+                    
+                    const uniquePairs = new Set();
+                    const uniques = flatPairs.filter(p => {
+                       const key = `${p.courseId}-${p.classId}`;
+                       if (uniquePairs.has(key)) return false;
+                       uniquePairs.add(key);
+                       return true;
+                    });
+                    
+                    const conflicts = uniques.filter(p => {
+                      return options.existing?.find(e => e.courseId === p.courseId && e.classId === p.classId && e.teacherId !== selectedTeacherId)
+                    });
 
-                    return validRows.length > 0 && (
+                    return uniques.length > 0 && (
                       <div className="pt-6 border-t border-slate-100 space-y-3">
                          <div className="flex flex-wrap gap-4">
-                            <p className={`text-[10px] font-black uppercase tracking-widest flex items-center gap-2 ${hasDuplicates ? 'text-amber-500' : 'text-emerald-500'}`}>
-                                {hasDuplicates ? <AlertCircle className="h-3 w-3" /> : <CheckCircle2 className="h-3 w-3" />}
-                                {uniqueRows.length} Unique Mapping(s) Ready
+                            <p className="text-[10px] font-black uppercase tracking-widest flex items-center gap-2 text-emerald-500">
+                                <CheckCircle2 className="h-3 w-3" />
+                                {uniques.length} Total Assignment(s) Prepared
                             </p>
                             {conflicts.length > 0 && (
                               <p className="text-[10px] font-black uppercase tracking-widest flex items-center gap-2 text-rose-500">
@@ -335,11 +560,6 @@ export default function TeacherAssignmentsPage() {
                               </p>
                             )}
                          </div>
-                         {hasDuplicates && (
-                           <p className="text-[10px] font-bold text-red-500 uppercase tracking-tighter animate-pulse">
-                             ⚠️ Labo saf ama wax ka badan ayaa isku mid ah. Fadlan xogta sax.
-                           </p>
-                         )}
                       </div>
                     );
                   })()}
@@ -374,8 +594,8 @@ export default function TeacherAssignmentsPage() {
               <GraduationCap className="h-10 w-10" />
            </div>
            <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-400">Departmental Coverage</p>
-              <h3 className="text-4xl font-black text-slate-900 leading-tight">{new Set(assignments.map(a => a.classId)).size}</h3>
+              <p className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-400">Unassigned Coverage</p>
+              <h3 className="text-4xl font-black text-rose-600 leading-tight">{unassignedCount} <span className="text-sm text-slate-400 font-bold">Subjects</span></h3>
            </div>
         </Card>
       </div>
@@ -397,7 +617,11 @@ export default function TeacherAssignmentsPage() {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            <Button variant="outline" className="h-14 px-6 rounded-[20px] border-slate-100 bg-white shadow-sm flex items-center gap-2 font-black text-slate-500">
+            <Button 
+              onClick={exportCSV}
+              variant="outline" 
+              className="h-14 px-6 rounded-[20px] border-slate-100 bg-white shadow-sm flex items-center gap-2 font-black text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-100 transition-all"
+            >
                <Download className="h-4 w-4" />
                Excel Report
             </Button>
