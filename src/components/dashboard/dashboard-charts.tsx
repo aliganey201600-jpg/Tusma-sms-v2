@@ -38,7 +38,7 @@ const chartConfig = {
   },
 } satisfies ChartConfig
 
-export function DashboardCharts() {
+export function DashboardCharts({ data = chartData, config = chartConfig }: { data?: any[], config?: ChartConfig }) {
   return (
     <div className="grid gap-6 md:grid-cols-2">
       <Card className="border-none shadow-sm">
