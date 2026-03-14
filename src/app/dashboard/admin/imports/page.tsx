@@ -109,9 +109,10 @@ export default function ImportCenterPage() {
       setIsUploading(false)
       if (res?.success) {
         setResults(res)
-        toast.success(`Import complete: ${res.imported} records added.`)
+        const successRes = res as any
+        toast.success(`Import complete: ${successRes.imported} records added.`)
       } else {
-        toast.error(res?.error || "Import fashilmay.")
+        toast.error((res as any)?.error || "Import fashilmay.")
       }
     }
     reader.readAsText(file)
