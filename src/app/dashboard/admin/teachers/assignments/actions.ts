@@ -256,3 +256,43 @@ export async function fetchUnassignedSubjects(academicYear: string) {
   }
 }
 
+/**
+ * Fetch a summary report of teacher workloads
+ */
+export async function fetchTeacherWorkloadReport(academicYear: string) {
+  try {
+    return await prisma.$queryRawUnsafe(`
+      WITH TeacherStats AS (
+        SELECT 
+          t.id as "teacherId",
+          t."firstName",
+          t."lastName",
+          COUNT(DISTINCT ta."classId") as "classCount",
+          COUNT(ta.id) as "subjectSessions",
+          SUM(COALESCE(CAST(NULLIF(c.credits, '') AS NUMERIC), 0)) as "totalHours"
+        FROM "Teacher" t
+        LEFT JOIN "TeacherAssignment" ta ON t.id = ta."teacherId" AND ta."academicYear" = $1
+        LEFT JOIN "Course" c ON ta."courseId" = c.id
+        GROUP BY t.id, t."firstName", t."lastName"
+      ),
+      StudentCounts AS (
+        SELECT 
+          ta."teacherId",
+          COUNT(DISTINCT s.id) as "totalStudents"
+        FROM "TeacherAssignment" ta
+        JOIN "Student" s ON ta."classId" = s."classId"
+        WHERE ta."academicYear" = $1
+        GROUP BY ta."teacherId"
+      )
+      SELECT 
+        ts.*,
+        COALESCE(sc."totalStudents", 0) as "totalStudents"
+      FROM TeacherStats ts
+      LEFT JOIN StudentCounts sc ON ts."teacherId" = sc."teacherId"
+      ORDER BY ts."firstName" ASC
+    `, academicYear)
+  } catch (error) {
+    console.error("Error fetching workload report:", error)
+    return []
+  }
+}
