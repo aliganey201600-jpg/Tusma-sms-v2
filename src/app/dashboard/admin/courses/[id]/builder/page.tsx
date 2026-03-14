@@ -42,6 +42,7 @@ export default function CourseBuilderPage() {
   const [course, setCourse] = React.useState<any>(null)
   const [loading, setLoading] = React.useState(true)
   const [newSectionTitle, setNewSectionTitle] = React.useState("")
+  const [isAddingSection, setIsAddingSection] = React.useState(false)
   const [activeItem, setActiveItem] = React.useState<any>(null)
   const [quizQuestions, setQuizQuestions] = React.useState<any[]>([])
 
@@ -58,11 +59,20 @@ export default function CourseBuilderPage() {
 
   const handleAddSection = async () => {
     if (!newSectionTitle) return
-    const res = await addSection(id as string, newSectionTitle)
-    if (res.success) {
-      setNewSectionTitle("")
-      loadCourse()
-      toast.success("Section added successfully")
+    setIsAddingSection(true)
+    try {
+      const res = await addSection(id as string, newSectionTitle)
+      if (res.success) {
+        setNewSectionTitle("")
+        loadCourse()
+        toast.success("Section added successfully")
+      } else {
+        toast.error(res.error || "Failed to add section. Check database connection.")
+      }
+    } catch (err) {
+      toast.error("A network error occurred. Please try again.")
+    } finally {
+      setIsAddingSection(false)
     }
   }
 
@@ -226,9 +236,14 @@ export default function CourseBuilderPage() {
                 />
                 <Button 
                   onClick={handleAddSection}
-                  className="h-12 w-12 rounded-2xl bg-indigo-600 text-white shadow-lg shadow-indigo-100"
+                  disabled={isAddingSection || !newSectionTitle}
+                  className="h-12 w-12 rounded-2xl bg-indigo-600 text-white shadow-lg shadow-indigo-100 disabled:opacity-50"
                 >
-                  <Plus className="h-6 w-6" />
+                  {isAddingSection ? (
+                    <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  ) : (
+                    <Plus className="h-6 w-6" />
+                  )}
                 </Button>
               </div>
             </div>

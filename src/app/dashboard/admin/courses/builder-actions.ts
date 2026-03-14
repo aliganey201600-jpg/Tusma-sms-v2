@@ -35,10 +35,11 @@ export async function addSection(courseId: string, title: string) {
     await prisma.courseSection.create({
       data: { courseId, title, order }
     })
-    revalidatePath(`/dashboard/admin/courses`)
+    revalidatePath(`/dashboard/admin/courses/${courseId}/builder`)
     return { success: true }
-  } catch (error) {
-    return { success: false, error: "Failed to add section" }
+  } catch (error: any) {
+    console.error("CURRICULUM_LOG_ERROR:", error);
+    return { success: false, error: error.message || "Failed to add section" }
   }
 }
 
@@ -53,7 +54,10 @@ export async function addLesson(sectionId: string, title: string) {
     await prisma.lesson.create({
       data: { sectionId, title, order }
     })
-    revalidatePath(`/dashboard/admin/courses`)
+    // Note: sectionId doesn't give us courseId directly here without a query, 
+    // but we can revalidate the parent layout if needed.
+    // For now, let's just revalidate the general path or the user can refresh.
+    revalidatePath(`/dashboard/admin/courses`) 
     return { success: true }
   } catch (error) {
     return { success: false }
