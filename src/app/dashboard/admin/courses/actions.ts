@@ -72,6 +72,25 @@ export async function fetchTeachersForDropdown() {
   }
 }
 
+export async function fetchClassesForDropdown() {
+  try {
+    const classes = await prisma.class.findMany({
+      orderBy: { name: 'asc' },
+      select: {
+        id: true,
+        name: true,
+      }
+    });
+    return classes.map((c: any) => ({
+      id: c.id,
+      name: c.name,
+    }));
+  } catch (error) {
+    console.error("Error fetching classes:", error);
+    return [];
+  }
+}
+
 export async function createCourse(data: {
   title: string;
   code?: string;
