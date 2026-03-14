@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { cn } from "@/lib/utils"
 import { 
   Plus, 
   Search, 
@@ -43,6 +44,14 @@ import {
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
+} from "@/components/ui/dropdown-menu"
 import { 
   fetchTeacherAssignments, 
   fetchAssignmentOptions, 
@@ -67,84 +76,66 @@ function MultiSelectCustom({
   placeholder: string,
   className?: string
 }) {
-  const [isOpen, setIsOpen] = React.useState(false);
-  const containerRef = React.useRef<HTMLDivElement>(null);
-
-  React.useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-    if (isOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [isOpen]);
-
   return (
-    <div className={`relative w-full ${className}`} ref={containerRef}>
-      <div 
-        onClick={() => setIsOpen(!isOpen)}
-        className="h-14 rounded-2xl bg-white border border-slate-200 px-4 flex items-center justify-between cursor-pointer hover:border-indigo-300 hover:shadow-sm transition-all"
-      >
-        <div className="flex flex-wrap gap-1 overflow-hidden">
-          {selected.length === 0 ? (
-            <span className="text-slate-400 text-sm">{placeholder}</span>
-          ) : (
-            selected.map(id => (
-              <Badge key={id} variant="secondary" className="h-6 px-2 text-[10px] bg-slate-100 font-black border-none text-slate-700">
-                {items.find(i => i.id === id)?.name || id}
-              </Badge>
-            ))
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <div 
+          className={cn(
+            "h-14 rounded-2xl bg-white border border-slate-200 px-4 flex items-center justify-between cursor-pointer hover:border-indigo-300 hover:shadow-sm transition-all w-full",
+            className
           )}
+        >
+          <div className="flex flex-wrap gap-1 overflow-hidden">
+            {selected.length === 0 ? (
+              <span className="text-slate-400 text-sm">{placeholder}</span>
+            ) : (
+              selected.map(id => (
+                <Badge key={id} variant="secondary" className="h-6 px-2 text-[10px] bg-slate-100 font-black border-none text-slate-700">
+                  {items.find(i => i.id === id)?.name || id}
+                </Badge>
+              ))
+            )}
+          </div>
+          <Plus className="h-4 w-4 text-slate-400" />
         </div>
-        <Plus className={`h-4 w-4 text-slate-400 transition-transform duration-300 ${isOpen ? 'rotate-45' : ''}`} />
-      </div>
+      </DropdownMenuTrigger>
       
-      {isOpen && (
-        <div className="absolute z-[100] mt-2 w-full max-h-[400px] overflow-y-auto bg-white rounded-3xl shadow-3xl border border-slate-100 p-4 animate-in fade-in zoom-in-95 duration-200">
-           <div className="mb-4 flex justify-between items-center px-2">
-              <p className="text-[10px] font-black uppercase text-indigo-500 tracking-[0.2em]">{label}</p>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="h-8 rounded-lg text-[10px] font-black uppercase bg-slate-50 hover:bg-indigo-600 hover:text-white"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsOpen(false);
-                }}
-              >
-                Done
-              </Button>
-           </div>
-           <div className="grid grid-cols-1 gap-1">
-             {items.map(item => {
-               const isSelected = selected.includes(item.id);
-               return (
-                 <div 
-                  key={item.id}
-                  onClick={(e) => {
-                    e.stopPropagation(); // BUG FIX: Prevent trigger from toggling
-                    onToggle(item.id);
-                  }}
-                  className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all ${
-                    isSelected ? 'bg-indigo-50 text-indigo-700' : 'hover:bg-slate-50 text-slate-700'
-                  }`}
-                 >
-                   <div className={`h-5 w-5 rounded-md border-2 flex items-center justify-center transition-all ${
-                     isSelected ? 'bg-indigo-600 border-indigo-600 shadow-md shadow-indigo-100' : 'border-slate-200 bg-white'
-                   }`}>
-                     {isSelected && <CheckCircle2 className="h-3.5 w-3.5 text-white" />}
-                   </div>
-                   <span className="text-sm font-bold">{item.name}</span>
-                 </div>
-               )
-             })}
-           </div>
+      <DropdownMenuContent 
+        align="start" 
+        className="w-[300px] rounded-3xl p-4 shadow-3xl bg-white border-slate-100 z-[1000]"
+      >
+        <div className="mb-4 flex justify-between items-center px-2">
+           <DropdownMenuLabel className="text-[10px] font-black uppercase text-indigo-500 tracking-[0.2em] p-0">
+             {label}
+           </DropdownMenuLabel>
         </div>
-      )}
-    </div>
+        <DropdownMenuSeparator className="mb-2 bg-slate-50" />
+        <div className="max-h-[300px] overflow-y-auto space-y-1">
+          {items.map(item => {
+            const isSelected = selected.includes(item.id);
+            return (
+              <DropdownMenuItem 
+                key={item.id}
+                onSelect={(e) => {
+                  e.preventDefault();
+                  onToggle(item.id);
+                }}
+                className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all focus:bg-indigo-50 focus:text-indigo-700 ${
+                  isSelected ? 'bg-indigo-50 text-indigo-700' : 'text-slate-700 hover:bg-slate-50'
+                }`}
+              >
+                <div className={`h-5 w-5 rounded-md border-2 flex items-center justify-center transition-all ${
+                  isSelected ? 'bg-indigo-600 border-indigo-600 shadow-md shadow-indigo-100' : 'border-slate-300 bg-white'
+                }`}>
+                  {isSelected && <CheckCircle2 className="h-3.5 w-3.5 text-white" />}
+                </div>
+                <span className="text-sm font-bold">{item.name}</span>
+              </DropdownMenuItem>
+            )
+          })}
+        </div>
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }
 
@@ -353,7 +344,7 @@ export default function TeacherAssignmentsPage() {
               Smart Matrix Creator
             </Button>
           </DialogTrigger>
-          <DialogContent className="rounded-[40px] sm:max-w-[1000px] p-0 border-none shadow-3xl bg-white overflow-hidden overflow-y-auto max-h-[90vh]">
+          <DialogContent className="rounded-[40px] sm:max-w-[1000px] p-0 border-none shadow-3xl bg-white overflow-hidden max-h-[90vh]">
             <div className="grid grid-cols-1 md:grid-cols-4 h-full">
                {/* Left Panel: Global Config */}
                <div className="md:col-span-1 bg-slate-900 p-10 space-y-8 text-white">
