@@ -54,7 +54,7 @@ export async function fetchAssignmentOptions() {
 }
 
 /**
- * Create multiple specific assignments for a teacher
+ * Create multiple specific assignments for a teacher with conflict check
  */
 export async function createBulkAssignments(data: {
   teacherId: string;
@@ -63,11 +63,34 @@ export async function createBulkAssignments(data: {
   semester?: string;
 }) {
   try {
-    const queries = []
-    
     for (const item of data.assignments) {
       if (!item.courseId || !item.classId) continue;
       
+      // Check for existing assignment for this course + class
+      const existing: any[] = await prisma.$queryRawUnsafe(`
+        SELECT t."firstName", t."lastName"
+        FROM "TeacherAssignment" ta
+        JOIN "Teacher" t ON ta."teacherId" = t.id
+        WHERE ta."courseId" = $1 AND ta."classId" = $2 AND ta."teacherId" != $3
+        LIMIT 1
+      `, item.courseId, item.classId, data.teacherId);
+
+      if (existing.length > 0) {
+        const t = existing[0];
+        // Fetch course and class names for the error message
+        const course: any[] = await prisma.$queryRawUnsafe(`SELECT name FROM "Course" WHERE id = $1`, item.courseId);
+        const cl: any[] = await prisma.$queryRawUnsafe(`SELECT name FROM "Class" WHERE id = $1`, item.classId);
+        
+        return { 
+          success: false, 
+          error: `Maaddada ${course[0]?.name} ee fasalka ${cl[0]?.name} waxaa horay u dhigayey Macallin ${t.firstName} ${t.lastName}. Fadlan ka saar qoondayntaas horta.` 
+        };
+      }
+    }
+
+    const queries = []
+    for (const item of data.assignments) {
+      if (!item.courseId || !item.classId) continue;
       const id = crypto.randomUUID()
       queries.push(
         prisma.$executeRawUnsafe(`
@@ -84,7 +107,7 @@ export async function createBulkAssignments(data: {
     return { success: true }
   } catch (error) {
     console.error("Error creating bulk assignments:", error)
-    return { success: false, error: "Failed to create assignments. Some mappings might be duplicates." }
+    return { success: false, error: "Khalad nidaamka ah ayaa dhacay." }
   }
 }
 

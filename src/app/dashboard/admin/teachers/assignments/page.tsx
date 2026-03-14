@@ -104,6 +104,16 @@ export default function TeacherAssignmentsPage() {
       return
     }
 
+    // Check for internal duplicates in the UI
+    const duplicates = validRows.filter((row, index) => 
+      validRows.findIndex(r => r.courseId === row.courseId && r.classId === row.classId) !== index
+    )
+
+    if (duplicates.length > 0) {
+      toast.error("Waxaad dooratay maaddo iyo fasal isku mid ah dhowr jeer. Fadlan sax.")
+      return
+    }
+
     const res = await createBulkAssignments({
       teacherId: selectedTeacherId,
       assignments: validRows.map(r => ({ courseId: r.courseId, classId: r.classId })),
