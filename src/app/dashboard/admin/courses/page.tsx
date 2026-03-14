@@ -15,8 +15,10 @@ import {
   Info,
   CheckCircle2,
   GraduationCap,
-  Loader2
+  Loader2,
+  Layout
 } from "lucide-react"
+import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -462,8 +464,13 @@ export default function AdminCoursesPage() {
                         <Badge className="bg-emerald-50 text-emerald-600 border-emerald-100 font-black h-5">{course.enrollments} Students</Badge>
                      </div>
                      <div className="flex gap-2 pt-2">
-                        <Button className="flex-1 h-11 rounded-xl text-[10px] font-black uppercase tracking-widest bg-slate-900 text-white hover:bg-slate-800 transition-all">Syllabus</Button>
-                        <Button variant="outline" className="flex-1 h-11 rounded-xl text-[10px] font-black uppercase tracking-widest border-slate-100 font-bold text-slate-600 hover:bg-slate-50 transition-all">Teachers</Button>
+                        <Link href={`/dashboard/admin/courses/${course.id}/builder`} className="flex-1">
+                           <Button className="w-full h-11 rounded-xl text-[10px] font-black uppercase tracking-widest bg-slate-900 text-white hover:bg-slate-800 transition-all gap-2">
+                              <Layout className="h-4 w-4" />
+                              Builder
+                           </Button>
+                        </Link>
+                        <Button variant="outline" className="flex-1 h-11 rounded-xl text-[10px] font-black uppercase tracking-widest border-slate-100 font-bold text-slate-600 hover:bg-slate-50 transition-all">Details</Button>
                      </div>
                   </CardContent>
                 </Card>
