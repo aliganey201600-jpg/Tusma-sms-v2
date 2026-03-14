@@ -107,11 +107,12 @@ export default function CourseBuilderPage() {
     try {
       let res;
       if (activeItem.type === 'lesson') {
-        res = await updateLesson(activeItem.data.id, {
-          title: editData.title,
-          videoUrl: editData.videoUrl,
-          content: editData.content
-        })
+          res = await updateLesson(activeItem.data.id, {
+            title: editData.title,
+            videoUrl: editData.videoUrl,
+            content: editData.content,
+            duration: Number(editData.duration)
+          })
       } else {
         res = await updateQuiz(activeItem.data.id, {
           title: editData.title,
@@ -340,15 +341,25 @@ export default function CourseBuilderPage() {
                                 />
                              </div>
                              <div className="space-y-2">
-                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Video URL (Vimeo/YouTube)</Label>
-                                <Input 
-                                  value={editData?.videoUrl || ""} 
-                                  onChange={e => setEditData({...editData, videoUrl: e.target.value})}
-                                  placeholder="https://..." 
-                                  className="h-12 rounded-xl border-slate-200" 
-                                />
-                             </div>
-                          </div>
+                                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Video URL (Vimeo/YouTube)</Label>
+                                 <Input 
+                                   value={editData?.videoUrl || ""} 
+                                   onChange={e => setEditData({...editData, videoUrl: e.target.value})}
+                                   placeholder="https://..." 
+                                   className="h-12 rounded-xl border-slate-200" 
+                                 />
+                              </div>
+                              <div className="space-y-2">
+                                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Duration (Minutes)</Label>
+                                 <Input 
+                                   type="number"
+                                   value={editData?.duration || ""} 
+                                   onChange={e => setEditData({...editData, duration: e.target.value})}
+                                   placeholder="Example: 15" 
+                                   className="h-12 rounded-xl border-slate-200" 
+                                 />
+                              </div>
+                           </div>
 
                           <div className="space-y-2">
                              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Lesson Narrative / Content</Label>

@@ -22,12 +22,20 @@ import {
 } from "../../builder-actions"
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog"
 
 export default function CoursePreviewPage() {
   const { id } = useParams()
   const router = useRouter()
   const [course, setCourse] = React.useState<any>(null)
   const [loading, setLoading] = React.useState(true)
+  const [activeLesson, setActiveLesson] = React.useState<any>(null)
 
   React.useEffect(() => {
     async function load() {
@@ -143,7 +151,11 @@ export default function CoursePreviewPage() {
                   </CardHeader>
                   <CardContent className="p-4 space-y-2">
                     {section.lessons?.map((lesson: any) => (
-                      <div key={lesson.id} className="group flex items-center justify-between p-4 rounded-2xl hover:bg-slate-50 transition-colors cursor-pointer">
+                      <div 
+                        key={lesson.id} 
+                        onClick={() => setActiveLesson(lesson)}
+                        className="group flex items-center justify-between p-4 rounded-2xl hover:bg-slate-50 transition-colors cursor-pointer"
+                      >
                         <div className="flex items-center gap-4">
                           <div className="h-10 w-10 rounded-xl bg-white shadow-sm flex items-center justify-center text-slate-300 group-hover:text-indigo-600 transition-colors">
                             <Video className="h-4 w-4" />
@@ -223,6 +235,41 @@ export default function CoursePreviewPage() {
           </div>
         </div>
       </div>
+
+      <Dialog open={!!activeLesson} onOpenChange={() => setActiveLesson(null)}>
+        <DialogContent className="max-w-4xl p-0 bg-white border-none rounded-[40px] overflow-hidden shadow-2xl">
+          <div className="bg-slate-900 aspect-video flex items-center justify-center relative">
+            {activeLesson?.videoUrl ? (
+              <iframe
+                src={activeLesson.videoUrl.replace("watch?v=", "embed/").replace("vimeo.com/", "player.vimeo.com/video/")}
+                className="w-full h-full"
+                allowFullScreen
+              />
+            ) : (
+              <div className="text-center space-y-4">
+                <div className="h-20 w-20 rounded-full bg-white/5 flex items-center justify-center mx-auto">
+                   <Video className="h-10 w-10 text-white/20" />
+                </div>
+                <p className="text-white/40 font-bold uppercase tracking-widest text-xs">No Video Content Provided</p>
+              </div>
+            )}
+          </div>
+          <div className="p-10 space-y-6 overflow-y-auto max-h-[40vh]">
+            <DialogHeader>
+              <div className="flex items-center gap-3 mb-2">
+                 <Badge className="bg-indigo-50 text-indigo-600 border-none font-black text-[10px] uppercase tracking-widest">Video Lesson</Badge>
+                 <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">• {activeLesson?.duration || 0} Minutes</span>
+              </div>
+              <DialogTitle className="text-3xl font-black text-slate-900">{activeLesson?.title}</DialogTitle>
+            </DialogHeader>
+            <div className="prose prose-slate max-w-none">
+               <p className="text-slate-600 font-medium leading-relaxed whitespace-pre-wrap">
+                 {activeLesson?.content || "No narrative content provided for this lesson."}
+               </p>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
