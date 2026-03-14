@@ -36,6 +36,7 @@ export async function addSection(courseId: string, title: string) {
       data: { courseId, title, order }
     })
     revalidatePath(`/dashboard/admin/courses/${courseId}/builder`)
+    revalidatePath(`/dashboard/admin/courses/${courseId}/preview`)
     return { success: true }
   } catch (error: any) {
     console.error("CURRICULUM_LOG_ERROR:", error);
@@ -51,13 +52,14 @@ export async function addLesson(sectionId: string, title: string) {
     })
     const order = lastLesson ? lastLesson.order + 1 : 0
     
-    await prisma.lesson.create({
-      data: { sectionId, title, order }
+    const lesson = await prisma.lesson.create({
+      data: { sectionId, title, order },
+      include: { section: true }
     })
-    // Note: sectionId doesn't give us courseId directly here without a query, 
-    // but we can revalidate the parent layout if needed.
-    // For now, let's just revalidate the general path or the user can refresh.
-    revalidatePath(`/dashboard/admin/courses`) 
+    
+    const courseId = lesson.section.courseId
+    revalidatePath(`/dashboard/admin/courses/${courseId}/builder`)
+    revalidatePath(`/dashboard/admin/courses/${courseId}/preview`)
     return { success: true }
   } catch (error) {
     return { success: false }
@@ -72,10 +74,14 @@ export async function addQuiz(sectionId: string, title: string) {
     })
     const order = lastQuiz ? lastQuiz.order + 1 : 0
     
-    await prisma.quiz.create({
-      data: { sectionId, title, order }
+    const quiz = await prisma.quiz.create({
+      data: { sectionId, title, order },
+      include: { section: true }
     })
-    revalidatePath(`/dashboard/admin/courses`)
+
+    const courseId = quiz.section.courseId
+    revalidatePath(`/dashboard/admin/courses/${courseId}/builder`)
+    revalidatePath(`/dashboard/admin/courses/${courseId}/preview`)
     return { success: true }
   } catch (error) {
     return { success: false }
@@ -84,11 +90,15 @@ export async function addQuiz(sectionId: string, title: string) {
 
 export async function updateLesson(lessonId: string, data: any) {
   try {
-    await prisma.lesson.update({
+    const updatedLesson = await prisma.lesson.update({
       where: { id: lessonId },
-      data
+      data,
+      include: { section: true }
     })
-    revalidatePath(`/dashboard/admin/courses`)
+    
+    const courseId = updatedLesson.section.courseId
+    revalidatePath(`/dashboard/admin/courses/${courseId}/builder`)
+    revalidatePath(`/dashboard/admin/courses/${courseId}/preview`)
     return { success: true }
   } catch (error) {
     return { success: false }
@@ -97,11 +107,15 @@ export async function updateLesson(lessonId: string, data: any) {
 
 export async function updateQuiz(quizId: string, data: any) {
   try {
-    await prisma.quiz.update({
+    const updatedQuiz = await prisma.quiz.update({
       where: { id: quizId },
-      data
+      data,
+      include: { section: true }
     })
-    revalidatePath(`/dashboard/admin/courses`)
+
+    const courseId = updatedQuiz.section.courseId
+    revalidatePath(`/dashboard/admin/courses/${courseId}/builder`)
+    revalidatePath(`/dashboard/admin/courses/${courseId}/preview`)
     return { success: true }
   } catch (error) {
     return { success: false }
@@ -110,8 +124,12 @@ export async function updateQuiz(quizId: string, data: any) {
 
 export async function deleteSection(id: string) {
   try {
-    await prisma.courseSection.delete({ where: { id } })
-    revalidatePath(`/dashboard/admin/courses`)
+    const section = await prisma.courseSection.delete({ 
+      where: { id },
+      select: { courseId: true }
+    })
+    revalidatePath(`/dashboard/admin/courses/${section.courseId}/builder`)
+    revalidatePath(`/dashboard/admin/courses/${section.courseId}/preview`)
     return { success: true }
   } catch (error) {
     return { success: false }
