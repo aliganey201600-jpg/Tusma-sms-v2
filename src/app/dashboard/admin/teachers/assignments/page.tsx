@@ -52,7 +52,9 @@ import {
 
 export default function TeacherAssignmentsPage() {
   const [assignments, setAssignments] = React.useState<any[]>([])
-  const [options, setOptions] = React.useState<{teachers: any[], courses: any[], classes: any[]}>({ teachers: [], courses: [], classes: [] })
+  const [options, setOptions] = React.useState<{teachers: any[], courses: any[], classes: any[], existing: any[]}>({ 
+    teachers: [], courses: [], classes: [], existing: [] 
+  })
   const [loading, setLoading] = React.useState(true)
   const [isCreateOpen, setIsCreateOpen] = React.useState(false)
   const [searchTerm, setSearchTerm] = React.useState("")
@@ -72,7 +74,7 @@ export default function TeacherAssignmentsPage() {
       fetchAssignmentOptions()
     ])
     setAssignments(data as any[])
-    setOptions(opts)
+    setOptions(opts as any)
     setLoading(false)
   }, [])
 
@@ -147,6 +149,11 @@ export default function TeacherAssignmentsPage() {
     a.courseName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     a.className.toLowerCase().includes(searchTerm.toLowerCase())
   )
+
+  const getExistingTeacher = (courseId: string, classId: string) => {
+    if (!courseId || !classId) return null
+    return options.existing?.find(e => e.courseId === courseId && e.classId === classId && e.teacherId !== selectedTeacherId)
+  }
 
   return (
     <div className="p-8 space-y-10 max-w-[1600px] mx-auto animate-in fade-in duration-700">
@@ -237,74 +244,97 @@ export default function TeacherAssignmentsPage() {
                   </div>
 
                   <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-200">
-                    {assignmentRows.map((row, index) => (
-                      <div key={row.id} className="grid grid-cols-12 gap-4 items-end bg-slate-50/50 p-6 rounded-3xl border border-dotted border-slate-200 group animate-in slide-in-from-right-2 duration-300">
-                         <div className="col-span-1 flex flex-col justify-center items-center h-14">
-                            <span className="text-[10px] font-black text-slate-300 bg-white h-8 w-8 rounded-full flex items-center justify-center border border-slate-100 shadow-sm">{index + 1}</span>
-                         </div>
-                         
-                         <div className="col-span-5 space-y-2">
-                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Course / Subject</Label>
-                            <Select 
-                              value={row.courseId} 
-                              onValueChange={(val) => updateRow(row.id, 'courseId', val)}
-                            >
-                               <SelectTrigger className="h-14 rounded-2xl bg-white border-slate-200">
-                                  <SelectValue placeholder="Select Subject" />
-                               </SelectTrigger>
-                               <SelectContent className="rounded-2xl shadow-2xl border-none">
-                                  {options.courses.map(c => (
-                                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                                  ))}
-                               </SelectContent>
-                            </Select>
-                         </div>
+                    {assignmentRows.map((row, index) => {
+                      const conflict = getExistingTeacher(row.courseId, row.classId)
+                      return (
+                        <div key={row.id} className={`grid grid-cols-12 gap-4 items-end p-6 rounded-3xl border transition-all duration-300 animate-in slide-in-from-right-2 ${
+                          conflict ? "bg-red-50/50 border-red-100 shadow-inner" : "bg-slate-50/50 border-dotted border-slate-200"
+                        }`}>
+                           <div className="col-span-1 flex flex-col justify-center items-center h-14">
+                              <span className="text-[10px] font-black text-slate-300 bg-white h-8 w-8 rounded-full flex items-center justify-center border border-slate-100 shadow-sm">{index + 1}</span>
+                           </div>
+                           
+                           <div className="col-span-5 space-y-2">
+                              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Course / Subject</Label>
+                              <Select 
+                                value={row.courseId} 
+                                onValueChange={(val) => updateRow(row.id, 'courseId', val)}
+                              >
+                                 <SelectTrigger className="h-14 rounded-2xl bg-white border-slate-200">
+                                    <SelectValue placeholder="Select Subject" />
+                                 </SelectTrigger>
+                                 <SelectContent className="rounded-2xl shadow-2xl border-none">
+                                    {options.courses.map(c => (
+                                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                                    ))}
+                                 </SelectContent>
+                              </Select>
+                           </div>
+  
+                           <div className="col-span-5 space-y-2">
+                              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Target Cohort (Class)</Label>
+                              <Select 
+                                value={row.classId} 
+                                onValueChange={(val) => updateRow(row.id, 'classId', val)}
+                              >
+                                 <SelectTrigger className="h-14 rounded-2xl bg-white border-slate-200">
+                                    <SelectValue placeholder="Select Class" />
+                                 </SelectTrigger>
+                                 <SelectContent className="rounded-2xl shadow-2xl border-none">
+                                    {options.classes.map(cl => (
+                                      <SelectItem key={cl.id} value={cl.id}>{cl.name}</SelectItem>
+                                    ))}
+                                 </SelectContent>
+                              </Select>
+                           </div>
+  
+                           <div className="col-span-1 flex justify-center pb-1">
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                onClick={() => removeRow(row.id)}
+                                disabled={assignmentRows.length === 1}
+                                className="h-12 w-12 rounded-xl text-slate-300 hover:text-red-600 hover:bg-red-50 transition-colors"
+                              >
+                                 <Trash2 className="h-5 w-5" />
+                              </Button>
+                           </div>
 
-                         <div className="col-span-5 space-y-2">
-                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Target Cohort (Class)</Label>
-                            <Select 
-                              value={row.classId} 
-                              onValueChange={(val) => updateRow(row.id, 'classId', val)}
-                            >
-                               <SelectTrigger className="h-14 rounded-2xl bg-white border-slate-200">
-                                  <SelectValue placeholder="Select Class" />
-                               </SelectTrigger>
-                               <SelectContent className="rounded-2xl shadow-2xl border-none">
-                                  {options.classes.map(cl => (
-                                    <SelectItem key={cl.id} value={cl.id}>{cl.name}</SelectItem>
-                                  ))}
-                               </SelectContent>
-                            </Select>
-                         </div>
-
-                         <div className="col-span-1 flex justify-center pb-1">
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              onClick={() => removeRow(row.id)}
-                              disabled={assignmentRows.length === 1}
-                              className="h-12 w-12 rounded-xl text-slate-300 hover:text-red-600 hover:bg-red-50 transition-colors"
-                            >
-                               <Trash2 className="h-5 w-5" />
-                            </Button>
-                         </div>
-                      </div>
-                    ))}
+                           {conflict && (
+                             <div className="col-start-2 col-span-10 mt-2">
+                               <p className="text-[10px] font-black text-red-600 uppercase tracking-tighter flex items-center gap-2 bg-red-100/50 w-fit px-3 py-1.5 rounded-lg border border-red-200">
+                                 <AlertCircle className="h-3.5 w-3.5" />
+                                 Fiiro gaar ah: Maaddadan waxaa horay u haystay Macallin {conflict.firstName} {conflict.lastName}. Haddii aad dirto, qofkaas ayaa laga saari doonaa.
+                               </p>
+                             </div>
+                           )}
+                        </div>
+                      )
+                    })}
                   </div>
-
+  
                   {(() => {
                     const validRows = assignmentRows.filter(r => r.courseId && r.classId);
                     const uniqueRows = validRows.filter((row, index) => 
                       validRows.findIndex(r => r.courseId === row.courseId && r.classId === row.classId) === index
                     );
+                    const conflicts = uniqueRows.filter(r => getExistingTeacher(r.courseId, r.classId));
                     const hasDuplicates = validRows.length !== uniqueRows.length;
 
                     return validRows.length > 0 && (
-                      <div className="pt-6 border-t border-slate-100 space-y-2">
-                         <p className={`text-[10px] font-black uppercase tracking-widest flex items-center gap-2 ${hasDuplicates ? 'text-amber-500' : 'text-emerald-500'}`}>
-                            {hasDuplicates ? <AlertCircle className="h-3 w-3" /> : <CheckCircle2 className="h-3 w-3" />}
-                            {uniqueRows.length} Unique Mapping(s) Prepared
-                         </p>
+                      <div className="pt-6 border-t border-slate-100 space-y-3">
+                         <div className="flex flex-wrap gap-4">
+                            <p className={`text-[10px] font-black uppercase tracking-widest flex items-center gap-2 ${hasDuplicates ? 'text-amber-500' : 'text-emerald-500'}`}>
+                                {hasDuplicates ? <AlertCircle className="h-3 w-3" /> : <CheckCircle2 className="h-3 w-3" />}
+                                {uniqueRows.length} Unique Mapping(s) Ready
+                            </p>
+                            {conflicts.length > 0 && (
+                              <p className="text-[10px] font-black uppercase tracking-widest flex items-center gap-2 text-rose-500">
+                                 <Layers className="h-3 w-3" />
+                                 {conflicts.length} Overwrite(s) Detected
+                              </p>
+                            )}
+                         </div>
                          {hasDuplicates && (
                            <p className="text-[10px] font-bold text-red-500 uppercase tracking-tighter animate-pulse">
                              ⚠️ Labo saf ama wax ka badan ayaa isku mid ah. Fadlan xogta sax.

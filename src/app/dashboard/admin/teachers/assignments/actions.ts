@@ -41,11 +41,17 @@ export async function fetchAssignmentOptions() {
     const teachers = await prisma.$queryRawUnsafe(`SELECT id, "firstName", "lastName" FROM "Teacher" WHERE status = 'ACTIVE'`)
     const courses = await prisma.$queryRawUnsafe(`SELECT id, name FROM "Course"`)
     const classes = await prisma.$queryRawUnsafe(`SELECT id, name FROM "Class"`)
+    const existing = await prisma.$queryRawUnsafe(`
+      SELECT ta."courseId", ta."classId", t."firstName", t."lastName", ta."teacherId"
+      FROM "TeacherAssignment" ta
+      JOIN "Teacher" t ON ta."teacherId" = t.id
+    `)
     
     return {
       teachers: teachers as any[],
       courses: courses as any[],
-      classes: classes as any[]
+      classes: classes as any[],
+      existing: existing as any[]
     }
   } catch (error) {
     console.error("Error fetching assignment options:", error)
