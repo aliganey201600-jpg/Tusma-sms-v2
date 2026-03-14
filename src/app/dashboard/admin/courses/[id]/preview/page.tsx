@@ -32,6 +32,7 @@ import {
   getCourseStructure 
 } from "../../builder-actions"
 import { useParams, useRouter } from "next/navigation"
+import Link from "next/link"
 import { cn } from "@/lib/utils"
 
 export default function CoursePreviewPage() {
@@ -391,19 +392,23 @@ export default function CoursePreviewPage() {
                           </div>
                         ))}
                         {section.quizzes?.map((quiz: any) => (
-                          <div
+                          <Link
                             key={quiz.id}
-                            className="group flex items-center gap-4 p-3.5 rounded-xl hover:bg-amber-50/50 cursor-pointer transition-all"
+                            href={`/dashboard/admin/courses/${id}/quiz/${quiz.id}`}
+                            className="group flex items-center gap-4 p-3.5 rounded-xl hover:bg-amber-50/60 border-2 border-transparent hover:border-amber-100 cursor-pointer transition-all"
                           >
-                            <div className="h-8 w-8 rounded-lg bg-amber-50 flex items-center justify-center text-amber-500 shrink-0">
+                            <div className="h-8 w-8 rounded-lg bg-amber-50 group-hover:bg-amber-100 flex items-center justify-center text-amber-500 shrink-0 transition-all">
                               <Zap className="h-3.5 w-3.5" />
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm font-semibold text-slate-700 truncate">{quiz.title}</p>
+                              <p className="text-sm font-semibold text-slate-700 group-hover:text-amber-700 truncate transition-colors">{quiz.title}</p>
                               <p className="text-[10px] text-slate-400 font-medium">Quiz • {quiz.passingScore}% to pass</p>
                             </div>
-                            <Badge variant="secondary" className="bg-amber-50 text-amber-600 border-none text-[9px] font-bold uppercase tracking-wider">Assessment</Badge>
-                          </div>
+                            <div className="flex items-center gap-2">
+                              <Badge variant="secondary" className="bg-amber-50 text-amber-600 border-none text-[9px] font-bold uppercase tracking-wider">Assessment</Badge>
+                              <ChevronRight className="h-4 w-4 text-amber-300 group-hover:text-amber-500 transition-colors" />
+                            </div>
+                          </Link>
                         ))}
                       </div>
                     </div>
