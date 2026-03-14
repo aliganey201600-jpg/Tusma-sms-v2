@@ -119,7 +119,7 @@ export default function WorkloadReportPage() {
            <div>
               <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Avg Load</p>
               <h3 className="text-2xl font-black text-slate-900">
-                {(reportData.reduce((acc, r) => acc + Number(r.totalHours), 0) / (reportData.length || 1)).toFixed(1)}h
+                {(reportData.reduce((acc, r) => acc + Number(r.totalHours || 0), 0) / (reportData.length || 1)).toFixed(1)}h
               </h3>
            </div>
         </Card>
@@ -130,7 +130,7 @@ export default function WorkloadReportPage() {
            <div>
               <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Total Student Reach</p>
               <h3 className="text-2xl font-black text-slate-900">
-                {reportData.reduce((acc, r) => acc + r.totalStudents, 0)}
+                {reportData.reduce((acc, r) => acc + Number(r.totalStudents || 0), 0)}
               </h3>
            </div>
         </Card>
