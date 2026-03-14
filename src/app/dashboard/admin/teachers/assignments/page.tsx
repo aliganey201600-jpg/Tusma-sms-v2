@@ -20,8 +20,10 @@ import {
   CheckCircle2,
   AlertCircle,
   X,
-  PlusCircle
+  PlusCircle,
+  FileBarChart
 } from "lucide-react"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -343,69 +345,12 @@ export default function TeacherAssignmentsPage() {
         </div>
 
         <div className="flex gap-4">
-          <Dialog open={isWorkloadOpen} onOpenChange={setIsWorkloadOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline" className="h-16 px-8 rounded-[22px] border-slate-200 bg-white text-slate-700 font-black uppercase tracking-widest shadow-xl hover:bg-slate-50 transition-all gap-3">
-                <LayoutGrid className="h-6 w-6 text-indigo-600" />
-                Workload Insights
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="rounded-[40px] sm:max-w-[1000px] p-10 border-none shadow-3xl bg-white overflow-y-auto max-h-[90vh]">
-              <DialogHeader>
-                <DialogTitle className="text-3xl font-black tracking-tight text-slate-900">Workload Intelligence Report</DialogTitle>
-                <DialogDescription className="text-slate-500 font-medium text-lg">
-                  Real-time analysis of educator distribution and instructional volume.
-                </DialogDescription>
-              </DialogHeader>
-
-              <div className="mt-8 overflow-x-auto rounded-[30px] border border-slate-100 shadow-sm">
-                <table className="w-full text-left">
-                  <thead className="bg-slate-50/50">
-                    <tr>
-                      <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Educator</th>
-                      <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Classes</th>
-                      <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Subjects</th>
-                      <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Credit Hours</th>
-                      <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Student Reach</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-50">
-                    {workloadReport.map((r, idx) => (
-                      <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
-                        <td className="px-8 py-6">
-                          <div className="flex items-center gap-3">
-                            <div className="h-10 w-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 font-black text-xs">
-                              {r.firstName ? r.firstName[0] : ''}{r.lastName ? r.lastName[0] : ''}
-                            </div>
-                            <span className="font-bold text-slate-900">{r.firstName} {r.lastName}</span>
-                          </div>
-                        </td>
-                        <td className="px-8 py-6 font-bold text-slate-600">{r.classCount}</td>
-                        <td className="px-8 py-6 font-bold text-slate-600">{r.subjectSessions}</td>
-                        <td className="px-8 py-6">
-                          <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-none font-black px-3 py-1">
-                            {Number(r.totalHours).toFixed(1)} hrs
-                          </Badge>
-                        </td>
-                        <td className="px-8 py-6">
-                          <div className="flex items-center gap-2 text-indigo-600 font-black">
-                            <UserPlus className="h-3.5 w-3.5" />
-                            {r.totalStudents}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              <div className="mt-10 flex justify-end">
-                <Button onClick={() => setIsWorkloadOpen(false)} className="h-14 px-8 rounded-2xl bg-slate-900 text-white font-black uppercase tracking-widest">
-                  Close Intelligence View
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+          <Link href="/dashboard/admin/teachers/assignments/workload-report">
+            <Button variant="outline" className="h-16 px-8 rounded-[22px] border-slate-200 bg-white text-slate-700 font-black uppercase tracking-widest shadow-xl hover:bg-slate-50 transition-all gap-3">
+              <FileBarChart className="h-6 w-6 text-indigo-600" />
+              Workload Report
+            </Button>
+          </Link>
 
           <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
             <DialogTrigger asChild>
