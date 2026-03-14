@@ -34,6 +34,7 @@ import {
   updateQuiz 
 } from "../../builder-actions"
 import { useParams, useRouter } from "next/navigation"
+import Link from "next/link"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 
@@ -157,9 +158,11 @@ export default function CourseBuilderPage() {
           <Button variant="outline" className="h-11 rounded-xl border-slate-200 text-slate-600 font-bold px-6" onClick={() => router.back()}>
             Exit Builder
           </Button>
-          <Button className="h-11 rounded-xl bg-slate-900 border-none px-6 font-bold shadow-xl shadow-slate-200">
-            Preview Course
-          </Button>
+          <Link href={`/dashboard/admin/courses/${id}/preview`}>
+            <Button className="h-11 rounded-xl bg-slate-900 border-none px-6 font-bold shadow-xl shadow-slate-200">
+              Preview Course
+            </Button>
+          </Link>
         </div>
       </header>
 
