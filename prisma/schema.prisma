@@ -417,6 +417,6 @@ model TeacherAssignment {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([teacherId, courseId, classId])
+  @@unique([courseId, classId])
 }
 

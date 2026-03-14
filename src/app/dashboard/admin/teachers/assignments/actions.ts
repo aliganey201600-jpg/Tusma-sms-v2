@@ -54,39 +54,37 @@ export async function fetchAssignmentOptions() {
 }
 
 /**
- * Bulk assign subjects and classes to a teacher
+ * Create multiple specific assignments for a teacher
  */
 export async function createBulkAssignments(data: {
   teacherId: string;
-  courseIds: string[];
-  classIds: string[];
+  assignments: { courseId: string, classId: string }[];
   academicYear?: string;
   semester?: string;
 }) {
   try {
-    const assignments = []
+    const queries = []
     
-    // Using a simple loop for safety on direct DB execution
-    for (const courseId of data.courseIds) {
-      for (const classId of data.classIds) {
-        const id = crypto.randomUUID()
-        assignments.push(
-          prisma.$executeRawUnsafe(`
-            INSERT INTO "TeacherAssignment" (id, "teacherId", "courseId", "classId", "academicYear", semester, "updatedAt")
-            VALUES ($1, $2, $3, $4, $5, $6, NOW())
-            ON CONFLICT ("teacherId", "courseId", "classId") DO UPDATE 
-            SET "academicYear" = EXCLUDED."academicYear", semester = EXCLUDED.semester, "updatedAt" = NOW()
-          `, id, data.teacherId, courseId, classId, data.academicYear || "", data.semester || "")
-        )
-      }
+    for (const item of data.assignments) {
+      if (!item.courseId || !item.classId) continue;
+      
+      const id = crypto.randomUUID()
+      queries.push(
+        prisma.$executeRawUnsafe(`
+          INSERT INTO "TeacherAssignment" (id, "teacherId", "courseId", "classId", "academicYear", semester, "updatedAt")
+          VALUES ($1, $2, $3, $4, $5, $6, NOW())
+          ON CONFLICT ("courseId", "classId") DO UPDATE 
+          SET "teacherId" = EXCLUDED."teacherId", "academicYear" = EXCLUDED."academicYear", semester = EXCLUDED.semester, "updatedAt" = NOW()
+        `, id, data.teacherId, item.courseId, item.classId, data.academicYear || "", data.semester || "")
+      )
     }
     
-    await Promise.all(assignments)
+    await Promise.all(queries)
     revalidatePath("/dashboard/admin/teachers/assignments")
     return { success: true }
   } catch (error) {
     console.error("Error creating bulk assignments:", error)
-    return { success: false, error: "Failed to create assignments." }
+    return { success: false, error: "Failed to create assignments. Some mappings might be duplicates." }
   }
 }
 
@@ -122,8 +120,8 @@ export async function importAssignmentsCSV(rows: any[]) {
           await prisma.$executeRawUnsafe(`
             INSERT INTO "TeacherAssignment" (id, "teacherId", "courseId", "classId", "academicYear", semester, "updatedAt")
             VALUES ($1, $2, $3, $4, $5, $6, NOW())
-            ON CONFLICT ("teacherId", "courseId", "classId") DO UPDATE 
-            SET "academicYear" = EXCLUDED."academicYear", semester = EXCLUDED.semester, "updatedAt" = NOW()
+            ON CONFLICT ("courseId", "classId") DO UPDATE 
+            SET "teacherId" = EXCLUDED."teacherId", "academicYear" = EXCLUDED."academicYear", semester = EXCLUDED.semester, "updatedAt" = NOW()
           `, id, teacherId, courseId, classId, row.academicYear || "", row.semester || "")
           results.imported++
         } else {
