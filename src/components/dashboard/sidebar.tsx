@@ -18,6 +18,7 @@ import {
   CheckCircle2,
   CreditCard,
   Briefcase,
+  RefreshCcw,
 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
@@ -60,6 +61,7 @@ export function Sidebar({ className, role }: SidebarProps) {
       { label: "Finance", icon: CreditCard, href: "/dashboard/admin/finance" },
       { label: "Exams", icon: GraduationCap, href: "/dashboard/admin/exams" },
       { label: "Assignments", icon: Briefcase, href: "/dashboard/admin/teachers/assignments" },
+      { label: "Imports", icon: RefreshCcw, href: "/dashboard/admin/imports" },
       { label: "Messages", icon: Bell, href: "/dashboard/messages" },
       { label: "Events", icon: CalendarDays, href: "/dashboard/admin/events" },
     ],
