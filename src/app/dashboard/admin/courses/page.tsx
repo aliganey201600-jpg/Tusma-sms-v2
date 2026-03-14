@@ -49,11 +49,12 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
-import { fetchCourses, deleteCourse, fetchTeachersForDropdown, createCourse, updateCourse } from "./actions"
+import { fetchCourses, deleteCourse, fetchTeachersForDropdown, fetchClassesForDropdown, createCourse, updateCourse } from "./actions"
 
 export default function AdminCoursesPage() {
   const [courses, setCourses] = React.useState<any[]>([])
   const [teachersList, setTeachersList] = React.useState<any[]>([])
+  const [classesList, setClassesList] = React.useState<any[]>([])
   const [isLoading, setIsLoading] = React.useState(true)
   const [isProcessing, setIsProcessing] = React.useState(false)
 
@@ -70,7 +71,8 @@ export default function AdminCoursesPage() {
     grade: "1",
     category: "Core",
     credits: "3.0",
-    teacherId: ""
+    teacherId: "",
+    classId: ""
   })
   
   // Filters State
@@ -85,12 +87,14 @@ export default function AdminCoursesPage() {
 
   const loadData = React.useCallback(async () => {
     setIsLoading(true)
-    const [data, tData] = await Promise.all([
+    const [data, tData, cData] = await Promise.all([
       fetchCourses(),
-      fetchTeachersForDropdown()
+      fetchTeachersForDropdown(),
+      fetchClassesForDropdown()
     ])
     setCourses(data)
     setTeachersList(tData)
+    setClassesList(cData)
     setIsLoading(false)
   }, [])
 

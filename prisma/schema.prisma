@@ -102,6 +102,7 @@ model Teacher {
   
   courses         Course[]
   classes         Class[]
+  assignments     TeacherAssignment[]
   resources       TeacherResource[]
 
   createdAt       DateTime @default(now())
@@ -168,6 +169,7 @@ model Class {
   teacherId     String?
   teacher       Teacher? @relation(fields: [teacherId], references: [id])
   students      Student[]
+  subjectAssignments TeacherAssignment[]
 
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -189,6 +191,7 @@ model Course {
   enrollments   Enrollment[]
   assignments   Assignment[]
   exams         Exam[]
+  teacherAssignments TeacherAssignment[]
 
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -397,5 +400,23 @@ model ExamResult {
   updatedAt     DateTime @updatedAt
 
   @@unique([examId, studentId])
+}
+
+model TeacherAssignment {
+  id        String   @id @default(uuid())
+  teacherId String
+  teacher   Teacher  @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  courseId  String
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  classId   String
+  class     Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  
+  academicYear String?
+  semester     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([teacherId, courseId, classId])
 }
 
