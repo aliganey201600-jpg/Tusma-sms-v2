@@ -240,25 +240,36 @@ export default function CourseBuilderPage() {
                     {section.quizzes?.map((quiz: any) => (
                       <div 
                         key={quiz.id} 
-                        onClick={() => handleSelectItem({ type: 'quiz', data: quiz })}
-                        className={cn(
-                          "flex items-center justify-between p-4 rounded-2xl cursor-pointer transition-all border border-transparent",
-                          activeItem?.data?.id === quiz.id ? "bg-amber-50 border-amber-100 shadow-sm" : "hover:bg-slate-50"
-                        )}
+                        className="space-y-1"
                       >
-                        <div className="flex items-center gap-3">
-                          <div className={cn(
-                            "h-10 w-10 rounded-xl flex items-center justify-center transition-colors",
-                            activeItem?.data?.id === quiz.id ? "bg-white text-amber-600 shadow-sm" : "bg-white text-slate-300"
-                          )}>
-                             <Zap className="h-4 w-4" />
+                        <div
+                          onClick={() => handleSelectItem({ type: 'quiz', data: quiz })}
+                          className={cn(
+                            "flex items-center justify-between p-4 rounded-2xl cursor-pointer transition-all border border-transparent",
+                            activeItem?.data?.id === quiz.id ? "bg-amber-50 border-amber-100 shadow-sm" : "hover:bg-slate-50"
+                          )}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className={cn(
+                              "h-10 w-10 rounded-xl flex items-center justify-center transition-colors",
+                              activeItem?.data?.id === quiz.id ? "bg-white text-amber-600 shadow-sm" : "bg-white text-slate-300"
+                            )}>
+                               <Zap className="h-4 w-4" />
+                            </div>
+                            <div>
+                              <p className="text-sm font-bold text-slate-900">{quiz.title}</p>
+                              <p className="text-[10px] font-medium text-slate-400">Knowledge Check • {quiz.passingScore}% Pass</p>
+                            </div>
                           </div>
-                          <div>
-                            <p className="text-sm font-bold text-slate-900">{quiz.title}</p>
-                            <p className="text-[10px] font-medium text-slate-400">Knowledge Check • {quiz.passingScore}% Pass</p>
-                          </div>
+                          <ChevronRight className="h-4 w-4 text-slate-300" />
                         </div>
-                        <ChevronRight className="h-4 w-4 text-slate-300" />
+                        <Link
+                          href={`/dashboard/admin/courses/${id}/quiz/${quiz.id}`}
+                          className="flex items-center gap-1.5 px-4 py-2 ml-13 text-[10px] font-black uppercase tracking-widest text-amber-600 hover:text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-xl transition-all"
+                          onClick={e => e.stopPropagation()}
+                        >
+                          <ExternalLink className="h-3 w-3" /> Build Quiz Questions →
+                        </Link>
                       </div>
                     ))}
 

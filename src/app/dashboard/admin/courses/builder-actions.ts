@@ -82,7 +82,7 @@ export async function addQuiz(sectionId: string, title: string) {
     const courseId = quiz.section.courseId
     revalidatePath(`/dashboard/admin/courses/${courseId}/builder`)
     revalidatePath(`/dashboard/admin/courses/${courseId}/preview`)
-    return { success: true }
+    return { success: true, quizId: quiz.id }
   } catch (error) {
     return { success: false }
   }
@@ -117,6 +117,8 @@ export async function updateQuiz(quizId: string, data: {
   title?: string;
   passingScore?: number;
   timeLimit?: number;
+  shuffleQuestions?: boolean;
+  description?: string;
   lessonId?: string | null;
 }) {
   try {
@@ -133,6 +135,64 @@ export async function updateQuiz(quizId: string, data: {
   } catch (error) {
     console.error("Update Quiz Error:", error)
     return { success: false }
+  }
+}
+
+// ─── Quiz Question CRUD ─────────────────────────────────────────────────────
+
+export async function getQuizWithQuestions(quizId: string) {
+  try {
+    const quiz = await prisma.quiz.findUnique({
+      where: { id: quizId },
+      include: {
+        questions: {
+          orderBy: { order: 'asc' },
+          include: { options: { orderBy: { order: 'asc' } } }
+        },
+        section: { select: { courseId: true } }
+      }
+    })
+    return quiz
+  } catch (error) {
+    return null
+  }
+}
+
+export async function saveQuizQuestions(quizId: string, questions: any[]) {
+  try {
+    // Delete all existing questions (cascade deletes options)
+    await prisma.quizQuestion.deleteMany({ where: { quizId } })
+
+    // Re-create all questions with their options
+    for (let i = 0; i < questions.length; i++) {
+      const q = questions[i]
+      await prisma.quizQuestion.create({
+        data: {
+          quizId,
+          question: q.question,
+          type: q.type,
+          points: q.points ?? 1,
+          required: q.required ?? true,
+          shuffleOptions: q.shuffleOptions ?? false,
+          hint: q.hint || null,
+          correctAnswer: q.correctAnswer || null,
+          order: i,
+          options: {
+            create: (q.options || []).map((opt: any, oi: number) => ({
+              text: opt.text,
+              isCorrect: opt.isCorrect ?? false,
+              matchKey: opt.matchKey || null,
+              order: oi,
+            }))
+          }
+        }
+      })
+    }
+
+    return { success: true }
+  } catch (error: any) {
+    console.error("saveQuizQuestions error:", error)
+    return { success: false, error: error.message }
   }
 }
 
