@@ -17,6 +17,7 @@ import {
   Briefcase,
   Download,
   CheckCircle2,
+  AlertCircle,
   X,
   PlusCircle
 } from "lucide-react"
@@ -291,14 +292,27 @@ export default function TeacherAssignmentsPage() {
                     ))}
                   </div>
 
-                  {assignmentRows.filter(r => r.courseId && r.classId).length > 0 && (
-                    <div className="pt-6 border-t border-slate-100">
-                       <p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest flex items-center gap-2">
-                          <CheckCircle2 className="h-3 w-3" />
-                          {assignmentRows.filter(r => r.courseId && r.classId).length} Valid Mapping(s) Prepared
-                       </p>
-                    </div>
-                  )}
+                  {(() => {
+                    const validRows = assignmentRows.filter(r => r.courseId && r.classId);
+                    const uniqueRows = validRows.filter((row, index) => 
+                      validRows.findIndex(r => r.courseId === row.courseId && r.classId === row.classId) === index
+                    );
+                    const hasDuplicates = validRows.length !== uniqueRows.length;
+
+                    return validRows.length > 0 && (
+                      <div className="pt-6 border-t border-slate-100 space-y-2">
+                         <p className={`text-[10px] font-black uppercase tracking-widest flex items-center gap-2 ${hasDuplicates ? 'text-amber-500' : 'text-emerald-500'}`}>
+                            {hasDuplicates ? <AlertCircle className="h-3 w-3" /> : <CheckCircle2 className="h-3 w-3" />}
+                            {uniqueRows.length} Unique Mapping(s) Prepared
+                         </p>
+                         {hasDuplicates && (
+                           <p className="text-[10px] font-bold text-red-500 uppercase tracking-tighter animate-pulse">
+                             ⚠️ Labo saf ama wax ka badan ayaa isku mid ah. Fadlan xogta sax.
+                           </p>
+                         )}
+                      </div>
+                    );
+                  })()}
                </div>
             </div>
           </DialogContent>
