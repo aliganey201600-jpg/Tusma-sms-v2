@@ -19,6 +19,128 @@ import { cn } from "@/lib/utils"
 // ─── Types ──────────────────────────────────────────────────────────────────
 type Mode = "overview" | "lesson" | "quiz"
 
+// ─── Matching Drag-and-Drop Component ────────────────────────────────────────
+function MatchingQuestion({ options, value, onChange }: {
+  options: any[]
+  value: Record<string, string>   // { promptId: answerId }
+  onChange: (v: Record<string, string>) => void
+}) {
+  const [draggedId, setDraggedId] = React.useState<string | null>(null)
+  const [dragOver, setDragOver] = React.useState<string | null>(null)
+
+  // Shuffle answers once on mount
+  const shuffled = React.useMemo(() => {
+    const copy = [...options]
+    for (let i = copy.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [copy[i], copy[j]] = [copy[j], copy[i]]
+    }
+    return copy
+  }, [options.map((o: any) => o.id).join(",")])
+
+  const assigned = new Set(Object.values(value)) // answer IDs already placed
+
+  const handleDrop = (promptId: string) => {
+    if (!draggedId) return
+    // Remove this answer from any previous prompt
+    const updated = { ...value }
+    Object.keys(updated).forEach(k => { if (updated[k] === draggedId) delete updated[k] })
+    updated[promptId] = draggedId
+    onChange(updated)
+    setDraggedId(null)
+    setDragOver(null)
+  }
+
+  const removeMatch = (promptId: string) => {
+    const updated = { ...value }
+    delete updated[promptId]
+    onChange(updated)
+  }
+
+  const getAnswerText = (answerId: string) =>
+    options.find((o: any) => o.id === answerId)?.text || ""
+
+  return (
+    <div className="space-y-4">
+      <p className="text-xs text-slate-400 font-medium">
+        Drag answers from the right and drop them onto the matching prompt on the left.
+      </p>
+      <div className="grid grid-cols-2 gap-6">
+        {/* Left — Prompts (drop zones) */}
+        <div className="space-y-3">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Prompts</p>
+          {options.map((opt: any) => {
+            const matchedId = value[opt.id]
+            const isOver = dragOver === opt.id
+            return (
+              <div
+                key={opt.id}
+                onDragOver={e => { e.preventDefault(); setDragOver(opt.id) }}
+                onDragLeave={() => setDragOver(null)}
+                onDrop={() => handleDrop(opt.id)}
+                className={cn(
+                  "rounded-2xl border-2 p-3 min-h-[56px] transition-all",
+                  isOver ? "border-indigo-400 bg-indigo-50 scale-[1.01]" :
+                  matchedId ? "border-emerald-300 bg-emerald-50" :
+                  "border-dashed border-slate-200 bg-slate-50/50"
+                )}
+              >
+                <p className="text-xs font-semibold text-slate-600 mb-2">{opt.matchKey}</p>
+                {matchedId ? (
+                  <div className="flex items-center gap-2 bg-white rounded-xl px-3 py-2 shadow-sm border border-emerald-200">
+                    <span className="text-xs font-semibold text-emerald-700 flex-1">{getAnswerText(matchedId)}</span>
+                    <button onClick={() => removeMatch(opt.id)} className="text-slate-300 hover:text-red-400 transition-colors">
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="text-[10px] text-slate-300 font-medium">{isOver ? "Release to match" : "Drop answer here"}</div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+
+        {/* Right — Draggable Answers */}
+        <div className="space-y-3">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Answers</p>
+          {shuffled.map((opt: any) => {
+            const isUsed = assigned.has(opt.id)
+            const isDragging = draggedId === opt.id
+            return (
+              <div
+                key={opt.id}
+                draggable={!isUsed}
+                onDragStart={() => setDraggedId(opt.id)}
+                onDragEnd={() => { setDraggedId(null); setDragOver(null) }}
+                className={cn(
+                  "rounded-2xl border-2 px-4 py-3 text-sm font-semibold transition-all select-none",
+                  isUsed
+                    ? "border-emerald-200 bg-emerald-50 text-emerald-400 opacity-50 cursor-not-allowed"
+                    : isDragging
+                    ? "border-indigo-400 bg-indigo-50 text-indigo-700 shadow-xl scale-105 cursor-grabbing"
+                    : "border-slate-200 bg-white text-slate-700 cursor-grab hover:border-indigo-300 hover:shadow-md hover:scale-[1.01]"
+                )}
+              >
+                {isUsed ? (
+                  <span className="flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-400" /> {opt.text}
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-2">
+                    <span className="text-slate-300">⠿</span> {opt.text}
+                  </span>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+
 export default function CoursePreviewPage() {
   const { id } = useParams()
   const router = useRouter()
@@ -306,21 +428,11 @@ export default function CoursePreviewPage() {
 
                 {/* ── MATCHING ─────────────────────────── */}
                 {q.type === "MATCHING" && (
-                  <div className="space-y-3">
-                    <p className="text-xs text-slate-400 font-medium">Select the correct answer for each prompt:</p>
-                    {q.options.map((opt: any) => (
-                      <div key={opt.id} className="grid grid-cols-2 gap-3 items-center">
-                        <div className="p-3 bg-slate-50 rounded-xl text-sm font-medium text-slate-700 border border-slate-100">{opt.matchKey}</div>
-                        <input
-                          type="text"
-                          value={answers[q.id]?.[opt.id] || ""}
-                          onChange={e => setAnswer(q.id, { ...(answers[q.id] || {}), [opt.id]: e.target.value })}
-                          placeholder="Type your answer..."
-                          className="h-11 px-3 rounded-xl border-2 border-slate-200 text-sm focus:border-indigo-400 outline-none transition-colors"
-                        />
-                      </div>
-                    ))}
-                  </div>
+                  <MatchingQuestion
+                    options={q.options}
+                    value={answers[q.id] || {}}
+                    onChange={v => setAnswer(q.id, v)}
+                  />
                 )}
 
                 {/* ── FILL_BLANK ────────────────────────── */}
