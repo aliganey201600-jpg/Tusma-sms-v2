@@ -344,8 +344,8 @@ export default function TeacherAssignmentsPage() {
               Smart Matrix Creator
             </Button>
           </DialogTrigger>
-          <DialogContent className="rounded-[40px] sm:max-w-[1000px] p-0 border-none shadow-3xl bg-white overflow-hidden max-h-[90vh]">
-            <div className="grid grid-cols-1 md:grid-cols-4 h-full">
+          <DialogContent className="rounded-[30px] md:rounded-[40px] sm:max-w-[1100px] p-0 border-none shadow-3xl bg-white overflow-y-auto max-h-[95vh] scrollbar-hide">
+            <div className="grid grid-cols-1 md:grid-cols-4 min-h-fit">
                {/* Left Panel: Global Config */}
                <div className="md:col-span-1 bg-slate-900 p-10 space-y-8 text-white">
                   <div className="space-y-1">
@@ -409,17 +409,17 @@ export default function TeacherAssignmentsPage() {
                     </div>
                   </div>
 
-                  <div className="pt-10 space-y-3">
+                  <div className="pt-6 md:pt-10 space-y-3 mt-auto">
                      <Button 
                       onClick={handleBulkDeploy}
-                      className="w-full h-16 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase tracking-widest shadow-xl"
+                      className="w-full h-14 md:h-16 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase tracking-widest shadow-xl text-xs md:text-sm"
                      >
                        Deploy All
                      </Button>
                      <Button 
                       onClick={resetForm}
                       variant="ghost"
-                      className="w-full h-12 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 font-bold uppercase text-[10px] tracking-widest"
+                      className="w-full h-10 md:h-12 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 font-bold uppercase text-[10px] tracking-widest"
                      >
                        Reset Form
                      </Button>
@@ -427,9 +427,9 @@ export default function TeacherAssignmentsPage() {
                </div>
 
                {/* Right Panel: Row-wise Mapping */}
-               <div className="md:col-span-3 p-10 space-y-6">
-                  <div className="flex justify-between items-center mb-6">
-                    <h3 className="text-2xl font-black tracking-tight text-slate-900 border-l-4 border-indigo-600 pl-4">Assignment Rows</h3>
+                <div className="md:col-span-3 p-6 md:p-10 space-y-6 bg-white">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                    <h3 className="text-xl md:text-2xl font-black tracking-tight text-slate-900 border-l-4 border-indigo-600 pl-4">Assignment Rows</h3>
                     <div className="flex gap-2">
                       <Button 
                         onClick={() => {
