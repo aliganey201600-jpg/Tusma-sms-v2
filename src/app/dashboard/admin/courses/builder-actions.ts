@@ -95,6 +95,19 @@ export async function updateLesson(lessonId: string, data: any) {
   }
 }
 
+export async function updateQuiz(quizId: string, data: any) {
+  try {
+    await prisma.quiz.update({
+      where: { id: quizId },
+      data
+    })
+    revalidatePath(`/dashboard/admin/courses`)
+    return { success: true }
+  } catch (error) {
+    return { success: false }
+  }
+}
+
 export async function deleteSection(id: string) {
   try {
     await prisma.courseSection.delete({ where: { id } })

@@ -30,7 +30,8 @@ import {
   addLesson, 
   addQuiz, 
   deleteSection,
-  updateLesson 
+  updateLesson,
+  updateQuiz 
 } from "../../builder-actions"
 import { useParams, useRouter } from "next/navigation"
 import { toast } from "sonner"
@@ -44,6 +45,8 @@ export default function CourseBuilderPage() {
   const [newSectionTitle, setNewSectionTitle] = React.useState("")
   const [isAddingSection, setIsAddingSection] = React.useState(false)
   const [activeItem, setActiveItem] = React.useState<any>(null)
+  const [editData, setEditData] = React.useState<any>(null)
+  const [isSaving, setIsSaving] = React.useState(false)
   const [quizQuestions, setQuizQuestions] = React.useState<any[]>([])
 
   const loadCourse = React.useCallback(async () => {
@@ -89,6 +92,45 @@ export default function CourseBuilderPage() {
     if (res.success) {
       loadCourse()
       toast.success("Quiz added")
+    }
+  }
+
+  const handleSelectItem = (item: any) => {
+    setActiveItem(item)
+    setEditData(item.data)
+  }
+
+  const handleSaveChanges = async () => {
+    if (!activeItem || !editData) return
+    setIsSaving(true)
+    try {
+      let res;
+      if (activeItem.type === 'lesson') {
+        res = await updateLesson(activeItem.data.id, {
+          title: editData.title,
+          videoUrl: editData.videoUrl,
+          content: editData.content
+        })
+      } else {
+        res = await updateQuiz(activeItem.data.id, {
+          title: editData.title,
+          passingScore: Number(editData.passingScore),
+          timeLimit: Number(editData.timeLimit)
+        })
+      }
+
+      if (res.success) {
+        toast.success(`${activeItem.type} updated successfully`)
+        loadCourse()
+        // Update local active item to reflect changes
+        setActiveItem({ ...activeItem, data: { ...activeItem.data, ...editData } })
+      } else {
+        toast.error("Failed to save changes")
+      }
+    } catch (err) {
+      toast.error("An error occurred while saving")
+    } finally {
+      setIsSaving(false)
     }
   }
 
@@ -156,7 +198,7 @@ export default function CourseBuilderPage() {
                     {section.lessons?.map((lesson: any) => (
                       <div 
                         key={lesson.id} 
-                        onClick={() => setActiveItem({ type: 'lesson', data: lesson })}
+                        onClick={() => handleSelectItem({ type: 'lesson', data: lesson })}
                         className={cn(
                           "flex items-center justify-between p-4 rounded-2xl cursor-pointer transition-all border border-transparent",
                           activeItem?.data?.id === lesson.id ? "bg-indigo-50 border-indigo-100 shadow-sm" : "hover:bg-slate-50"
@@ -181,7 +223,7 @@ export default function CourseBuilderPage() {
                     {section.quizzes?.map((quiz: any) => (
                       <div 
                         key={quiz.id} 
-                        onClick={() => setActiveItem({ type: 'quiz', data: quiz })}
+                        onClick={() => handleSelectItem({ type: 'quiz', data: quiz })}
                         className={cn(
                           "flex items-center justify-between p-4 rounded-2xl cursor-pointer transition-all border border-transparent",
                           activeItem?.data?.id === quiz.id ? "bg-amber-50 border-amber-100 shadow-sm" : "hover:bg-slate-50"
@@ -267,12 +309,20 @@ export default function CourseBuilderPage() {
                            <h3 className="text-xl font-black text-slate-900">{activeItem.data.title}</h3>
                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Editing {activeItem.type}</p>
                         </div>
-                     </div>
-                     <Button className="h-12 px-6 rounded-2xl bg-slate-900 text-white font-black uppercase tracking-widest text-[10px] gap-2">
-                        <Save className="h-4 w-4" />
+                      </div>
+                      <Button 
+                        disabled={isSaving}
+                        onClick={handleSaveChanges}
+                        className="h-12 px-6 rounded-2xl bg-slate-900 text-white font-black uppercase tracking-widest text-[10px] gap-2"
+                      >
+                        {isSaving ? (
+                           <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                        ) : (
+                           <Save className="h-4 w-4" />
+                        )}
                         Save Changes
-                     </Button>
-                  </header>
+                      </Button>
+                   </header>
 
                   <CardContent className="p-10 space-y-8">
                      {activeItem.type === 'lesson' ? (
@@ -280,43 +330,71 @@ export default function CourseBuilderPage() {
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                              <div className="space-y-2">
                                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Lesson Title</Label>
-                                <Input defaultValue={activeItem.data.title} className="h-12 rounded-xl border-slate-200" />
+                                <Input 
+                                  value={editData?.title || ""} 
+                                  onChange={e => setEditData({...editData, title: e.target.value})}
+                                  className="h-12 rounded-xl border-slate-200" 
+                                />
                              </div>
                              <div className="space-y-2">
                                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Video URL (Vimeo/YouTube)</Label>
-                                <Input defaultValue={activeItem.data.videoUrl} placeholder="https://..." className="h-12 rounded-xl border-slate-200" />
+                                <Input 
+                                  value={editData?.videoUrl || ""} 
+                                  onChange={e => setEditData({...editData, videoUrl: e.target.value})}
+                                  placeholder="https://..." 
+                                  className="h-12 rounded-xl border-slate-200" 
+                                />
                              </div>
                           </div>
 
                           <div className="space-y-2">
                              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Lesson Narrative / Content</Label>
                              <textarea 
-                              className="w-full min-h-[300px] p-6 rounded-3xl border border-slate-200 focus:border-indigo-500 outline-none text-slate-600 font-medium" 
-                              placeholder="Describe the lesson or paste educational content here..."
-                              defaultValue={activeItem.data.content}
-                             />
-                          </div>
-                       </div>
-                     ) : (
-                       <div className="space-y-6">
-                          <div className="bg-amber-50 rounded-[30px] p-8 border border-amber-100 mb-8">
-                             <div className="flex items-center gap-4 mb-4">
-                                <div className="h-10 w-10 rounded-xl bg-amber-500 flex items-center justify-center text-white shadow-lg">
-                                   <Settings2 className="h-5 w-5" />
-                                </div>
-                                <h4 className="text-lg font-black text-amber-900">Quiz Intelligence Settings</h4>
-                             </div>
-                             <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-1">
-                                   <Label className="text-[10px] font-black uppercase text-amber-700">Passing Score (%)</Label>
-                                   <Input type="number" defaultValue={activeItem.data.passingScore} className="bg-white border-amber-200 h-12 rounded-xl" />
-                                </div>
-                                <div className="space-y-1">
-                                   <Label className="text-[10px] font-black uppercase text-amber-700">Time Limit (Min)</Label>
-                                   <Input type="number" defaultValue={activeItem.data.timeLimit} placeholder="Unlimited" className="bg-white border-amber-200 h-12 rounded-xl" />
-                                </div>
-                             </div>
-                          </div>
+                               className="w-full min-h-[300px] p-6 rounded-3xl border border-slate-200 focus:border-indigo-500 outline-none text-slate-600 font-medium" 
+                               placeholder="Describe the lesson or paste educational content here..."
+                               value={editData?.content || ""}
+                               onChange={e => setEditData({...editData, content: e.target.value})}
+                              />
+                           </div>
+                        </div>
+                      ) : (
+                        <div className="space-y-6">
+                           <div className="bg-amber-50 rounded-[30px] p-8 border border-amber-100 mb-8">
+                              <div className="flex items-center gap-4 mb-4">
+                                 <div className="h-10 w-10 rounded-xl bg-amber-500 flex items-center justify-center text-white shadow-lg">
+                                    <Settings2 className="h-5 w-5" />
+                                 </div>
+                                 <div className="flex-1 space-y-2">
+                                    <Label className="text-[10px] font-black uppercase text-amber-700">Quiz Title</Label>
+                                    <Input 
+                                      value={editData?.title || ""} 
+                                      onChange={e => setEditData({...editData, title: e.target.value})}
+                                      className="bg-white border-amber-200 h-10 rounded-xl font-bold" 
+                                    />
+                                 </div>
+                              </div>
+                              <div className="grid grid-cols-2 gap-4">
+                                 <div className="space-y-1">
+                                    <Label className="text-[10px] font-black uppercase text-amber-700">Passing Score (%)</Label>
+                                    <Input 
+                                      type="number" 
+                                      value={editData?.passingScore || ""} 
+                                      onChange={e => setEditData({...editData, passingScore: e.target.value})}
+                                      className="bg-white border-amber-200 h-12 rounded-xl" 
+                                    />
+                                 </div>
+                                 <div className="space-y-1">
+                                    <Label className="text-[10px] font-black uppercase text-amber-700">Time Limit (Min)</Label>
+                                    <Input 
+                                      type="number" 
+                                      value={editData?.timeLimit || ""} 
+                                      onChange={e => setEditData({...editData, timeLimit: e.target.value})}
+                                      placeholder="Unlimited" 
+                                      className="bg-white border-amber-200 h-12 rounded-xl" 
+                                    />
+                                 </div>
+                              </div>
+                           </div>
 
                           <div className="space-y-6">
                              <div className="flex items-center justify-between">
