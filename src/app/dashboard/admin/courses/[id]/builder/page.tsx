@@ -17,13 +17,24 @@ import {
   LayoutGrid,
   Zap,
   MoreVertical,
-  X
+  X,
+  FileDown,
+  ListChecks,
+  ExternalLink,
+  ChevronRightCircle,
+  Type,
+  Bold,
+  Italic,
+  Underline
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Separator } from "@/components/ui/separator"
+import { Textarea } from "@/components/ui/textarea"
 import { 
   getCourseStructure, 
   addSection, 
@@ -111,6 +122,8 @@ export default function CourseBuilderPage() {
             title: editData.title,
             videoUrl: editData.videoUrl,
             content: editData.content,
+            objectives: editData.objectives,
+            attachmentUrl: editData.attachmentUrl,
             duration: Number(editData.duration)
           })
       } else {
@@ -330,47 +343,128 @@ export default function CourseBuilderPage() {
 
                   <CardContent className="p-10 space-y-8">
                      {activeItem.type === 'lesson' ? (
-                       <div className="space-y-6">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                             <div className="space-y-2">
-                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Lesson Title</Label>
-                                <Input 
-                                  value={editData?.title || ""} 
-                                  onChange={e => setEditData({...editData, title: e.target.value})}
-                                  className="h-12 rounded-xl border-slate-200" 
-                                />
-                             </div>
-                             <div className="space-y-2">
-                                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Video URL (Vimeo/YouTube)</Label>
-                                 <Input 
-                                   value={editData?.videoUrl || ""} 
-                                   onChange={e => setEditData({...editData, videoUrl: e.target.value})}
-                                   placeholder="https://..." 
-                                   className="h-12 rounded-xl border-slate-200" 
-                                 />
-                              </div>
-                              <div className="space-y-2">
-                                 <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Duration (Minutes)</Label>
-                                 <Input 
-                                   type="number"
-                                   value={editData?.duration || ""} 
-                                   onChange={e => setEditData({...editData, duration: e.target.value})}
-                                   placeholder="Example: 15" 
-                                   className="h-12 rounded-xl border-slate-200" 
-                                 />
-                              </div>
-                           </div>
+                        <Tabs defaultValue="content" className="w-full">
+                          <TabsList className="grid grid-cols-3 mb-8 h-12 rounded-2xl bg-slate-100/50 p-1">
+                            <TabsTrigger value="content" className="rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-sm font-bold text-xs uppercase tracking-wider">Lesson Content</TabsTrigger>
+                            <TabsTrigger value="resources" className="rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-sm font-bold text-xs uppercase tracking-wider">Lesson Library</TabsTrigger>
+                            <TabsTrigger value="video" className="rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-sm font-bold text-xs uppercase tracking-wider">Lesson Video</TabsTrigger>
+                          </TabsList>
 
-                          <div className="space-y-2">
-                             <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Lesson Narrative / Content</Label>
-                             <textarea 
-                               className="w-full min-h-[300px] p-6 rounded-3xl border border-slate-200 focus:border-indigo-500 outline-none text-slate-600 font-medium" 
-                               placeholder="Describe the lesson or paste educational content here..."
-                               value={editData?.content || ""}
-                               onChange={e => setEditData({...editData, content: e.target.value})}
+                          <TabsContent value="content" className="space-y-6">
+                            <div className="space-y-6">
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="space-y-2">
+                                  <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Lesson Title</Label>
+                                  <Input 
+                                    value={editData?.title || ""} 
+                                    onChange={e => setEditData({...editData, title: e.target.value})}
+                                    className="h-12 rounded-xl border-slate-200" 
+                                  />
+                                </div>
+                                <div className="space-y-2">
+                                  <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Duration (Minutes)</Label>
+                                  <Input 
+                                    type="number"
+                                    value={editData?.duration || ""} 
+                                    onChange={e => setEditData({...editData, duration: e.target.value})}
+                                    placeholder="Example: 15" 
+                                    className="h-12 rounded-xl border-slate-200" 
+                                  />
+                                </div>
+                              </div>
+
+                              <div className="space-y-2">
+                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Lesson Objectives</Label>
+                                <Textarea 
+                                  value={editData?.objectives || ""} 
+                                  onChange={e => setEditData({...editData, objectives: e.target.value})}
+                                  placeholder="What will the student learn?"
+                                  className="min-h-[100px] rounded-2xl border-slate-200"
+                                />
+                              </div>
+
+                              <div className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                  <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Lesson Body (Narrative)</Label>
+                                  <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg">
+                                    <Button variant="ghost" size="icon" className="h-7 w-7"><Bold className="h-3.5 w-3.5" /></Button>
+                                    <Button variant="ghost" size="icon" className="h-7 w-7"><Italic className="h-3.5 w-3.5" /></Button>
+                                    <Button variant="ghost" size="icon" className="h-7 w-7"><Underline className="h-3.5 w-3.5" /></Button>
+                                    <Separator orientation="vertical" className="h-4 mx-1" />
+                                    <Button variant="ghost" size="icon" className="h-7 w-7"><Type className="h-3.5 w-3.5" /></Button>
+                                  </div>
+                                </div>
+                                <textarea 
+                                  className="w-full min-h-[350px] p-6 rounded-3xl border border-slate-200 focus:border-indigo-500 outline-none text-slate-600 font-medium leading-relaxed" 
+                                  placeholder="Describe the lesson or paste educational content here..."
+                                  value={editData?.content || ""}
+                                  onChange={e => setEditData({...editData, content: e.target.value})}
+                                />
+                              </div>
+
+                              <div className="p-6 rounded-[30px] border-2 border-dashed border-indigo-100 bg-indigo-50/30">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-3">
+                                    <div className="h-10 w-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white">
+                                      <Zap className="h-5 w-5" />
+                                    </div>
+                                    <div>
+                                      <h4 className="text-sm font-black text-slate-900">Grading & Assessment</h4>
+                                      <p className="text-[10px] text-slate-500 font-medium">Link a quiz to this lesson for student progress check.</p>
+                                    </div>
+                                  </div>
+                                  <select 
+                                    className="h-10 px-4 rounded-xl bg-white border border-indigo-100 text-xs font-bold text-slate-700 outline-none"
+                                    value={course?.sections?.flatMap((s:any) => s.quizzes).find((q:any) => q.lessonId === activeItem.data.id)?.id || ""}
+                                    onChange={async (e) => {
+                                      const quizId = e.target.value;
+                                      if (quizId) {
+                                        await updateQuiz(quizId, { lessonId: activeItem.data.id });
+                                        toast.success("Assessment linked successfully");
+                                        loadCourse();
+                                      }
+                                    }}
+                                  >
+                                    <option value="">Select a Quiz...</option>
+                                    {course?.sections?.flatMap((s: any) => s.quizzes).map((q: any) => (
+                                      <option key={q.id} value={q.id}>{q.title}</option>
+                                    ))}
+                                  </select>
+                                </div>
+                              </div>
+                            </div>
+                          </TabsContent>
+
+                          <TabsContent value="resources" className="space-y-6">
+                            <div className="p-12 border-2 border-dashed border-slate-100 rounded-[40px] text-center space-y-4">
+                              <div className="h-20 w-20 rounded-3xl bg-slate-50 flex items-center justify-center mx-auto text-slate-300">
+                                <FileDown className="h-10 w-10" />
+                              </div>
+                              <div>
+                                <h4 className="font-black text-slate-900">PDF & Documents</h4>
+                                <p className="text-xs text-slate-400 max-w-xs mx-auto">Upload or link supplementary materials for your students.</p>
+                              </div>
+                              <Input 
+                                placeholder="Paste PDF URL or Google Drive link..." 
+                                value={editData?.attachmentUrl || ""}
+                                onChange={e => setEditData({...editData, attachmentUrl: e.target.value})}
+                                className="h-12 rounded-2xl bg-white text-center"
                               />
-                           </div>
-                        </div>
+                            </div>
+                          </TabsContent>
+
+                          <TabsContent value="video" className="space-y-6">
+                            <div className="space-y-4">
+                              <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Stream Source (Vimeo / YouTube / HLS)</Label>
+                              <Input 
+                                value={editData?.videoUrl || ""} 
+                                onChange={e => setEditData({...editData, videoUrl: e.target.value})}
+                                placeholder="https://www.youtube.com/watch?v=..." 
+                                className="h-12 rounded-xl border-slate-200" 
+                              />
+                            </div>
+                          </TabsContent>
+                        </Tabs>
                       ) : (
                         <div className="space-y-6">
                            <div className="bg-amber-50 rounded-[30px] p-8 border border-amber-100 mb-8">
@@ -405,7 +499,7 @@ export default function CourseBuilderPage() {
                                       onChange={e => setEditData({...editData, timeLimit: e.target.value})}
                                       placeholder="Unlimited" 
                                       className="bg-white border-amber-200 h-12 rounded-xl" 
-                                    />
+                                   />
                                  </div>
                               </div>
                            </div>
@@ -450,7 +544,7 @@ export default function CourseBuilderPage() {
                                )}
                              </div>
                           </div>
-                       </div>
+                        </div>
                      )}
                   </CardContent>
                </Card>

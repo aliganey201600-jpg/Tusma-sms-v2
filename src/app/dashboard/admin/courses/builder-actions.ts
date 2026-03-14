@@ -88,7 +88,14 @@ export async function addQuiz(sectionId: string, title: string) {
   }
 }
 
-export async function updateLesson(lessonId: string, data: any) {
+export async function updateLesson(lessonId: string, data: {
+  title?: string;
+  content?: string;
+  objectives?: string;
+  videoUrl?: string;
+  attachmentUrl?: string;
+  duration?: number;
+}) {
   try {
     const updatedLesson = await prisma.lesson.update({
       where: { id: lessonId },
@@ -101,11 +108,17 @@ export async function updateLesson(lessonId: string, data: any) {
     revalidatePath(`/dashboard/admin/courses/${courseId}/preview`)
     return { success: true }
   } catch (error) {
+    console.error("Update Lesson Error:", error)
     return { success: false }
   }
 }
 
-export async function updateQuiz(quizId: string, data: any) {
+export async function updateQuiz(quizId: string, data: {
+  title?: string;
+  passingScore?: number;
+  timeLimit?: number;
+  lessonId?: string | null;
+}) {
   try {
     const updatedQuiz = await prisma.quiz.update({
       where: { id: quizId },
@@ -118,6 +131,7 @@ export async function updateQuiz(quizId: string, data: any) {
     revalidatePath(`/dashboard/admin/courses/${courseId}/preview`)
     return { success: true }
   } catch (error) {
+    console.error("Update Quiz Error:", error)
     return { success: false }
   }
 }

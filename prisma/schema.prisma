@@ -217,12 +217,16 @@ model Lesson {
   id              String   @id @default(uuid())
   title           String
   content         String?  @db.Text
+  objectives      String?  @db.Text
   videoUrl        String?
+  attachmentUrl   String?
   duration        Int?     // in minutes
   order           Int      @default(0)
   sectionId       String
   section         CourseSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
   
+  quiz            Quiz?
+
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }
@@ -237,6 +241,9 @@ model Quiz {
   sectionId       String
   section         CourseSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
   
+  lessonId        String?  @unique
+  lesson          Lesson?  @relation(fields: [lessonId], references: [id], onDelete: SetNull)
+
   questions       QuizQuestion[]
 
   createdAt       DateTime @default(now())
