@@ -202,7 +202,8 @@ export default function AdminCoursesPage() {
       grade: course.grade.toString(),
       category: course.category,
       credits: course.credits,
-      teacherId: course.teacherId || ""
+      teacherId: course.teacherId || "",
+      classId: course.classId || ""
     })
     setIsEditOpen(true)
   }
@@ -215,7 +216,8 @@ export default function AdminCoursesPage() {
       grade: "1",
       category: "Core",
       credits: "3.0",
-      teacherId: ""
+      teacherId: "",
+      classId: ""
     })
     setIsAddOpen(true)
   }
