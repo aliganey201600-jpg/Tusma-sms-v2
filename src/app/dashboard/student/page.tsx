@@ -85,9 +85,9 @@ export default function StudentDashboardPage() {
     }
   }
 
-  // Determine if the student is unverified
-  // NOTE: In a real app, this would check if user.student.classId is null or status is PENDING
-  const isUnverified = !userLoading && user && (!user.studentId || user.studentId === "N/A")
+  // Determine if the student is unverified (No ID OR Status is PENDING)
+  const isUnverified = !userLoading && user && 
+    (!user.studentId || user.studentId === "N/A" || user.status === "PENDING")
 
   if (userLoading) {
     return (

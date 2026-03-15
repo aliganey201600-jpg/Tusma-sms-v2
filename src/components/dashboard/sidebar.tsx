@@ -4,6 +4,8 @@ import * as React from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { createClient } from "@/utils/supabase/client"
+import { logoutAndResetStudent } from "@/app/dashboard/student/actions"
+import { useCurrentUser } from "@/hooks/use-current-user"
 import {
   LayoutDashboard,
   Users,
@@ -43,8 +45,14 @@ export function Sidebar({ className, role }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
+  const { user } = useCurrentUser()
 
   const handleLogout = async () => {
+    // If it's a student, reset their verification status in DB
+    if (role === "STUDENT" && user?.id) {
+      await logoutAndResetStudent(user.id)
+    }
+    
     await supabase.auth.signOut()
     router.push("/sign-in")
     router.refresh()

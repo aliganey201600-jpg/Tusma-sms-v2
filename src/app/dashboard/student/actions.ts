@@ -96,3 +96,17 @@ export async function verifyStudentId(userId: string, studentId: string) {
     return { success: false, error: `Cillad: ${error.message || "Lama xaqiijin karo account-ka."}` }
   }
 }
+
+export async function logoutAndResetStudent(userId: string) {
+  try {
+    // Reset the student's status to PENDING so they must re-verify next time
+    await prisma.$executeRawUnsafe(
+      `UPDATE "Student" SET status = 'PENDING' WHERE "userId" = $1`,
+      userId
+    )
+    return { success: true }
+  } catch (error) {
+    console.error("Logout reset error:", error)
+    return { success: false }
+  }
+}
