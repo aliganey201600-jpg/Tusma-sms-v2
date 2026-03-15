@@ -358,16 +358,14 @@ export default function StudentCourseViewerPage() {
 
         <div className="flex-1 overflow-y-auto">
           <div className="max-w-2xl mx-auto px-6 py-10 space-y-8">
-            <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-8 space-y-6">
-              <div className="flex items-start justify-between gap-4">
-                <div className="space-y-2 flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-wider">Question {currentQ + 1}</span>
-                    {q?.required && <Badge className="text-[9px] bg-red-50 text-red-500 border-red-100 font-bold">Required</Badge>}
-                    <Badge className="text-[9px] bg-slate-50 text-slate-500 border-slate-100 font-bold">{q?.points} pt{q?.points !== 1 ? "s" : ""}</Badge>
-                  </div>
-                  <h2 className="text-xl font-bold text-slate-900 leading-snug">{q?.question}</h2>
+            <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-8 space-y-8">
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-wider">Question {currentQ + 1}</span>
+                  {q?.required && <Badge className="text-[9px] bg-red-50 text-red-500 border-red-100 font-bold">Required</Badge>}
+                  <Badge className="text-[9px] bg-slate-50 text-slate-500 border-slate-100 font-bold">{q?.points} pt{q?.points !== 1 ? "s" : ""}</Badge>
                 </div>
+                <h2 className="text-2xl font-black text-slate-900 leading-tight">{q?.question || "No question text provided"}</h2>
               </div>
 
               {q?.hint && (
