@@ -22,6 +22,7 @@ import {
   CreditCard,
   Briefcase,
   RefreshCcw,
+  Trophy,
 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
@@ -93,6 +94,7 @@ export function Sidebar({ className, role }: SidebarProps) {
     STUDENT: [
       { label: "Overview", icon: LayoutDashboard, href: "/dashboard/student" },
       { label: "My Courses", icon: BookOpen, href: "/dashboard/student/courses" },
+      { label: "Leaderboard", icon: Trophy, href: "/dashboard/student/leaderboard" },
       { label: "Assignments", icon: LayoutDashboard, href: "/dashboard/student/assignments" },
       { label: "My Grades", icon: GraduationCap, href: "/dashboard/student/grades" },
       { label: "Attendance", icon: CalendarDays, href: "/dashboard/student/attendance" },

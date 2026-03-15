@@ -1013,6 +1013,9 @@ export default function StudentCourseViewerPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-end">
             <div className="space-y-6">
               <div className="flex items-center gap-3">
+                <Badge className="bg-amber-400 text-indigo-950 border-none px-3 py-1 text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 shadow-lg shadow-amber-400/20">
+                  <Star className="h-3 w-3 fill-indigo-950" /> {course?.enrollments?.[0]?.points || 0} XP Earned
+                </Badge>
                 <Badge className="bg-indigo-500 text-white border-none px-3 py-1 text-[10px] font-bold uppercase tracking-widest">
                   {course?.category || "Course"}
                 </Badge>

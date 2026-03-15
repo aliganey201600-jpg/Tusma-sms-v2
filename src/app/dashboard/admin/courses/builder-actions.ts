@@ -282,6 +282,24 @@ export async function saveQuizAttempt(data: {
         timeSpent: data.timeSpent
       }
     })
+
+    // Gamification XP calculation
+    if (data.passed) {
+      const xpGained = Math.round(data.score / 2) // Example: 100 score = 50 XP
+      await prisma.student.update({
+        where: { id: data.studentId },
+        data: { totalXp: { increment: xpGained } }
+      })
+      
+      const quiz = await prisma.quiz.findUnique({ where: { id: data.quizId }, select: { section: { select: { courseId: true } } } })
+      if (quiz?.section?.courseId) {
+        await prisma.enrollment.updateMany({
+           where: { studentId: data.studentId, courseId: quiz.section.courseId },
+           data: { points: { increment: xpGained } }
+        })
+      }
+    }
+
     return { success: true, attempt }
   } catch (error) {
     console.error("Error saving quiz attempt:", error)
@@ -304,13 +322,29 @@ export async function getQuizAttempts(quizId: string, studentId: string) {
 
 export async function completeLesson(lessonId: string, studentId: string) {
   try {
-    await prisma.lessonCompletion.upsert({
-      where: {
-        lessonId_studentId: { lessonId, studentId }
-      },
-      update: {},
-      create: { lessonId, studentId }
+    const existing = await prisma.lessonCompletion.findUnique({
+      where: { lessonId_studentId: { lessonId, studentId } }
     })
+
+    if (!existing) {
+      await prisma.lessonCompletion.create({
+        data: { lessonId, studentId }
+      })
+      
+      const xpGained = 15 // 15 XP for watching a lesson
+      await prisma.student.update({
+        where: { id: studentId },
+        data: { totalXp: { increment: xpGained } }
+      })
+      
+      const lesson = await prisma.lesson.findUnique({ where: { id: lessonId }, select: { section: { select: { courseId: true } } } })
+      if (lesson?.section?.courseId) {
+         await prisma.enrollment.updateMany({
+           where: { studentId, courseId: lesson.section.courseId },
+           data: { points: { increment: xpGained } }
+         })
+      }
+    }
     return { success: true }
   } catch (error) {
     console.error("Error completing lesson:", error)

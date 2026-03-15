@@ -18,6 +18,7 @@ export async function GET(request: Request) {
             studentId: true,
             status: true,
             classId: true,
+            totalXp: true,
           }
         }
       }

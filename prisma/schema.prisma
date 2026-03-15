@@ -72,6 +72,7 @@ model Student {
   quizAttempts  QuizAttempt[]
   lessonCompletions LessonCompletion[]
   certificates  Certificate[]
+  totalXp       Int      @default(0)
 }
 
 
@@ -314,6 +315,7 @@ model Enrollment {
   enrolledAt    DateTime @default(now())
   lastLessonId  String?
   lastAccessedAt DateTime? @updatedAt
+  points        Int      @default(0)
 
   @@unique([studentId, courseId])
 }

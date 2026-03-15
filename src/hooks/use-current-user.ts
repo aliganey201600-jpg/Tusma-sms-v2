@@ -13,7 +13,9 @@ interface CurrentUser {
   studentId?: string | null
   status?: string
   classId?: string | null
+  totalXp?: number
 }
+
 
 export function useCurrentUser() {
   const [user, setUser] = React.useState<CurrentUser | null>(null)
@@ -60,8 +62,10 @@ export function useCurrentUser() {
               avatarUrl: meta.avatar_url,
               studentId: data.student?.studentId,
               status: data.student?.status,
-              classId: data.student?.classId
+              classId: data.student?.classId,
+              totalXp: data.student?.totalXp || 0
             })
+
           } else {
             // Fallback if API fails but Auth succeeds
             setUser({
