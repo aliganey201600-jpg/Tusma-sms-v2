@@ -7,25 +7,49 @@ export async function verifyStudentId(userId: string, studentId: string) {
   try {
     console.log("Starting verification for:", { userId, studentId })
 
-    // 1. Find the master record
+    if (!userId) return { success: false, error: "User ID is missing." }
+
+    // 1. Ensure the User record exists in our Prisma DB
+    // Sometimes Supabase users exist but haven't been synced to the User table
+    const existingUsers: any[] = await prisma.$queryRawUnsafe(
+      `SELECT id FROM "User" WHERE id = $1 LIMIT 1`,
+      userId
+    )
+
+    if (existingUsers.length === 0) {
+      // Create the user record if it's missing (happens on first-time login)
+      // We'll need their email. Since we don't have it here easily, 
+      // let's try to get it from the Master Student record if possible, or use a placeholder.
+      const now = new Date()
+      await prisma.$executeRawUnsafe(
+        `INSERT INTO "User" (id, email, role, "createdAt", "updatedAt") 
+         VALUES ($1, $2, 'STUDENT', $3, $4)`,
+        userId, 
+        `student-${userId.slice(0, 5)}@tusmo.temp`, // Placeholder email
+        now, 
+        now
+      )
+      console.log("Created missing User record for:", userId)
+    }
+
+    // 2. Find the master record (created by Admin)
     const masterEntries: any[] = await prisma.$queryRawUnsafe(
       `SELECT * FROM "Student" WHERE "studentId" = $1 LIMIT 1`,
       studentId.trim()
     )
 
     if (masterEntries.length === 0) {
-      return { success: false, error: "Student ID-kan lama helin. Fadlan hubi ID-ga iskuulka." }
+      return { success: false, error: "ID-ga iskuulka waa qalad. Fadlan hubi (Tusma-001)." }
     }
 
     const master = masterEntries[0]
+    const now = new Date()
 
-    // 2. Find current user's student record
+    // 3. Find if this user already has a temporary student record
     const currentUserStudents: any[] = await prisma.$queryRawUnsafe(
       `SELECT id FROM "Student" WHERE "userId" = $1 LIMIT 1`,
       userId
     )
-
-    const now = new Date()
 
     if (currentUserStudents.length > 0) {
       const currentId = currentUserStudents[0].id
@@ -47,17 +71,17 @@ export async function verifyStudentId(userId: string, studentId: string) {
         master.batchId, 
         master.firstName, 
         master.lastName, 
-        master.gender || 'Male', // Default if missing
+        master.gender || 'Male',
         now,
         currentId
       )
 
-      // If master record was a separate stub (placeholder), delete it to avoid ghost records
+      // Delete the master placeholder since it's now merged
       if (master.id !== currentId) {
         await prisma.$executeRawUnsafe(`DELETE FROM "Student" WHERE id = $1`, master.id)
       }
     } else {
-      // LINK master record directly to this user if no student record exists yet
+      // No student record exists for this user, so we link the Master record to them
       await prisma.$executeRawUnsafe(
         `UPDATE "Student" SET "userId" = $1, status = 'ACTIVE', "updatedAt" = $2 WHERE id = $3`,
         userId, now, master.id
