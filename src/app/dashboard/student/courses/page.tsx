@@ -216,8 +216,11 @@ function CourseCard({ course }: { course: any }) {
             size="sm"
             variant="ghost"
             className="h-8 px-3 rounded-xl text-xs font-black text-violet-600 hover:bg-violet-50 gap-1"
+            asChild
           >
-            Open <ChevronRight className="h-3 w-3" />
+            <Link href={`/dashboard/student/courses/${course.id}`}>
+              Open <ChevronRight className="h-3 w-3" />
+            </Link>
           </Button>
         </div>
       </CardContent>
