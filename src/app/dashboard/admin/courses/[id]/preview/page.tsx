@@ -19,6 +19,29 @@ import { cn } from "@/lib/utils"
 // ─── Types ──────────────────────────────────────────────────────────────────
 type Mode = "overview" | "lesson" | "quiz"
 
+// ─── Helpers ────────────────────────────────────────────────────────────────
+function getSimilarity(s1: string, s2: string): number {
+  if (!s1 || !s2) return 0
+  const a = s1.toLowerCase().replace(/\s+/g, " ").trim()
+  const b = s2.toLowerCase().replace(/\s+/g, " ").trim()
+  if (a === b) return 1
+  if (a.length < 2 || b.length < 2) return a === b ? 1 : 0
+
+  const getBigrams = (str: string) => {
+    const bigrams = new Set<string>()
+    for (let i = 0; i < str.length - 1; i++) {
+      bigrams.add(str.substring(i, i + 2))
+    }
+    return bigrams
+  }
+
+  const aBigrams = getBigrams(a)
+  const bBigrams = getBigrams(b)
+  let intersection = 0
+  aBigrams.forEach(bg => { if (bBigrams.has(bg)) intersection++ })
+  return (2 * intersection) / (aBigrams.size + bBigrams.size)
+}
+
 // ─── Matching Drag-and-Drop Component ────────────────────────────────────────
 function MatchingQuestion({ options, value, onChange }: {
   options: any[]
@@ -215,17 +238,28 @@ export default function CoursePreviewPage() {
     let earned = 0
     let total = 0
     for (const q of activeQuiz.questions) {
-      total += q.points
       const ans = answers[q.id]
-      if (q.type === "MCQ") {
-        const correct = q.options.find((o: any) => o.isCorrect)
-        if (ans && ans === correct?.id) earned += q.points
-      } else if (q.type === "TRUE_FALSE") {
-        if (ans && ans.toLowerCase() === q.correctAnswer?.toLowerCase()) earned += q.points
-      } else if (q.type === "FILL_BLANK") {
-        if (ans && ans.trim().toLowerCase() === q.correctAnswer?.trim().toLowerCase()) earned += q.points
+      
+      if (q.type === "MATCHING") {
+        q.options.forEach((opt: any) => {
+          total += opt.points || 0
+          const studentChoice = ans ? ans[opt.id] : null
+          if (studentChoice === opt.id) earned += opt.points || 0
+        })
+      } else {
+        total += q.points
+        if (q.type === "MCQ") {
+          const correct = q.options.find((o: any) => o.isCorrect)
+          if (ans && ans === correct?.id) earned += q.points
+        } else if (q.type === "TRUE_FALSE") {
+          if (ans && ans.toLowerCase() === q.correctAnswer?.toLowerCase()) earned += q.points
+        } else if (q.type === "FILL_BLANK") {
+          if (ans && ans.trim().toLowerCase() === q.correctAnswer?.trim().toLowerCase()) earned += q.points
+        } else if (q.type === "SHORT_ANSWER") {
+          const similarity = getSimilarity(ans || "", q.correctAnswer || "")
+          if (similarity >= 0.7) earned += q.points
+        }
       }
-      // SHORT_ANSWER and ESSAY not auto-graded
     }
     setScore(total > 0 ? Math.round((earned / total) * 100) : 0)
     setSubmitted(true)

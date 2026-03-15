@@ -182,6 +182,7 @@ export async function saveQuizQuestions(quizId: string, questions: any[]) {
               text: opt.text,
               isCorrect: opt.isCorrect ?? false,
               matchKey: opt.matchKey || null,
+              points: opt.points ?? 1,
               order: oi,
             }))
           }

@@ -237,7 +237,12 @@ export default function QuizBuilderPage() {
     e.target.value = ""
   }
 
-  const totalPoints = questions.reduce((sum, q) => sum + (Number(q.points) || 0), 0)
+  const totalPoints = questions.reduce((sum: number, q: any) => {
+    if (q.type === "MATCHING") {
+      return sum + q.options.reduce((a: number, b: any) => a + (Number(b.points) || 0), 0)
+    }
+    return sum + (Number(q.points) || 0)
+  }, 0)
 
   if (loading) return (
     <div className="flex items-center justify-center h-screen bg-white">
@@ -372,10 +377,12 @@ export default function QuizBuilderPage() {
 
                     {/* Points + Shuffle row */}
                     <div className="flex items-center gap-4 flex-wrap">
-                      <div className="flex items-center gap-2">
-                        <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Points</Label>
-                        <Input type="number" min={0} value={q.points} onChange={e => updateQ(q.id, "points", Number(e.target.value))} className="w-20 h-9 rounded-xl border-slate-200 text-sm" />
-                      </div>
+                      {q.type !== "MATCHING" && (
+                        <div className="flex items-center gap-2">
+                          <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Points</Label>
+                          <Input type="number" min={0} value={q.points} onChange={e => updateQ(q.id, "points", Number(e.target.value))} className="w-20 h-9 rounded-xl border-slate-200 text-sm" />
+                        </div>
+                      )}
                       {["MCQ","MATCHING"].includes(q.type) && (
                         <label className="flex items-center gap-1.5 cursor-pointer">
                           <input type="checkbox" checked={q.shuffleOptions} onChange={e => updateQ(q.id, "shuffleOptions", e.target.checked)} className="rounded" />
@@ -426,20 +433,47 @@ export default function QuizBuilderPage() {
 
                     {/* ── Matching ─────────────────────────────── */}
                     {q.type === "MATCHING" && (
-                      <div className="space-y-2">
-                        <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Matching Pairs (Prompt → Answer)</Label>
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Matching Pairs (Prompt → Answer → Points)</Label>
+                          <span className="text-[10px] text-slate-400 font-bold">Sum: {q.options.reduce((a: number, b: any) => a + (Number(b.points) || 0), 0)} pts</span>
+                        </div>
                         {q.options.map((opt: any) => (
-                          <div key={opt.id} className="flex items-center gap-2">
-                            <Input value={opt.matchKey} onChange={e => updateOption(q.id, opt.id, "matchKey", e.target.value)} placeholder="Prompt (left side)" className="flex-1 h-9 rounded-xl border-slate-200 text-sm" />
-                            <ArrowLeftRight className="h-4 w-4 text-slate-300 shrink-0" />
-                            <Input value={opt.text} onChange={e => updateOption(q.id, opt.id, "text", e.target.value)} placeholder="Answer (right side)" className="flex-1 h-9 rounded-xl border-slate-200 text-sm" />
-                            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl text-slate-300 hover:text-red-400 shrink-0" onClick={() => removeOption(q.id, opt.id)}>
+                          <div key={opt.id} className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl border border-slate-100 group">
+                            <div className="flex-1 space-y-2">
+                              <div className="flex items-center gap-2">
+                                <Input
+                                  value={opt.matchKey}
+                                  onChange={e => updateOption(q.id, opt.id, "matchKey", e.target.value)}
+                                  placeholder="Prompt (left side)"
+                                  className="h-9 rounded-xl border-white bg-white text-sm shadow-sm"
+                                />
+                                <ArrowLeftRight className="h-4 w-4 text-slate-300 shrink-0" />
+                                <Input
+                                  value={opt.text}
+                                  onChange={e => updateOption(q.id, opt.id, "text", e.target.value)}
+                                  placeholder="Answer (right side)"
+                                  className="h-9 rounded-xl border-white bg-white text-sm shadow-sm"
+                                />
+                              </div>
+                            </div>
+                            <div className="w-16 shrink-0">
+                              <Input
+                                type="number"
+                                min={0}
+                                step={0.5}
+                                value={opt.points}
+                                onChange={e => updateOption(q.id, opt.id, "points", Number(e.target.value))}
+                                className="h-9 rounded-xl border-white bg-white text-sm text-center font-bold text-indigo-600 shadow-sm"
+                              />
+                            </div>
+                            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl text-slate-300 hover:text-red-400 shrink-0 transition-opacity" onClick={() => removeOption(q.id, opt.id)}>
                               <X className="h-4 w-4" />
                             </Button>
                           </div>
                         ))}
-                        <Button variant="ghost" size="sm" onClick={() => addOption(q.id)} className="text-xs text-amber-600 hover:text-amber-700 gap-1 h-8 pl-1">
-                          <Plus className="h-3.5 w-3.5" /> Add Pair
+                        <Button variant="ghost" size="sm" onClick={() => addOption(q.id)} className="text-xs text-amber-600 hover:text-amber-700 gap-1 h-9 rounded-xl bg-amber-50/50 hover:bg-amber-50 w-full border border-dashed border-amber-200">
+                          <Plus className="h-3.5 w-3.5" /> Add New Pair
                         </Button>
                       </div>
                     )}
