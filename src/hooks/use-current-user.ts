@@ -46,30 +46,38 @@ export function useCurrentUser() {
 
         const firstName = fullName.split(" ")[0]
 
-        setUser({
-          id: authUser.id,
-          email: authUser.email,
-          fullName,
-          firstName,
-          role: meta.role || "STUDENT",
-          avatarUrl: meta.avatar_url,
-          studentId: meta.studentId || null,
-          status: meta.status || "PENDING",
-        })
-        
         // Fetch extended data from API to be sure
-        fetch(`/api/user/profile?id=${authUser.id}`)
-          .then(res => res.json())
-          .then(data => {
-            if (data.success) {
-              setUser(prev => prev ? ({
-                ...prev,
-                studentId: data.student?.studentId,
-                status: data.student?.status,
-                classId: data.student?.classId
-              }) : null)
-            }
-          }).catch(() => {})
+        try {
+          const res = await fetch(`/api/user/profile?id=${authUser.id}`)
+          const data = await res.json()
+          if (data.success) {
+            setUser({
+              id: authUser.id,
+              email: authUser.email,
+              fullName,
+              firstName,
+              role: meta.role || "STUDENT",
+              avatarUrl: meta.avatar_url,
+              studentId: data.student?.studentId,
+              status: data.student?.status,
+              classId: data.student?.classId
+            })
+          } else {
+            // Fallback if API fails but Auth succeeds
+            setUser({
+              id: authUser.id,
+              email: authUser.email,
+              fullName,
+              firstName,
+              role: meta.role || "STUDENT",
+              avatarUrl: meta.avatar_url,
+              studentId: meta.studentId || null,
+              status: meta.status || "PENDING",
+            })
+          }
+        } catch (e) {
+          console.error("Profile fetch error:", e)
+        }
       } catch (err) {
         console.error("useCurrentUser error:", err)
         setUser(null)

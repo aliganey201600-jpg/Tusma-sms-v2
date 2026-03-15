@@ -89,6 +89,17 @@ export default function StudentDashboardPage() {
   // NOTE: In a real app, this would check if user.student.classId is null or status is PENDING
   const isUnverified = !userLoading && user && (!user.studentId || user.studentId === "N/A")
 
+  if (userLoading) {
+    return (
+      <div className="p-4 space-y-8 max-w-[1600px] mx-auto">
+        <div className="h-20 w-1/3 bg-slate-100 animate-pulse rounded-2xl" />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+          {[1, 2, 3, 4].map(i => <div key={i} className="h-32 bg-slate-50 animate-pulse rounded-3xl" />)}
+        </div>
+      </div>
+    )
+  }
+
   if (isUnverified) {
     return (
       <div className="min-h-[80vh] flex items-center justify-center p-4">
