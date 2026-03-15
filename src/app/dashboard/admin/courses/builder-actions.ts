@@ -144,7 +144,7 @@ export async function updateQuiz(quizId: string, data: {
 
 // ─── Quiz Question CRUD ─────────────────────────────────────────────────────
 
-export async function getQuizWithQuestions(quizId: string) {
+export async function getQuizWithQuestions(quizId: string, studentId?: string) {
   try {
     const quiz = await prisma.quiz.findUnique({
       where: { id: quizId },
@@ -153,7 +153,12 @@ export async function getQuizWithQuestions(quizId: string) {
           orderBy: { order: 'asc' },
           include: { options: { orderBy: { order: 'asc' } } }
         },
-        section: { select: { courseId: true } }
+        section: { select: { courseId: true } },
+        attempts: studentId ? {
+          where: { studentId },
+          orderBy: { createdAt: 'desc' },
+          take: 10
+        } : false
       }
     })
     return quiz
@@ -246,7 +251,49 @@ export async function reorderItems(courseId: string, items: { id: string, type: 
     revalidatePath(`/dashboard/student/courses/${courseId}`)
     return { success: true }
   } catch (error) {
-    console.error("Reorder Items Error:", error)
     return { success: false }
+  }
+}
+
+export async function saveQuizAttempt(data: {
+  quizId: string
+  studentId: string
+  score: number
+  earnedPoints: number
+  totalPoints: number
+  passed: boolean
+  results: any
+  timeSpent?: number
+}) {
+  try {
+    const attempt = await prisma.quizAttempt.create({
+      data: {
+        quizId: data.quizId,
+        studentId: data.studentId,
+        score: data.score,
+        earnedPoints: data.earnedPoints,
+        totalPoints: data.totalPoints,
+        passed: data.passed,
+        results: data.results,
+        timeSpent: data.timeSpent
+      }
+    })
+    return { success: true, attempt }
+  } catch (error) {
+    console.error("Error saving quiz attempt:", error)
+    return { success: false }
+  }
+}
+
+export async function getQuizAttempts(quizId: string, studentId: string) {
+  try {
+    const attempts = await prisma.quizAttempt.findMany({
+      where: { quizId, studentId },
+      orderBy: { createdAt: 'desc' }
+    })
+    return JSON.parse(JSON.stringify(attempts))
+  } catch (error) {
+    console.error("Error fetching attempts:", error)
+    return []
   }
 }

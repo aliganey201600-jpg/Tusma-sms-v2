@@ -6,17 +6,35 @@ import {
   Clock, FileText, CheckCircle2, Video, Zap, ArrowRight,
   X, FileDown, BookOpenCheck, HelpCircle, GraduationCap,
   Layers, AlertCircle, Trophy, RotateCcw, Check, Eye,
-  Sparkles, MessageSquare, User
+  Sparkles, MessageSquare, User, Shuffle, Star, Type
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Separator } from "@/components/ui/separator"
-import { getCourseStructure, getQuizWithQuestions } from "../../../admin/courses/builder-actions"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { 
+  getCourseStructure, 
+  getQuizWithQuestions, 
+  saveQuizAttempt, 
+  getQuizAttempts 
+} from "../../../admin/courses/builder-actions"
 import { useParams, useRouter } from "next/navigation"
 import { useCurrentUser } from "@/hooks/use-current-user"
 import { cn } from "@/lib/utils"
+import { format } from "date-fns"
+import { 
+  LineChart, 
+  Line, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer,
+  AreaChart,
+  Area
+} from 'recharts'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 type Mode = "overview" | "lesson" | "quiz"
@@ -193,10 +211,13 @@ export default function StudentCourseViewerPage() {
   const [submitted, setSubmitted] = React.useState(false)
   const [score, setScore] = React.useState(0)
   const [results, setResults] = React.useState<any[]>([])
-  const [showFeedback, setShowFeedback] = React.useState(false)
   const [currentQ, setCurrentQ] = React.useState(0)
   const [timeLeft, setTimeLeft] = React.useState<number | null>(null)
+  const [quizTab, setQuizTab] = React.useState<string>("questions")
+  const [quizAttempts, setQuizAttempts] = React.useState<any[]>([])
+  const [selectedAttempt, setSelectedAttempt] = React.useState<any>(null)
   const timerRef = React.useRef<any>(null)
+  const startTimeRef = React.useRef<number>(0)
 
   React.useEffect(() => {
     async function load() {
@@ -231,25 +252,30 @@ export default function StudentCourseViewerPage() {
 
   const openQuiz = async (quiz: any) => {
     setQuizLoading(true)
-    const data = await getQuizWithQuestions(quiz.id)
+    // @ts-ignore
+    const data = await getQuizWithQuestions(quiz.id, user?.studentId)
     setActiveQuiz(data)
     setAnswers({})
     setSubmitted(false)
     setScore(0)
     setCurrentQ(0)
     setTimeLeft(null)
+    setQuizTab("questions")
+    // @ts-ignore
+    setQuizAttempts(data?.attempts || [])
     setMode("quiz")
     setQuizLoading(false)
+    startTimeRef.current = Date.now()
   }
 
   const setAnswer = (qid: string, value: any) =>
     setAnswers(prev => ({ ...prev, [qid]: value }))
 
-  const handleSubmitQuiz = () => {
+  const handleSubmitQuiz = async () => {
     clearTimeout(timerRef.current)
     if (!activeQuiz?.questions) return
-    let earned = 0
-    let total = 0
+    let earnedPoints = 0
+    let totalPoints = 0
     const feedback: any[] = []
 
     for (const q of activeQuiz.questions) {
@@ -291,13 +317,34 @@ export default function StudentCourseViewerPage() {
         }
         if (qCorrect) qEarned = q.points
       }
-      earned += qEarned
-      total += qTotal
+      earnedPoints += qEarned
+      totalPoints += qTotal
     }
+    
+    const finalScore = totalPoints > 0 ? Math.round((earnedPoints / totalPoints) * 100) : 0
+    const passed = finalScore >= (activeQuiz?.passingScore || 70)
+    const timeSpent = Math.round((Date.now() - startTimeRef.current) / 1000)
+
     setResults(feedback)
-    setScore(total > 0 ? Math.round((earned / total) * 100) : 0)
+    setScore(finalScore)
     setSubmitted(true)
     setTimeLeft(null)
+
+    if (user?.studentId) {
+      await saveQuizAttempt({
+        quizId: activeQuiz.id,
+        studentId: user.studentId,
+        score: finalScore,
+        earnedPoints,
+        totalPoints,
+        passed,
+        results: feedback,
+        timeSpent
+      })
+      // Refresh attempts
+      const updatedAttempts = await getQuizAttempts(activeQuiz.id, user.studentId)
+      setQuizAttempts(updatedAttempts)
+    }
   }
 
   const retakeQuiz = () => {
@@ -305,9 +352,9 @@ export default function StudentCourseViewerPage() {
     setSubmitted(false)
     setScore(0)
     setResults([])
-    setShowFeedback(false)
     setCurrentQ(0)
     setTimeLeft(activeQuiz?.timeLimit ? activeQuiz.timeLimit * 60 : null)
+    setQuizTab("questions")
   }
 
   if (loading) return (
@@ -326,301 +373,420 @@ export default function StudentCourseViewerPage() {
       <div className="fixed inset-0 z-[100] bg-white flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
           <div className="h-10 w-10 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-          <p className="text-xs text-slate-400 font-semibold uppercase tracking-widest">Loading Quiz...</p>
+          <p className="text-xs text-slate-400 font-semibold uppercase tracking-widest">Loading Quiz Suite...</p>
         </div>
       </div>
     )
 
     const questions = activeQuiz?.questions || []
     const passed = score >= (activeQuiz?.passingScore || 70)
-
-    if (submitted) {
-      const gradeInfo = getQualitativeGrade(score)
-      const advice = getAdvice(score, passed)
-
-      return (
-        <div className="fixed inset-0 z-[110] bg-[#0F172A] overflow-y-auto">
-          <div className="min-h-screen flex flex-col p-4 md:p-8">
-            <div className="max-w-4xl mx-auto w-full space-y-8 pb-20">
-              
-              {/* Top Summary Card */}
-              <div className="bg-gradient-to-br from-indigo-900/40 to-slate-900/40 rounded-[2.5rem] p-8 md:p-12 border border-white/5 shadow-2xl relative overflow-hidden">
-                <div className="absolute top-0 right-0 p-8 opacity-10">
-                  <Trophy className="h-40 w-40 text-white" />
-                </div>
-                
-                <div className="relative z-10 flex flex-col md:flex-row items-center gap-8 md:gap-12">
-                  <div className={cn("h-32 w-32 rounded-full flex items-center justify-center shrink-0 ring-4", gradeInfo.bg, passed ? "ring-emerald-500/30" : "ring-red-500/30")}>
-                    {passed ? <Trophy className="h-16 w-16 text-emerald-400" /> : <AlertCircle className="h-16 w-16 text-red-400" />}
-                  </div>
-
-                  <div className="text-center md:text-left space-y-2">
-                    <p className="text-indigo-300 font-bold text-xs uppercase tracking-[0.2em]">Quiz Result</p>
-                    <h2 className="text-5xl font-black text-white">{score}%</h2>
-                    <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
-                      <Badge className={cn("text-xs font-bold px-3 py-1 rounded-full", gradeInfo.bg, gradeInfo.color)}>{gradeInfo.label}</Badge>
-                      <span className="text-white/40">•</span>
-                      <span className="text-white/60 text-sm font-medium">{activeQuiz?.title}</span>
-                    </div>
-                  </div>
-
-                  <div className="flex-1 border-white/5 md:border-l md:pl-12 space-y-4">
-                    <div className="space-y-1">
-                      <p className="text-white/40 text-[10px] font-bold uppercase tracking-wider">Course</p>
-                      <p className="text-white font-bold text-lg">{course?.title}</p>
-                    </div>
-                    <div className="flex gap-6">
-                      <div className="space-y-1">
-                        <p className="text-white/40 text-[10px] font-bold uppercase tracking-wider">Pass Mark</p>
-                        <p className="text-white font-black">{activeQuiz?.passingScore}%</p>
-                      </div>
-                      <div className="space-y-1">
-                        <p className="text-white/40 text-[10px] font-bold uppercase tracking-wider">Questions</p>
-                        <p className="text-white font-black">{questions.length}</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Teacher Message */}
-              <div className="bg-indigo-600/10 border border-indigo-400/20 rounded-3xl p-6 flex flex-col md:flex-row gap-6 items-start">
-                <div className="h-12 w-12 rounded-2xl bg-indigo-500 flex items-center justify-center shrink-0 shadow-lg shadow-indigo-500/20">
-                  <User className="h-6 w-6 text-white" />
-                </div>
-                <div className="space-y-3">
-                  <h3 className="text-white font-bold text-lg">Message for {user?.firstName || "Student"}</h3>
-                  <p className="text-indigo-100/70 text-sm leading-relaxed italic">
-                    "{gradeInfo.message} {advice}"
-                  </p>
-                  <div className="flex items-center gap-2 text-[10px] font-bold text-indigo-400 uppercase tracking-widest">
-                    <Sparkles className="h-3 w-3" /> Teacher feedback generated
-                  </div>
-                </div>
-              </div>
-
-              {/* Detailed Breakdown Section */}
-              <div className="space-y-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-xl font-black text-white flex items-center gap-3">
-                    <BookOpenCheck className="h-6 w-6 text-indigo-400" /> Detailed Review 
-                  </h3>
-                  <div className="text-white/40 text-xs font-bold">Scroll down to see all questions</div>
-                </div>
-
-                <div className="grid gap-4">
-                  {results.map((res, idx) => (
-                    <div key={idx} className={cn("group rounded-[2rem] border transition-all duration-300", res.isCorrect ? "bg-emerald-500/5 border-emerald-500/20 hover:border-emerald-500/40" : "bg-red-500/5 border-red-500/20 hover:border-red-500/40")}>
-                      <div className="p-6 md:p-8 space-y-6">
-                        <div className="flex flex-wrap items-start justify-between gap-4">
-                          <div className="space-y-3 flex-1">
-                            <div className="flex items-center gap-3">
-                              <span className="h-7 w-7 rounded-full bg-white/10 flex items-center justify-center text-xs font-bold text-white">
-                                {idx + 1}
-                              </span>
-                              <Badge className={cn("text-[9px] font-black uppercase px-2 py-0.5 rounded-md", res.isCorrect ? "bg-emerald-500/20 text-emerald-400" : "bg-red-500/20 text-red-400")}>
-                                {res.isCorrect ? "Correct" : "Needs Review"}
-                              </Badge>
-                              <span className="text-[10px] text-white/30 font-bold uppercase tracking-widest">{res.earned} / {res.total} Points</span>
-                            </div>
-                            <h4 className="text-lg md:text-xl font-bold text-white leading-snug">{res.question}</h4>
-                          </div>
-                          <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center shrink-0", res.isCorrect ? "bg-emerald-500/20 text-emerald-400" : "bg-red-500/20 text-red-400")}>
-                            {res.isCorrect ? <Check className="h-5 w-5" /> : <X className="h-5 w-5" />}
-                          </div>
-                        </div>
-
-                        {res.type === "MATCHING" ? (
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            {res.matches.map((m: any, mi: number) => (
-                              <div key={mi} className="bg-black/20 p-4 rounded-2xl flex items-center justify-between gap-4 border border-white/5">
-                                <span className="text-xs font-bold text-white/50">{m.prompt}</span>
-                                <div className="flex items-center gap-2">
-                                  <ArrowRight className="h-3 w-3 text-white/20" />
-                                  <span className={cn("text-xs font-black", m.isCorrect ? "text-emerald-400" : "text-red-400")}>{m.answer}</span>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                              <p className="text-[10px] font-black text-white/20 uppercase tracking-widest">Your Response</p>
-                              <div className={cn("p-4 rounded-2xl text-sm font-bold border", res.isCorrect ? "bg-emerald-500/10 border-emerald-500/20 text-white" : "bg-red-500/10 border-red-500/20 text-red-200")}>
-                                {res.studentAnswer}
-                              </div>
-                            </div>
-                            {!res.manual && (
-                              <div className="space-y-2">
-                                <p className="text-[10px] font-black text-indigo-400/40 uppercase tracking-widest">Model Correct Answer</p>
-                                <div className="p-4 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-200 text-sm font-bold">
-                                  {res.correctAnswer}
-                                </div>
-                              </div>
-                            )}
-                            {res.type === "SHORT_ANSWER" && (
-                              <div className="col-span-full pt-1">
-                                <p className="text-[10px] text-white/40 font-bold">Auto-grading Similarity Match: {res.similarity}%</p>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                        
-                        {!res.isCorrect && (
-                          <div className="flex items-start gap-3 p-4 bg-indigo-500/5 rounded-2xl border border-indigo-500/10 text-xs text-indigo-300">
-                            <MessageSquare className="h-4 w-4 shrink-0 mt-0.5 opacity-50" />
-                            <p><strong>Review Note:</strong> Pay closer attention to this specific concept. You might want to re-read the relevant part of the lesson to understand why the model answer is correct.</p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Footer Actions */}
-              <div className="flex flex-col md:flex-row gap-4 pt-8">
-                <Button onClick={retakeQuiz} variant="outline" className="flex-1 h-14 rounded-2xl border-white/10 bg-white/5 text-white hover:bg-white/10 gap-3 font-bold text-lg">
-                  <RotateCcw className="h-5 w-5" /> Retake Quiz
-                </Button>
-                <Button onClick={() => setMode("overview")} className="flex-1 h-14 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white gap-3 font-bold text-lg shadow-xl shadow-indigo-500/20 transition-all hover:scale-[1.02]">
-                  <BookOpen className="h-5 w-5" /> Finish & Exit to Course
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )
-    }
-
-    const q = questions[currentQ]
-    const progressPct = questions.length > 0 ? ((currentQ + 1) / questions.length) * 100 : 0
     const isLast = currentQ === questions.length - 1
+    const q = questions[currentQ]
 
     return (
-      <div className="fixed inset-0 z-[100] bg-[#F8FAFD] flex flex-col">
-        <header className="h-16 bg-white border-b border-slate-100 flex items-center px-6 gap-4 shrink-0">
-          <Button variant="ghost" size="icon" onClick={() => setMode("overview")} className="h-9 w-9 rounded-xl text-slate-400 hover:text-slate-700 shrink-0">
+      <div className="fixed inset-0 z-[100] bg-[#FDFDFD] flex flex-col">
+        <header className="h-20 bg-white border-b border-slate-100 flex items-center px-4 md:px-10 gap-4 shrink-0">
+          <Button variant="ghost" size="icon" onClick={() => setMode("overview")} className="h-11 w-11 rounded-2xl text-slate-400 hover:text-slate-700 shrink-0 bg-slate-50">
             <X className="h-5 w-5" />
           </Button>
           <div className="flex-1">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs font-bold text-slate-500">{activeQuiz?.title}</span>
-              <span className="text-xs font-bold text-slate-400">{currentQ + 1} / {questions.length}</span>
-            </div>
-            <Progress value={progressPct} className="h-1.5 rounded-full bg-slate-100" />
+            <h1 className="text-sm md:text-base font-black text-slate-900 leading-none truncate max-w-[200px] md:max-w-md">{activeQuiz?.title}</h1>
+            <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mt-1.5 leading-none">Assessment Suite</p>
           </div>
-          {timeLeft !== null && (
-            <div className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold", timeLeft < 60 ? "bg-red-50 text-red-600" : "bg-slate-100 text-slate-600")}>
-              <Clock className="h-3.5 w-3.5" /> {fmtTime(timeLeft)}
-            </div>
-          )}
+          
+          <Tabs value={quizTab} onValueChange={setQuizTab} className="hidden md:flex bg-slate-100 p-1 rounded-xl">
+             <TabsList className="bg-transparent gap-1">
+                <TabsTrigger value="questions" className="rounded-lg text-[10px] font-black uppercase tracking-widest px-6 py-2.5 data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-sm transition-all">Questions</TabsTrigger>
+                <TabsTrigger value="history" className="rounded-lg text-[10px] font-black uppercase tracking-widest px-6 py-2.5 data-[state=active]:bg-white data-[state=active]:text-amber-600 data-[state=active]:shadow-sm transition-all">Attempts</TabsTrigger>
+                <TabsTrigger value="performance" className="rounded-lg text-[10px] font-black uppercase tracking-widest px-6 py-2.5 data-[state=active]:bg-white data-[state=active]:text-emerald-600 data-[state=active]:shadow-sm transition-all">Stats</TabsTrigger>
+             </TabsList>
+          </Tabs>
+
+          <div className="flex items-center gap-2">
+            {timeLeft !== null && !submitted && (
+              <div className={cn("hidden md:flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest", timeLeft < 60 ? "bg-red-50 text-red-600 animate-pulse border border-red-100" : "bg-slate-100 text-slate-600 border border-slate-200")}>
+                <Clock className="h-4 w-4" /> {fmtTime(timeLeft)}
+              </div>
+            )}
+            <Badge className="bg-slate-900 text-white border-none px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest">{currentQ + 1} / {questions.length}</Badge>
+          </div>
         </header>
 
+        {/* Mobile Tabs Wrapper */}
+        <div className="md:hidden bg-white border-b border-slate-50 p-2 overflow-x-auto shrink-0">
+          <div className="flex gap-2 min-w-max">
+            {['questions', 'history', 'performance'].map((t) => (
+              <button
+                key={t}
+                onClick={() => setQuizTab(t)}
+                className={cn(
+                  "px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+                  quizTab === t ? "bg-slate-900 text-white shadow-lg" : "bg-slate-50 text-slate-400"
+                )}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div className="flex-1 overflow-y-auto">
-          <div className="max-w-2xl mx-auto px-6 py-10 space-y-8">
-            <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-8 space-y-8">
-              <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-wider">Question {currentQ + 1}</span>
-                  {q?.required && <Badge className="text-[9px] bg-red-50 text-red-500 border-red-100 font-bold">Required</Badge>}
-                  <Badge className="text-[9px] bg-slate-50 text-slate-500 border-slate-100 font-bold">{q?.points} pt{q?.points !== 1 ? "s" : ""}</Badge>
-                </div>
-                <h2 className="text-2xl font-black text-slate-900 leading-tight">{q?.question || "No question text provided"}</h2>
-              </div>
+          <div className="max-w-5xl mx-auto p-4 md:p-10">
+            <Tabs value={quizTab} className="w-full">
+              <TabsContent value="questions" className="mt-0 outline-none">
+                {submitted ? (
+                  <div className="space-y-8 animate-in fade-in slide-in-from-bottom-5 duration-700">
+                    <div className="bg-slate-950 rounded-[2.5rem] p-6 md:p-12 text-white relative overflow-hidden shadow-2xl border border-white/5">
+                      <div className="absolute top-0 right-0 w-1/3 h-full bg-gradient-to-l from-indigo-500/10 to-transparent pointer-events-none" />
+                      <div className="absolute -bottom-24 -left-24 w-72 h-72 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
+                      
+                      <div className="relative z-10 flex flex-col md:flex-row items-center gap-8 md:gap-12">
+                         <div className={cn("h-32 w-32 md:h-40 md:w-40 rounded-[2.5rem] flex items-center justify-center shrink-0 shadow-2xl transition-all", passed ? "bg-emerald-500 shadow-emerald-500/20 rotate-3" : "bg-red-500 shadow-red-500/20 -rotate-3")}>
+                            {passed ? <Trophy className="h-16 w-16 md:h-20 md:w-20 text-white" /> : <AlertCircle className="h-16 w-16 md:h-20 md:w-20 text-white" />}
+                         </div>
+                         <div className="text-center md:text-left space-y-4">
+                            <div>
+                               <p className="text-indigo-400 font-black text-[10px] uppercase tracking-[.3em] mb-2 px-1 border-l-2 border-indigo-500/50">Performance Summary</p>
+                               <h2 className="text-5xl md:text-7xl font-black tracking-tighter leading-none">{score}<span className="text-indigo-400/50">%</span></h2>
+                            </div>
+                            <div className="flex flex-wrap items-center justify-center md:justify-start gap-3">
+                               <Badge className={cn("text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-xl", passed ? "bg-emerald-500 text-white" : "bg-red-50 text-red-600 border border-red-100")}>
+                                {passed ? "Passed" : "Needs Review"}
+                               </Badge>
+                               <Button variant="ghost" className="text-white/40 hover:text-white hover:bg-white/5 h-10 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest gap-2" onClick={retakeQuiz}>
+                                  <RotateCcw className="h-4 w-4" /> Retake
+                               </Button>
+                            </div>
+                         </div>
+                         <div className="hidden lg:flex flex-1 justify-end">
+                            <div className="bg-white/5 backdrop-blur-md rounded-3xl p-6 border border-white/10 space-y-4 min-w-[200px]">
+                               <p className="text-[10px] font-black text-white/40 uppercase tracking-widest">Mastery Level</p>
+                               <Progress value={score} className="h-3 rounded-full bg-white/5" />
+                               <p className="text-[11px] font-bold text-white/70 italic leading-relaxed">"{getAdvice(score, passed)}"</p>
+                            </div>
+                         </div>
+                      </div>
+                    </div>
 
-              {q?.hint && (
-                <div className="flex items-start gap-2 p-3 bg-amber-50 rounded-xl text-xs text-amber-700 border border-amber-100">
-                  <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
-                  <span><strong>Hint:</strong> {q.hint}</span>
-                </div>
-              )}
+                    <div className="space-y-6">
+                      <div className="flex items-center justify-between">
+                         <h3 className="text-xl font-black text-slate-900 flex items-center gap-3">
+                            <div className="h-10 w-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600"><BookOpenCheck className="h-5 w-5" /></div>
+                            Insight Review
+                         </h3>
+                         <Badge variant="outline" className="rounded-full px-4 text-[10px] font-bold text-slate-400 border-slate-100">Feedback Breakdown</Badge>
+                      </div>
 
-              {q?.type === "MCQ" && (
-                <div className="space-y-3">
-                  {q.options.map((opt: any, oi: number) => {
-                    const isSelected = answers[q.id] === opt.id
-                    return (
-                      <button key={opt.id} onClick={() => setAnswer(q.id, opt.id)} className={cn("w-full flex items-center gap-4 p-4 rounded-2xl border-2 text-left transition-all", isSelected ? "border-indigo-500 bg-indigo-50 shadow-sm" : "border-slate-100 hover:border-indigo-200 hover:bg-slate-50")}>
-                        <div className={cn("h-6 w-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-all", isSelected ? "border-indigo-500 bg-indigo-500" : "border-slate-200")}>
-                          {isSelected && <Check className="h-3.5 w-3.5 text-white" />}
+                      <div className="grid gap-4">
+                        {results.map((res, idx) => (
+                          <div key={idx} className={cn("group rounded-[2rem] border-2 transition-all p-6 md:p-10", res.isCorrect ? "bg-white border-emerald-50 hover:border-emerald-100" : "bg-white border-red-50 hover:border-red-100")}>
+                             <div className="flex flex-col md:flex-row gap-6 md:gap-10">
+                                <div className="space-y-6 flex-1">
+                                   <div className="flex items-center gap-4">
+                                      <span className="h-10 w-10 rounded-xl bg-slate-100 flex items-center justify-center text-xs font-black text-slate-900">{idx + 1}</span>
+                                      <Badge className={cn("text-[9px] font-black uppercase px-3 py-1.5 rounded-lg", res.isCorrect ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-600")}>
+                                        {res.isCorrect ? "Precision Matched" : "Review Needed"}
+                                      </Badge>
+                                      <span className="ml-auto text-[10px] font-black text-slate-300 uppercase tracking-widest">{res.earned} / {res.total} PTS</span>
+                                   </div>
+                                   <h4 className="text-xl md:text-2xl font-black text-slate-900 leading-[1.2]">{res.question}</h4>
+                                   
+                                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
+                                      <div className="p-5 rounded-2xl bg-slate-50 border border-slate-100 space-y-2">
+                                         <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest">Your Answer</p>
+                                         <p className={cn("text-sm font-bold", res.isCorrect ? "text-slate-900" : "text-red-600")}>{typeof res.studentAnswer === 'string' ? res.studentAnswer || "No Response" : "Matched Item"}</p>
+                                      </div>
+                                      {!res.isCorrect && !res.manual && (
+                                        <div className="p-5 rounded-2xl bg-indigo-50 border border-indigo-100 space-y-2">
+                                           <p className="text-[9px] font-black uppercase text-indigo-400 tracking-widest">Valid Solution</p>
+                                           <p className="text-sm font-bold text-indigo-700">{res.correctAnswer}</p>
+                                        </div>
+                                      )}
+                                   </div>
+                                </div>
+                                <div className={cn("h-16 w-16 md:h-20 md:w-20 rounded-3xl flex items-center justify-center shrink-0 motion-safe:animate-in motion-safe:zoom-in duration-1000", res.isCorrect ? "bg-emerald-500 text-white" : "bg-red-500 text-white")}>
+                                   {res.isCorrect ? <Check className="h-8 w-8" /> : <X className="h-8 w-8" />}
+                                </div>
+                             </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="max-w-3xl mx-auto space-y-8 py-4 md:py-10">
+                    <div className="bg-white rounded-[3rem] shadow-[0_20px_50px_-20px_rgba(0,0,0,0.05)] border-2 border-slate-50 p-6 md:p-12 space-y-10">
+                      <div className="space-y-6 leading-none">
+                        <div className="flex items-center gap-3">
+                          <span className="h-10 w-10 flex items-center justify-center bg-indigo-600 rounded-xl text-white text-xs font-black shadow-lg shadow-indigo-200">{currentQ + 1}</span>
+                          <span className="h-1.5 w-1.5 rounded-full bg-slate-200" />
+                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-[.2em]">Intellectual Challenge</span>
                         </div>
-                        <span className="text-[10px] font-bold text-slate-400 w-4">{String.fromCharCode(65 + oi)}.</span>
-                        <span className={cn("text-sm font-medium flex-1", isSelected ? "text-indigo-700" : "text-slate-700")}>{opt.text}</span>
-                      </button>
-                    )
-                  })}
-                </div>
-              )}
+                        <h2 className="text-2xl md:text-5xl font-black text-slate-900 tracking-tight leading-[1.1]">{q?.question}</h2>
+                      </div>
 
-              {q?.type === "TRUE_FALSE" && (
-                <div className="flex gap-4">
-                  {["True", "False"].map(val => {
-                    const isSelected = answers[q.id] === val
-                    return (
-                      <button key={val} onClick={() => setAnswer(q.id, val)} className={cn("flex-1 h-16 rounded-2xl border-2 font-bold text-base transition-all", isSelected ? val === "True" ? "border-emerald-500 bg-emerald-50 text-emerald-700 shadow-sm" : "border-red-400 bg-red-50 text-red-700 shadow-sm" : "border-slate-200 text-slate-400 hover:border-slate-300 hover:bg-slate-50")}>{val}</button>
-                    )
-                  })}
-                </div>
-              )}
+                      <div className="space-y-4">
+                        {q?.type === "MCQ" && (
+                          <div className="grid gap-3">
+                            {q.options.map((opt: any, oi: number) => {
+                              const isSelected = answers[q.id] === opt.id
+                              return (
+                                <button key={opt.id} onClick={() => setAnswer(q.id, opt.id)} className={cn("w-full group flex items-center gap-5 p-5 md:p-7 rounded-[2rem] border-2 text-left transition-all duration-300", isSelected ? "border-indigo-600 bg-indigo-50/50 shadow-xl shadow-indigo-100/50 translate-x-2" : "border-slate-100 hover:border-indigo-200 hover:bg-slate-50")}>
+                                  <div className={cn("h-8 w-8 rounded-xl border-2 flex items-center justify-center shrink-0 transition-all duration-500", isSelected ? "bg-indigo-600 border-indigo-600 rotate-12" : "border-slate-200 group-hover:border-indigo-300")}>
+                                    {isSelected ? <Check className="h-4 w-4 text-white" /> : <span className="text-[10px] font-black text-slate-200 group-hover:text-indigo-400">{String.fromCharCode(65 + oi)}</span>}
+                                  </div>
+                                  <span className={cn("text-lg font-bold transition-colors", isSelected ? "text-indigo-900" : "text-slate-700")}>{opt.text}</span>
+                                </button>
+                              )
+                            })}
+                          </div>
+                        )}
 
-              {q?.type === "MATCHING" && (
-                <MatchingQuestion options={q.options} value={answers[q.id] || {}} onChange={v => setAnswer(q.id, v)} />
-              )}
+                        {q?.type === "TRUE_FALSE" && (
+                          <div className="grid grid-cols-2 gap-6 h-32 md:h-48">
+                            {["True", "False"].map(val => {
+                              const isSelected = answers[q.id] === val
+                              const isTrue = val === "True"
+                              return (
+                                <button
+                                  key={val}
+                                  onClick={() => setAnswer(q.id, val)}
+                                  className={cn(
+                                    "rounded-[2.5rem] border-2 flex flex-col items-center justify-center gap-4 transition-all duration-500 hover:scale-[1.02]",
+                                    isSelected 
+                                      ? (isTrue ? "bg-emerald-600 border-emerald-600 text-white shadow-2xl shadow-emerald-200" : "bg-red-600 border-red-600 text-white shadow-2xl shadow-red-200")
+                                      : "bg-white border-slate-100 text-slate-400"
+                                  )}
+                                >
+                                  {isTrue ? <Check className="h-8 w-8" /> : <X className="h-8 w-8" />}
+                                  <span className="text-xl font-black uppercase tracking-widest">{val}</span>
+                                </button>
+                              )
+                            })}
+                          </div>
+                        )}
 
-              {q?.type === "FILL_BLANK" && (
-                <div className="space-y-2">
-                  <p className="text-xs text-slate-400 font-medium">Fill in the blank:</p>
-                  <input
-                    type="text"
-                    value={answers[q.id] || ""}
-                    onChange={e => setAnswer(q.id, e.target.value)}
-                    placeholder="Type your answer here..."
-                    className="w-full h-12 px-4 rounded-2xl border-2 border-slate-200 focus:border-indigo-400 outline-none text-sm transition-colors"
-                  />
-                </div>
-              )}
+                        {q?.type === "MATCHING" && (
+                          <MatchingQuestion options={q.options} value={answers[q.id] || {}} onChange={v => setAnswer(q.id, v)} />
+                        )}
 
-              {q?.type === "SHORT_ANSWER" && (
-                <div className="space-y-2">
-                  <p className="text-xs text-slate-400 font-medium">Write a brief answer:</p>
-                  <textarea
-                    value={answers[q.id] || ""}
-                    onChange={e => setAnswer(q.id, e.target.value)}
-                    placeholder="Write your answer here..."
-                    rows={4}
-                    className="w-full px-4 py-3 rounded-2xl border-2 border-slate-200 focus:border-indigo-400 outline-none text-sm resize-none transition-colors"
-                  />
-                </div>
-              )}
+                        {(q?.type === "FILL_BLANK" || q?.type === "SHORT_ANSWER" || q?.type === "ESSAY") && (
+                          <div className="space-y-4">
+                             <div className="relative group">
+                                <textarea
+                                  value={answers[q.id] || ""}
+                                  onChange={e => setAnswer(q.id, e.target.value)}
+                                  placeholder="Formulate your intellectual response..."
+                                  className="w-full min-h-[200px] p-8 rounded-[2.5rem] border-2 border-slate-100 bg-slate-50 focus:bg-white focus:border-indigo-500 focus:shadow-2xl focus:shadow-indigo-100/50 outline-none text-xl font-medium transition-all duration-500 resize-none"
+                                />
+                                <Type className="absolute top-8 right-8 h-6 w-6 text-slate-200 group-focus-within:text-indigo-400 transition-colors" />
+                             </div>
+                          </div>
+                        )}
+                      </div>
 
-              {q?.type === "ESSAY" && (
-                <div className="space-y-2">
-                  <p className="text-xs text-slate-400 font-medium">Write your essay response:</p>
-                  <textarea
-                    value={answers[q.id] || ""}
-                    onChange={e => setAnswer(q.id, e.target.value)}
-                    placeholder="Write your essay here..."
-                    rows={8}
-                    className="w-full px-4 py-3 rounded-2xl border-2 border-slate-200 focus:border-indigo-400 outline-none text-sm resize-none transition-colors"
-                  />
-                </div>
-              )}
-            </div>
+                      <div className="flex gap-4 pt-6">
+                        {currentQ > 0 && (
+                          <Button variant="ghost" className="h-16 px-10 rounded-[20px] text-slate-400 font-bold hover:bg-slate-50 gap-3" onClick={() => setCurrentQ(q => q - 1)}>
+                            <ArrowRight className="h-4 w-4 rotate-180" /> Back
+                          </Button>
+                        )}
+                        <Button
+                          onClick={isLast ? handleSubmitQuiz : () => setCurrentQ(q => q + 1)}
+                          disabled={q?.required && (q.type === 'MATCHING' ? Object.keys(answers[q.id] || {}).length < q.options.length : !answers[q.id])}
+                          className={cn(
+                            "flex-1 h-16 rounded-[20px] font-black uppercase tracking-[.2em] text-xs gap-4 shadow-2xl transition-all hover:scale-[1.01] active:scale-[0.99]",
+                            isLast ? "bg-emerald-600 shadow-emerald-100" : "bg-indigo-600 shadow-indigo-100"
+                          )}
+                        >
+                          {isLast ? "Finalize Intellect" : "Continue Journey"} <ArrowRight className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </TabsContent>
 
-            <div className="flex items-center gap-3">
-              <Button variant="outline" onClick={() => setCurrentQ(q => Math.max(0, q - 1))} disabled={currentQ === 0} className="h-11 px-6 rounded-2xl border-slate-200 text-slate-600 font-semibold disabled:opacity-40">← Previous</Button>
-              <div className="flex-1 flex justify-center gap-1.5 flex-wrap">
-                {questions.map((_: any, i: number) => (
-                  <button key={i} onClick={() => setCurrentQ(i)} className={cn("h-8 w-8 rounded-lg text-xs font-bold transition-all", i === currentQ ? "bg-indigo-600 text-white shadow-sm" : answers[questions[i].id] !== undefined ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-400 hover:bg-slate-200")}>{i + 1}</button>
-                ))}
-              </div>
-              {isLast ? (
-                <Button onClick={handleSubmitQuiz} className="h-11 px-6 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-sm">Submit Quiz ✓</Button>
-              ) : (
-                <Button onClick={() => setCurrentQ(q => Math.min(questions.length - 1, q + 1))} className="h-11 px-6 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold">Next →</Button>
-              )}
-            </div>
+              <TabsContent value="history" className="mt-0 outline-none space-y-6">
+                 <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                    <h2 className="text-2xl font-black text-slate-900">Your Journey Path</h2>
+                    <Badge className="bg-amber-100 text-amber-700 border-none px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest">{quizAttempts.length} Attempts recorded</Badge>
+                 </div>
+
+                 {selectedAttempt ? (
+                   <div className="animate-in fade-in slide-in-from-right-8 duration-500 space-y-6">
+                      <Button variant="ghost" className="text-slate-400 hover:text-slate-900 font-bold gap-2 p-0 px-2" onClick={() => setSelectedAttempt(null)}>
+                        <ArrowRight className="h-4 w-4 rotate-180" /> Back to History
+                      </Button>
+                      
+                      <div className="bg-white rounded-[3rem] border-2 border-slate-100 overflow-hidden shadow-xl shadow-slate-100/50">
+                         <div className={cn("p-10 text-white flex items-center justify-between", selectedAttempt.passed ? "bg-emerald-600" : "bg-red-600")}>
+                            <div>
+                               <p className="text-[10px] font-black uppercase tracking-widest opacity-60 mb-1">Attempt Results • {selectedAttempt.createdAt ? format(new Date(selectedAttempt.createdAt), 'PPP') : 'N/A'}</p>
+                               <h3 className="text-3xl font-black">{selectedAttempt.score}% Recorded</h3>
+                            </div>
+                            <Trophy className="h-12 w-12 opacity-40" />
+                         </div>
+                         <div className="p-10 space-y-8">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                               {[
+                                 { label: "Points", val: `${selectedAttempt.earnedPoints} / ${selectedAttempt.totalPoints}`, icon: Star },
+                                 { label: "Time Taken", val: `${Math.floor((selectedAttempt.timeSpent || 0) / 60)}m ${(selectedAttempt.timeSpent || 0) % 60}s`, icon: Clock },
+                                 { label: "Date", val: selectedAttempt.createdAt ? format(new Date(selectedAttempt.createdAt), 'MMM d, p') : 'N/A', icon: GraduationCap }
+                               ].map((stat, i) => (
+                                 <div key={i} className="p-6 rounded-3xl bg-slate-50 border border-slate-100 flex items-center gap-4">
+                                    <div className="h-10 w-10 rounded-xl bg-white shadow-sm flex items-center justify-center text-slate-400"><stat.icon className="h-5 w-5" /></div>
+                                    <div>
+                                       <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest">{stat.label}</p>
+                                       <p className="text-sm font-black text-slate-700">{stat.val}</p>
+                                    </div>
+                                 </div>
+                               ))}
+                            </div>
+
+                            <Separator />
+
+                            <div className="space-y-4">
+                               <h4 className="text-sm font-black text-slate-900 uppercase tracking-widest">Historical Feedback</h4>
+                               <div className="grid gap-3">
+                                  {selectedAttempt.results?.map((res: any, idx: number) => (
+                                    <div key={idx} className={cn("p-6 rounded-3xl border-2 transition-all cursor-default", res.isCorrect ? "bg-emerald-50/20 border-emerald-50" : "bg-red-50/20 border-red-50")}>
+                                       <div className="flex items-start gap-4">
+                                          <div className={cn("h-8 w-8 rounded-lg flex items-center justify-center text-xs font-black", res.isCorrect ? "bg-emerald-500 text-white" : "bg-red-500 text-white")}>
+                                            {res.isCorrect ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
+                                          </div>
+                                          <div className="flex-1 space-y-2">
+                                             <p className="text-sm font-bold text-slate-800">{res.question}</p>
+                                             <div className="flex gap-4">
+                                                <p className="text-[10px]"><span className="text-slate-400 uppercase font-black tracking-widest mr-2">Your:</span> <span className="font-bold text-slate-600">{typeof res.studentAnswer === 'string' ? res.studentAnswer || "No Response" : "Matched"}</span></p>
+                                                {!res.isCorrect && <p className="text-[11px]"><span className="text-indigo-400 uppercase font-black tracking-widest mr-2">Valid:</span> <span className="font-bold text-indigo-600">{res.correctAnswer}</span></p>}
+                                             </div>
+                                          </div>
+                                       </div>
+                                    </div>
+                                  ))}
+                               </div>
+                            </div>
+                         </div>
+                      </div>
+                   </div>
+                 ) : (
+                   <div className="grid gap-4">
+                      {quizAttempts.length > 0 ? quizAttempts.map((attempt, i) => (
+                        <div 
+                          key={attempt.id} 
+                          onClick={() => setSelectedAttempt(attempt)}
+                          className="group bg-white rounded-3xl border-2 border-slate-50 p-6 flex flex-col md:flex-row items-center justify-between gap-6 hover:border-indigo-100 hover:shadow-xl hover:shadow-indigo-50/50 transition-all cursor-pointer"
+                        >
+                           <div className="flex items-center gap-6 w-full md:w-auto">
+                              <div className={cn("h-16 w-16 rounded-2xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-110 duration-500", attempt.passed ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-600")}>
+                                 {attempt.passed ? <Trophy className="h-8 w-8" /> : <AlertCircle className="h-8 w-8" />}
+                              </div>
+                              <div>
+                                 <h4 className="text-2xl font-black text-slate-900">{attempt.score}%</h4>
+                                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-0.5">{attempt.createdAt ? format(new Date(attempt.createdAt), 'PPP @ p') : 'N/A'}</p>
+                              </div>
+                           </div>
+                           <div className="flex items-center gap-8 w-full md:w-auto border-t md:border-t-0 md:border-l border-slate-100 pt-6 md:pt-0 md:pl-10">
+                              <div className="space-y-1">
+                                 <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest">Points</p>
+                                 <p className="text-xs font-black text-slate-600">{attempt.earnedPoints} / {attempt.totalPoints}</p>
+                              </div>
+                              <div className="space-y-1">
+                                 <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest">Time</p>
+                                 <p className="text-xs font-black text-slate-600">{Math.floor((attempt.timeSpent || 0) / 60)}m {(attempt.timeSpent || 0) % 60}s</p>
+                              </div>
+                              <Button variant="ghost" className="h-10 w-10 md:h-12 md:w-12 rounded-2xl bg-slate-50 group-hover:bg-indigo-600 group-hover:text-white transition-all ml-auto">
+                                 <Eye className="h-5 w-5" />
+                              </Button>
+                           </div>
+                        </div>
+                      )) : (
+                        <div className="bg-white rounded-[3rem] border-2 border-dashed border-slate-100 p-20 text-center space-y-6">
+                           <div className="h-20 w-20 rounded-[28px] bg-slate-50 flex items-center justify-center mx-auto text-slate-200"><Shuffle className="h-10 w-10" /></div>
+                           <div className="space-y-2">
+                              <h3 className="text-xl font-black text-slate-800">No Historical Records</h3>
+                              <p className="text-xs text-slate-400 max-w-xs mx-auto leading-relaxed">You haven't completed any attempts for this assessment yet. Your journey begins with the first question.</p>
+                           </div>
+                           <Button onClick={() => setQuizTab('questions')} className="h-12 px-8 rounded-xl bg-slate-900 text-white font-black text-[10px] uppercase tracking-widest">Start First Attempt</Button>
+                        </div>
+                      )}
+                   </div>
+                 )}
+              </TabsContent>
+
+              <TabsContent value="performance" className="mt-0 outline-none space-y-10">
+                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {[
+                      { label: "Best Score", val: `${quizAttempts.length > 0 ? Math.max(...quizAttempts.map(a => a.score)) : 0}%`, icon: Trophy, color: "text-amber-600", bg: "bg-amber-50" },
+                      { label: "Average Score", val: `${quizAttempts.length > 0 ? Math.round(quizAttempts.reduce((acc, a) => acc + a.score, 0) / quizAttempts.length) : 0}%`, icon: GraduationCap, color: "text-indigo-600", bg: "bg-indigo-50" },
+                      { label: "Success Rate", val: `${quizAttempts.length > 0 ? Math.round((quizAttempts.filter(a => a.passed).length / quizAttempts.length) * 100) : 0}%`, icon: CheckCircle2, color: "text-emerald-600", bg: "bg-emerald-50" },
+                      { label: "Total Sessions", val: quizAttempts.length, icon: RotateCcw, color: "text-slate-600", bg: "bg-slate-50" },
+                    ].map((stat, i) => (
+                      <div key={i} className="bg-white p-8 rounded-[2.5rem] border-2 border-slate-50 shadow-sm relative overflow-hidden group">
+                         <div className={cn("absolute top-0 right-0 p-6 opacity-10 group-hover:scale-125 transition-transform duration-700", stat.color)}><stat.icon className="h-24 w-24" /></div>
+                         <div className="relative z-10 space-y-4">
+                            <div className={cn("h-12 w-12 rounded-2xl flex items-center justify-center", stat.bg, stat.color)}><stat.icon className="h-6 w-6" /></div>
+                            <div>
+                               <p className="text-[10px] font-black uppercase text-slate-400 tracking-[.2em]">{stat.label}</p>
+                               <h4 className="text-3xl font-black text-slate-900 mt-1">{stat.val}</h4>
+                            </div>
+                         </div>
+                      </div>
+                    ))}
+                 </div>
+
+                 <div className="bg-white p-8 md:p-12 rounded-[3rem] border-2 border-slate-50 shadow-sm space-y-10">
+                    <div className="flex items-center justify-between">
+                       <h3 className="text-xl font-black text-slate-900 leading-none">Progression Analytics</h3>
+                       <div className="flex items-center gap-4">
+                          <div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-indigo-500" /><span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Score (%)</span></div>
+                       </div>
+                    </div>
+
+                    <div className="h-[400px] w-full mt-10">
+                       {quizAttempts.length > 1 ? (
+                         <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart data={[...quizAttempts].reverse()} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                              <defs>
+                                <linearGradient id="colorScore" x1="0" y1="0" x2="0" y2="1">
+                                  <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.1}/>
+                                  <stop offset="95%" stopColor="#4f46e5" stopOpacity={0}/>
+                                </linearGradient>
+                              </defs>
+                               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                               <XAxis 
+                                 dataKey="createdAt" 
+                                 tickFormatter={(str) => str ? format(new Date(str), 'MMM d') : ''}
+                                 axisLine={false}
+                                 tickLine={false}
+                                 tick={{ fontSize: 9, fontWeight: 900, fill: '#94a3b8' }}
+                               />
+                               <YAxis 
+                                 domain={[0, 100]}
+                                 axisLine={false}
+                                 tickLine={false}
+                                 tick={{ fontSize: 9, fontWeight: 900, fill: '#94a3b8' }}
+                                 tickCount={6}
+                               />
+                               <Tooltip 
+                                 contentStyle={{ backgroundColor: '#1e293b', borderRadius: '16px', border: 'none', color: '#fff' }}
+                                 itemStyle={{ fontSize: '11px', fontWeight: 900, textTransform: 'uppercase' }}
+                                 labelStyle={{ display: 'none' }}
+                               />
+                               <Area type="monotone" dataKey="score" stroke="#4f46e5" strokeWidth={4} fillOpacity={1} fill="url(#colorScore)" />
+                            </AreaChart>
+                         </ResponsiveContainer>
+                       ) : (
+                         <div className="h-full flex flex-col items-center justify-center bg-slate-50/50 rounded-[2rem] border-2 border-dashed border-slate-100 text-center space-y-4">
+                            <Trophy className="h-10 w-10 text-slate-200" />
+                            <p className="text-xs font-black text-slate-400 uppercase tracking-widest max-w-[200px]">Insufficient data for analytics. Complete multiple attempts to see your progress.</p>
+                         </div>
+                       )}
+                    </div>
+                 </div>
+              </TabsContent>
+            </Tabs>
           </div>
         </div>
       </div>
@@ -748,11 +914,16 @@ export default function StudentCourseViewerPage() {
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-6 md:px-10 mt-12 pb-32">
+      <div className="max-w-5xl mx-auto px-6 md:px-10 -mt-12 relative z-20 pb-32">
         <div className="grid grid-cols-12 gap-8">
-          <div className="col-span-12 lg:col-span-8 space-y-6">
-            <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
-               <div className="flex items-center gap-3 mb-6"><BookOpenCheck className="h-5 w-5 text-indigo-600" /><h2 className="text-lg font-bold text-slate-900">Table of Contents</h2></div>
+          <div className="col-span-12 lg:col-span-8 space-y-8">
+            <div className="bg-white rounded-[2.5rem] p-8 md:p-12 shadow-[0_20px_50px_-20px_rgba(0,0,0,0.05)] border border-slate-100">
+               <div className="flex items-center gap-4 mb-10 border-l-4 border-indigo-600 pl-6">
+                  <div>
+                    <h2 className="text-2xl font-black text-slate-900 tracking-tight">Curriculum Structure</h2>
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Detailed Course Content</p>
+                  </div>
+               </div>
                <div className="space-y-3">
                 {course?.sections?.map((section: any, idx: number) => {
                   const isExpanded = expandedSections.includes(section.id)
