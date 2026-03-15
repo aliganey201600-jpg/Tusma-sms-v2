@@ -5,7 +5,10 @@ import {
   BookOpen, ChevronLeft, ChevronDown, ChevronRight,
   Clock, FileText, CheckCircle2, Video, Zap, ArrowRight,
   X, FileDown, BookOpenCheck, HelpCircle, GraduationCap,
-  Layers, AlertCircle, Trophy, RotateCcw, Check, Eye
+  Layers, AlertCircle, Trophy, RotateCcw, Check, Eye,
+  Sparkles, MessageSquare, User, Plus, Trash2, Save, Upload,
+  Download, CheckSquare, ArrowLeftRight, PenLine, AlignLeft,
+  GripVertical, Star, Shuffle, EyeOff
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -14,6 +17,7 @@ import { Progress } from "@/components/ui/progress"
 import { Separator } from "@/components/ui/separator"
 import { getCourseStructure, getQuizWithQuestions } from "../../builder-actions"
 import { useParams, useRouter } from "next/navigation"
+import { useCurrentUser } from "@/hooks/use-current-user"
 import { cn } from "@/lib/utils"
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -40,6 +44,21 @@ function getSimilarity(s1: string, s2: string): number {
   let intersection = 0
   aBigrams.forEach(bg => { if (bBigrams.has(bg)) intersection++ })
   return (2 * intersection) / (aBigrams.size + bBigrams.size)
+}
+
+function getQualitativeGrade(score: number) {
+  if (score === 100) return { label: "Excellent", color: "text-emerald-400", bg: "bg-emerald-500/20", message: "Mashallah! Perfect score!" }
+  if (score >= 90) return { label: "Outstanding", color: "text-emerald-400", bg: "bg-emerald-500/20", message: "Aad u wanaagsan! Close to perfection." }
+  if (score >= 80) return { label: "Very Good", color: "text-blue-400", bg: "bg-blue-500/20", message: "Aad u fiican! Great job." }
+  if (score >= 70) return { label: "Good", color: "text-indigo-400", bg: "bg-indigo-500/20", message: "Waa lagu mahadsanyahay! You passed." }
+  if (score >= 60) return { label: "Average", color: "text-amber-400", bg: "bg-amber-500/20", message: "Isku day wanaagsan! You are getting there." }
+  return { label: "Poor", color: "text-red-400", bg: "bg-red-500/20", message: "Dadaal ayaa lagaa rabaa! Don't give up." }
+}
+
+function getAdvice(score: number, passed: boolean) {
+  if (score === 100) return "You have mastered this topic! You are ready to move on to more advanced lessons. Keep up this momentum!"
+  if (passed) return "Congratulations on passing! Review the questions you missed to solidify your understanding and reach a perfect score next time."
+  return "It happens to the best of us. Take a short break, review the lesson materials one more time, and try again. You've got this!"
 }
 
 // ─── Matching Drag-and-Drop Component ────────────────────────────────────────
@@ -167,6 +186,7 @@ function MatchingQuestion({ options, value, onChange }: {
 export default function CoursePreviewPage() {
   const { id } = useParams()
   const router = useRouter()
+  const { user } = useCurrentUser()
   const [course, setCourse] = React.useState<any>(null)
   const [loading, setLoading] = React.useState(true)
   const [mode, setMode] = React.useState<Mode>("overview")
@@ -333,102 +353,159 @@ export default function CoursePreviewPage() {
     const passed = score >= (activeQuiz?.passingScore || 70)
 
     if (submitted) {
+      const gradeInfo = getQualitativeGrade(score)
+      const advice = getAdvice(score, passed)
+
       return (
-        <div className="fixed inset-0 z-[100] bg-gradient-to-br from-slate-900 to-indigo-950 flex flex-col items-center justify-center p-4">
-          <div className={cn("max-w-4xl w-full flex flex-col transition-all duration-500", showFeedback ? "h-[90vh]" : "h-auto max-w-lg items-center")}>
-            <div className="w-full text-center space-y-8 shrink-0">
-              <div className={cn("mx-auto h-24 w-24 rounded-full flex items-center justify-center shadow-2xl transition-all", passed ? "bg-emerald-500/20 ring-4 ring-emerald-500/40" : "bg-red-500/20 ring-4 ring-red-500/40")}>
-                {passed ? <Trophy className="h-12 w-12 text-emerald-400" /> : <AlertCircle className="h-12 w-12 text-red-400" />}
-              </div>
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-white/40 mb-2">{passed ? "Congratulations!" : "Keep Practicing"}</p>
-                <h2 className="text-4xl font-black text-white">{score}%</h2>
-                <p className="text-white/50 mt-1 text-base">{activeQuiz?.title}</p>
-              </div>
-              <div className="grid grid-cols-3 gap-3">
-                {[
-                  { label: "Your Score", value: `${score}%`, color: passed ? "emerald" : "red" },
-                  { label: "Pass Mark", value: `${activeQuiz?.passingScore || 70}%`, color: "slate" },
-                  { label: "Questions", value: `${questions.length}`, color: "indigo" },
-                ].map(stat => (
-                  <div key={stat.label} className="bg-white/5 rounded-2xl p-4 space-y-1">
-                    <p className="text-xl font-black text-white">{stat.value}</p>
-                    <p className="text-[10px] text-white/40 font-semibold uppercase tracking-wider">{stat.label}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {showFeedback ? (
-              <div className="flex-1 overflow-y-auto mt-8 bg-white/5 rounded-3xl p-6 border border-white/10 space-y-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                    <BookOpenCheck className="h-5 w-5 text-indigo-400" /> Question Feedback
-                  </h3>
-                  <Button variant="ghost" size="sm" onClick={() => setShowFeedback(false)} className="text-white/40 hover:text-white hover:bg-white/10 rounded-xl">Hide Feedback</Button>
+        <div className="fixed inset-0 z-[110] bg-[#0F172A] overflow-y-auto">
+          <div className="min-h-screen flex flex-col p-4 md:p-8">
+            <div className="max-w-4xl mx-auto w-full space-y-8 pb-20">
+              
+              {/* Top Summary Card */}
+              <div className="bg-gradient-to-br from-indigo-900/40 to-slate-900/40 rounded-[2.5rem] p-8 md:p-12 border border-white/5 shadow-2xl relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-8 opacity-10">
+                  <Trophy className="h-40 w-40 text-white" />
                 </div>
-                <div className="space-y-4">
-                  {results.map((res, idx) => (
-                    <div key={idx} className={cn("p-5 rounded-2xl border transition-all", res.isCorrect ? "bg-emerald-500/10 border-emerald-500/30" : "bg-red-500/10 border-red-500/30")}>
-                      <div className="flex items-start justify-between gap-4 mb-4">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <span className="text-[10px] font-bold text-white/60 uppercase">Question {idx + 1}</span>
-                            {res.isCorrect ? <Badge className="bg-emerald-500/20 text-emerald-400 border-none text-[9px]">Correct</Badge> : <Badge className="bg-red-500/20 text-red-400 border-none text-[9px]">Incorrect</Badge>}
-                            <span className="text-[10px] text-white/40 font-bold">{res.earned} / {res.total} pts</span>
-                          </div>
-                          <p className="text-sm font-bold text-white leading-snug">{res.question}</p>
-                        </div>
-                      </div>
+                
+                <div className="relative z-10 flex flex-col md:flex-row items-center gap-8 md:gap-12">
+                  <div className={cn("h-32 w-32 rounded-full flex items-center justify-center shrink-0 ring-4", gradeInfo.bg, passed ? "ring-emerald-500/30" : "ring-red-500/30")}>
+                    {passed ? <Trophy className="h-16 w-16 text-emerald-400" /> : <AlertCircle className="h-16 w-16 text-red-400" />}
+                  </div>
 
-                      {res.type === "MATCHING" ? (
-                        <div className="space-y-2 mt-3">
-                          {res.matches.map((m: any, mi: number) => (
-                            <div key={mi} className="flex items-center gap-3 text-xs bg-black/20 p-2 rounded-lg">
-                              <span className="text-white/40 font-bold shrink-0">{m.prompt}</span>
-                              <ArrowRight className="h-3 w-3 text-white/20" />
-                              <span className={cn("font-semibold", m.isCorrect ? "text-emerald-400" : "text-red-400")}>{m.answer}</span>
+                  <div className="text-center md:text-left space-y-2">
+                    <p className="text-indigo-300 font-bold text-xs uppercase tracking-[0.2em]">Quiz Result</p>
+                    <h2 className="text-5xl font-black text-white">{score}%</h2>
+                    <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
+                      <Badge className={cn("text-xs font-bold px-3 py-1 rounded-full", gradeInfo.bg, gradeInfo.color)}>{gradeInfo.label}</Badge>
+                      <span className="text-white/40">•</span>
+                      <span className="text-white/60 text-sm font-medium">{activeQuiz?.title}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex-1 border-white/5 md:border-l md:pl-12 space-y-4">
+                    <div className="space-y-1">
+                      <p className="text-white/40 text-[10px] font-bold uppercase tracking-wider">Course</p>
+                      <p className="text-white font-bold text-lg">{course?.title}</p>
+                    </div>
+                    <div className="flex gap-6">
+                      <div className="space-y-1">
+                        <p className="text-white/40 text-[10px] font-bold uppercase tracking-wider">Pass Mark</p>
+                        <p className="text-white font-black">{activeQuiz?.passingScore}%</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-white/40 text-[10px] font-bold uppercase tracking-wider">Questions</p>
+                        <p className="text-white font-black">{questions.length}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Teacher Message */}
+              <div className="bg-indigo-600/10 border border-indigo-400/20 rounded-3xl p-6 flex flex-col md:flex-row gap-6 items-start">
+                <div className="h-12 w-12 rounded-2xl bg-indigo-500 flex items-center justify-center shrink-0 shadow-lg shadow-indigo-500/20">
+                  <User className="h-6 w-6 text-white" />
+                </div>
+                <div className="space-y-3">
+                  <h3 className="text-white font-bold text-lg">Message for {user?.firstName || "Student"}</h3>
+                  <p className="text-indigo-100/70 text-sm leading-relaxed italic">
+                    "{gradeInfo.message} {advice}"
+                  </p>
+                  <div className="flex items-center gap-2 text-[10px] font-bold text-indigo-400 uppercase tracking-widest">
+                    <Sparkles className="h-3 w-3" /> Teacher feedback generated
+                  </div>
+                </div>
+              </div>
+
+              {/* Detailed Breakdown Section */}
+              <div className="space-y-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xl font-black text-white flex items-center gap-3">
+                    <BookOpenCheck className="h-6 w-6 text-indigo-400" /> Detailed Review 
+                  </h3>
+                  <div className="text-white/40 text-xs font-bold">Scroll down to see all questions</div>
+                </div>
+
+                <div className="grid gap-4">
+                  {results.map((res, idx) => (
+                    <div key={idx} className={cn("group rounded-[2rem] border transition-all duration-300", res.isCorrect ? "bg-emerald-500/5 border-emerald-500/20 hover:border-emerald-500/40" : "bg-red-500/5 border-red-500/20 hover:border-red-500/40")}>
+                      <div className="p-6 md:p-8 space-y-6">
+                        <div className="flex flex-wrap items-start justify-between gap-4">
+                          <div className="space-y-3 flex-1">
+                            <div className="flex items-center gap-3">
+                              <span className="h-7 w-7 rounded-full bg-white/10 flex items-center justify-center text-xs font-bold text-white">
+                                {idx + 1}
+                              </span>
+                              <Badge className={cn("text-[9px] font-black uppercase px-2 py-0.5 rounded-md", res.isCorrect ? "bg-emerald-500/20 text-emerald-400" : "bg-red-500/20 text-red-400")}>
+                                {res.isCorrect ? "Correct" : "Needs Review"}
+                              </Badge>
+                              <span className="text-[10px] text-white/30 font-bold uppercase tracking-widest">{res.earned} / {res.total} Points</span>
                             </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
-                          <div className="bg-black/20 p-3 rounded-xl space-y-1">
-                            <p className="text-[10px] font-bold text-white/30 uppercase">Your Answer</p>
-                            <p className={cn("text-sm font-bold", res.isCorrect ? "text-emerald-400" : "text-red-400")}>{res.studentAnswer}</p>
+                            <h4 className="text-lg md:text-xl font-bold text-white leading-snug">{res.question}</h4>
                           </div>
-                          {!res.manual && (
-                            <div className="bg-black/20 p-3 rounded-xl space-y-1">
-                              <p className="text-[10px] font-bold text-white/30 uppercase">Correct Answer</p>
-                              <p className="text-sm font-bold text-indigo-300">{res.correctAnswer}</p>
-                            </div>
-                          )}
-                          {res.type === "SHORT_ANSWER" && (
-                            <div className="col-span-1 md:col-span-2">
-                              <p className="text-[10px] text-white/40 font-bold">Similarity Score: {res.similarity}%</p>
-                            </div>
-                          )}
+                          <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center shrink-0", res.isCorrect ? "bg-emerald-500/20 text-emerald-400" : "bg-red-500/20 text-red-400")}>
+                            {res.isCorrect ? <Check className="h-5 w-5" /> : <X className="h-5 w-5" />}
+                          </div>
                         </div>
-                      )}
+
+                        {res.type === "MATCHING" ? (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {res.matches.map((m: any, mi: number) => (
+                              <div key={mi} className="bg-black/20 p-4 rounded-2xl flex items-center justify-between gap-4 border border-white/5">
+                                <span className="text-xs font-bold text-white/50">{m.prompt}</span>
+                                <div className="flex items-center gap-2">
+                                  <ArrowRight className="h-3 w-3 text-white/20" />
+                                  <span className={cn("text-xs font-black", m.isCorrect ? "text-emerald-400" : "text-red-400")}>{m.answer}</span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <p className="text-[10px] font-black text-white/20 uppercase tracking-widest">Your Response</p>
+                              <div className={cn("p-4 rounded-2xl text-sm font-bold border", res.isCorrect ? "bg-emerald-500/10 border-emerald-500/20 text-white" : "bg-red-500/10 border-red-500/20 text-red-200")}>
+                                {res.studentAnswer}
+                              </div>
+                            </div>
+                            {!res.manual && (
+                              <div className="space-y-2">
+                                <p className="text-[10px] font-black text-indigo-400/40 uppercase tracking-widest">Model Correct Answer</p>
+                                <div className="p-4 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-200 text-sm font-bold">
+                                  {res.correctAnswer}
+                                </div>
+                              </div>
+                            )}
+                            {res.type === "SHORT_ANSWER" && (
+                              <div className="col-span-full pt-1">
+                                <p className="text-[10px] text-white/40 font-bold">Auto-grading Similarity Match: {res.similarity}%</p>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        
+                        {!res.isCorrect && (
+                          <div className="flex items-start gap-3 p-4 bg-indigo-500/5 rounded-2xl border border-indigo-500/10 text-xs text-indigo-300">
+                            <MessageSquare className="h-4 w-4 shrink-0 mt-0.5 opacity-50" />
+                            <p><strong>Review Note:</strong> Pay closer attention to this concept. You might want to re-read the relevant part of the lesson to understand why the model answer is correct.</p>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
               </div>
-            ) : (
-              <div className="mt-8 flex flex-col gap-3 w-full shrink-0">
-                <Button onClick={() => setShowFeedback(true)} className="w-full h-14 rounded-2xl bg-white/5 hover:bg-white/10 text-white font-bold border border-white/10 gap-2">
-                  <Eye className="h-5 w-5 text-indigo-400" /> Review Questions & Feedback
+
+              {/* Footer Actions */}
+              <div className="flex flex-col md:flex-row gap-4 pt-8">
+                <Button onClick={retakeQuiz} variant="outline" className="flex-1 h-14 rounded-2xl border-white/10 bg-white/5 text-white hover:bg-white/10 gap-3 font-bold text-lg">
+                  <RotateCcw className="h-5 w-5" /> Retake Preview
                 </Button>
-                <div className="flex gap-3">
-                  <Button onClick={retakeQuiz} variant="outline" className="flex-1 h-12 rounded-2xl border-white/10 text-white hover:bg-white/5 gap-2 font-bold">
-                    <RotateCcw className="h-4 w-4" /> Retake Quiz
-                  </Button>
-                  <Button onClick={() => setMode("overview")} className="flex-1 h-12 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white gap-2 font-bold shadow-lg shadow-indigo-500/20">
-                    <BookOpen className="h-4 w-4" /> Exit Preview
-                  </Button>
-                </div>
+                <Button onClick={() => setMode("overview")} className="flex-1 h-14 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white gap-3 font-bold text-lg shadow-xl shadow-indigo-500/20 transition-all hover:scale-[1.02]">
+                  <BookOpen className="h-5 w-5" /> Exit Preview
+                </Button>
               </div>
-            )}
+            </div>
           </div>
         </div>
       )
