@@ -19,37 +19,49 @@ export async function verifyStudentId(userId: string, studentId: string) {
     }
 
     // 2. Link the current logged-in User's student record to the Master data
-    // In our current schema, the Student record is created during sign up.
-    // We need to move the data (Class, Batch, etc.) from the master record to the current user's student record.
-    // Or better: If the admin pre-created it with a dummy email, we merge them.
-    
-    const currentUserStudent = await prisma.student.findUnique({
+    // Finding or creating the current student session record
+    let currentUserStudent = await prisma.student.findUnique({
       where: { userId }
     })
 
+    // If the student record doesn't exist for this user, we will link the Master record directly to this User
     if (!currentUserStudent) {
-      return { success: false, error: "Account-kaaga lama helin." }
-    }
-
-    // Update the current user's student record with the details from the master record
-    await prisma.student.update({
-      where: { id: currentUserStudent.id },
-      data: {
-        studentId: masterRecord.studentId,
-        classId: masterRecord.classId,
-        batchId: masterRecord.batchId,
-        firstName: masterRecord.firstName,
-        lastName: masterRecord.lastName,
-        gender: masterRecord.gender,
-        status: "ACTIVE"
+      // Check if the master record is already linked to another user
+      if (masterRecord.userId && masterRecord.userId !== userId) {
+        // If it's linked to a 'stub' user created by admin, we might need to handle that,
+        // but for now, let's just reassign it to the real logged-in user if the stub user has no auth session.
       }
-    })
+      
+      await prisma.student.update({
+        where: { id: masterRecord.id },
+        data: { 
+          userId: userId, // Link this master record to the logged-in user
+          status: "ACTIVE" 
+        }
+      })
+    } else {
+      // If student record exists but is empty/unverified, update it with master data
+      await prisma.student.update({
+        where: { id: currentUserStudent.id },
+        data: {
+          studentId: masterRecord.studentId,
+          classId: masterRecord.classId,
+          batchId: masterRecord.batchId,
+          firstName: masterRecord.firstName,
+          lastName: masterRecord.lastName,
+          gender: masterRecord.gender,
+          status: "ACTIVE"
+        }
+      })
 
-    // Optionally: If the master record was a separate record (placeholder), delete it to avoid duplicates
-    if (masterRecord.id !== currentUserStudent.id) {
-      // Before deleting, check if it has its own user (dummy user)
-      if (masterRecord.userId) {
-         // Logically we might want to clean up, but for now let's just ensure the link is made
+      // If we had a separate master record, we might want to clean it up or mark it
+      if (masterRecord.id !== currentUserStudent.id) {
+        // Delete the master record since we moved its logic or it was a duplicate
+        try {
+          await prisma.student.delete({ where: { id: masterRecord.id } })
+        } catch (e) {
+          console.warn("Could not delete duplicate master record:", e)
+        }
       }
     }
 
