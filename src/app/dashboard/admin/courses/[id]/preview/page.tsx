@@ -5,7 +5,7 @@ import {
   BookOpen, ChevronLeft, ChevronDown, ChevronRight,
   Clock, FileText, CheckCircle2, Video, Zap, ArrowRight,
   X, FileDown, BookOpenCheck, HelpCircle, GraduationCap,
-  Layers, AlertCircle, Trophy, RotateCcw, Check
+  Layers, AlertCircle, Trophy, RotateCcw, Check, Eye
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -180,6 +180,8 @@ export default function CoursePreviewPage() {
   const [answers, setAnswers] = React.useState<Record<string, any>>({})
   const [submitted, setSubmitted] = React.useState(false)
   const [score, setScore] = React.useState(0)
+  const [results, setResults] = React.useState<any[]>([])
+  const [showFeedback, setShowFeedback] = React.useState(false)
   const [currentQ, setCurrentQ] = React.useState(0)
   const [timeLeft, setTimeLeft] = React.useState<number | null>(null)
   const timerRef = React.useRef<any>(null)
@@ -237,30 +239,51 @@ export default function CoursePreviewPage() {
     if (!activeQuiz?.questions) return
     let earned = 0
     let total = 0
+    const feedback: any[] = []
+
     for (const q of activeQuiz.questions) {
       const ans = answers[q.id]
-      
+      let qCorrect = false
+      let qEarned = 0
+      let qTotal = q.points
+
       if (q.type === "MATCHING") {
+        qTotal = 0
+        const matches: any[] = []
         q.options.forEach((opt: any) => {
-          total += opt.points || 0
+          const pt = opt.points || 0
+          qTotal += pt
           const studentChoice = ans ? ans[opt.id] : null
-          if (studentChoice === opt.id) earned += opt.points || 0
+          const isMatchCorrect = studentChoice === opt.id
+          if (isMatchCorrect) qEarned += pt
+          matches.push({ prompt: opt.matchKey, answer: opt.text, studentAnswer: opt.options?.find((o:any)=>o.id===studentChoice)?.text || (studentChoice ? "Matched" : "None"), isCorrect: isMatchCorrect })
         })
+        qCorrect = qEarned === qTotal
+        feedback.push({ ...q, isCorrect: qCorrect, earned: qEarned, total: qTotal, matches })
       } else {
-        total += q.points
         if (q.type === "MCQ") {
           const correct = q.options.find((o: any) => o.isCorrect)
-          if (ans && ans === correct?.id) earned += q.points
+          qCorrect = !!(ans && ans === correct?.id)
+          feedback.push({ ...q, isCorrect: qCorrect, studentAnswer: q.options.find((o:any)=>o.id===ans)?.text || "No answer", correctAnswer: correct?.text })
         } else if (q.type === "TRUE_FALSE") {
-          if (ans && ans.toLowerCase() === q.correctAnswer?.toLowerCase()) earned += q.points
+          qCorrect = !!(ans && ans.toLowerCase() === q.correctAnswer?.toLowerCase())
+          feedback.push({ ...q, isCorrect: qCorrect, studentAnswer: ans || "No answer", correctAnswer: q.correctAnswer })
         } else if (q.type === "FILL_BLANK") {
-          if (ans && ans.trim().toLowerCase() === q.correctAnswer?.trim().toLowerCase()) earned += q.points
+          qCorrect = !!(ans && ans.trim().toLowerCase() === q.correctAnswer?.trim().toLowerCase())
+          feedback.push({ ...q, isCorrect: qCorrect, studentAnswer: ans || "No answer", correctAnswer: q.correctAnswer })
         } else if (q.type === "SHORT_ANSWER") {
           const similarity = getSimilarity(ans || "", q.correctAnswer || "")
-          if (similarity >= 0.7) earned += q.points
+          qCorrect = similarity >= 0.7
+          feedback.push({ ...q, isCorrect: qCorrect, studentAnswer: ans || "No answer", correctAnswer: q.correctAnswer, similarity: Math.round(similarity * 100) })
+        } else {
+          feedback.push({ ...q, isCorrect: false, studentAnswer: ans || "No answer", manual: true })
         }
+        if (qCorrect) qEarned = q.points
       }
+      earned += qEarned
+      total += qTotal
     }
+    setResults(feedback)
     setScore(total > 0 ? Math.round((earned / total) * 100) : 0)
     setSubmitted(true)
     setTimeLeft(null)
@@ -270,6 +293,8 @@ export default function CoursePreviewPage() {
     setAnswers({})
     setSubmitted(false)
     setScore(0)
+    setResults([])
+    setShowFeedback(false)
     setCurrentQ(0)
     setTimeLeft(activeQuiz?.timeLimit ? activeQuiz.timeLimit * 60 : null)
   }
@@ -307,43 +332,103 @@ export default function CoursePreviewPage() {
     const totalPts = questions.reduce((a: number, q: any) => a + q.points, 0)
     const passed = score >= (activeQuiz?.passingScore || 70)
 
-    // Results screen
     if (submitted) {
       return (
-        <div className="fixed inset-0 z-[100] bg-gradient-to-br from-slate-900 to-indigo-950 flex flex-col items-center justify-center text-white p-6">
-          <div className="max-w-lg w-full text-center space-y-8">
-            <div className={cn("mx-auto h-32 w-32 rounded-full flex items-center justify-center shadow-2xl", passed ? "bg-emerald-500/20 ring-4 ring-emerald-500/40" : "bg-red-500/20 ring-4 ring-red-500/40")}>
-              {passed
-                ? <Trophy className="h-16 w-16 text-emerald-400" />
-                : <AlertCircle className="h-16 w-16 text-red-400" />}
+        <div className="fixed inset-0 z-[100] bg-gradient-to-br from-slate-900 to-indigo-950 flex flex-col items-center justify-center p-4">
+          <div className={cn("max-w-4xl w-full flex flex-col transition-all duration-500", showFeedback ? "h-[90vh]" : "h-auto max-w-lg items-center")}>
+            <div className="w-full text-center space-y-8 shrink-0">
+              <div className={cn("mx-auto h-24 w-24 rounded-full flex items-center justify-center shadow-2xl transition-all", passed ? "bg-emerald-500/20 ring-4 ring-emerald-500/40" : "bg-red-500/20 ring-4 ring-red-500/40")}>
+                {passed ? <Trophy className="h-12 w-12 text-emerald-400" /> : <AlertCircle className="h-12 w-12 text-red-400" />}
+              </div>
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-white/40 mb-2">{passed ? "Congratulations!" : "Keep Practicing"}</p>
+                <h2 className="text-4xl font-black text-white">{score}%</h2>
+                <p className="text-white/50 mt-1 text-base">{activeQuiz?.title}</p>
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  { label: "Your Score", value: `${score}%`, color: passed ? "emerald" : "red" },
+                  { label: "Pass Mark", value: `${activeQuiz?.passingScore || 70}%`, color: "slate" },
+                  { label: "Questions", value: `${questions.length}`, color: "indigo" },
+                ].map(stat => (
+                  <div key={stat.label} className="bg-white/5 rounded-2xl p-4 space-y-1">
+                    <p className="text-xl font-black text-white">{stat.value}</p>
+                    <p className="text-[10px] text-white/40 font-semibold uppercase tracking-wider">{stat.label}</p>
+                  </div>
+                ))}
+              </div>
             </div>
-            <div>
-              <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-white/40 mb-3">
-                {passed ? "Congratulations!" : "Keep Practicing"}
-              </p>
-              <h2 className="text-5xl font-black">{score}%</h2>
-              <p className="text-white/50 mt-2 text-lg">{activeQuiz?.title}</p>
-            </div>
-            <div className="grid grid-cols-3 gap-4">
-              {[
-                { label: "Your Score", value: `${score}%`, color: passed ? "emerald" : "red" },
-                { label: "Pass Mark", value: `${activeQuiz?.passingScore || 70}%`, color: "slate" },
-                { label: "Questions", value: `${questions.length}`, color: "indigo" },
-              ].map(stat => (
-                <div key={stat.label} className="bg-white/5 rounded-2xl p-4 space-y-1">
-                  <p className="text-2xl font-black">{stat.value}</p>
-                  <p className="text-[10px] text-white/40 font-semibold uppercase tracking-wider">{stat.label}</p>
+
+            {showFeedback ? (
+              <div className="flex-1 overflow-y-auto mt-8 bg-white/5 rounded-3xl p-6 border border-white/10 space-y-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                    <BookOpenCheck className="h-5 w-5 text-indigo-400" /> Question Feedback
+                  </h3>
+                  <Button variant="ghost" size="sm" onClick={() => setShowFeedback(false)} className="text-white/40 hover:text-white hover:bg-white/10 rounded-xl">Hide Feedback</Button>
                 </div>
-              ))}
-            </div>
-            <div className="flex gap-3">
-              <Button onClick={retakeQuiz} variant="outline" className="flex-1 h-12 rounded-2xl border-white/10 text-white hover:bg-white/5 gap-2">
-                <RotateCcw className="h-4 w-4" /> Retake Quiz
-              </Button>
-              <Button onClick={() => setMode("overview")} className="flex-1 h-12 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white gap-2">
-                <BookOpen className="h-4 w-4" /> Back to Course
-              </Button>
-            </div>
+                <div className="space-y-4">
+                  {results.map((res, idx) => (
+                    <div key={idx} className={cn("p-5 rounded-2xl border transition-all", res.isCorrect ? "bg-emerald-500/10 border-emerald-500/30" : "bg-red-500/10 border-red-500/30")}>
+                      <div className="flex items-start justify-between gap-4 mb-4">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-bold text-white/60 uppercase">Question {idx + 1}</span>
+                            {res.isCorrect ? <Badge className="bg-emerald-500/20 text-emerald-400 border-none text-[9px]">Correct</Badge> : <Badge className="bg-red-500/20 text-red-400 border-none text-[9px]">Incorrect</Badge>}
+                            <span className="text-[10px] text-white/40 font-bold">{res.earned} / {res.total} pts</span>
+                          </div>
+                          <p className="text-sm font-bold text-white leading-snug">{res.question}</p>
+                        </div>
+                      </div>
+
+                      {res.type === "MATCHING" ? (
+                        <div className="space-y-2 mt-3">
+                          {res.matches.map((m: any, mi: number) => (
+                            <div key={mi} className="flex items-center gap-3 text-xs bg-black/20 p-2 rounded-lg">
+                              <span className="text-white/40 font-bold shrink-0">{m.prompt}</span>
+                              <ArrowRight className="h-3 w-3 text-white/20" />
+                              <span className={cn("font-semibold", m.isCorrect ? "text-emerald-400" : "text-red-400")}>{m.answer}</span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+                          <div className="bg-black/20 p-3 rounded-xl space-y-1">
+                            <p className="text-[10px] font-bold text-white/30 uppercase">Your Answer</p>
+                            <p className={cn("text-sm font-bold", res.isCorrect ? "text-emerald-400" : "text-red-400")}>{res.studentAnswer}</p>
+                          </div>
+                          {!res.manual && (
+                            <div className="bg-black/20 p-3 rounded-xl space-y-1">
+                              <p className="text-[10px] font-bold text-white/30 uppercase">Correct Answer</p>
+                              <p className="text-sm font-bold text-indigo-300">{res.correctAnswer}</p>
+                            </div>
+                          )}
+                          {res.type === "SHORT_ANSWER" && (
+                            <div className="col-span-1 md:col-span-2">
+                              <p className="text-[10px] text-white/40 font-bold">Similarity Score: {res.similarity}%</p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="mt-8 flex flex-col gap-3 w-full shrink-0">
+                <Button onClick={() => setShowFeedback(true)} className="w-full h-14 rounded-2xl bg-white/5 hover:bg-white/10 text-white font-bold border border-white/10 gap-2">
+                  <Eye className="h-5 w-5 text-indigo-400" /> Review Questions & Feedback
+                </Button>
+                <div className="flex gap-3">
+                  <Button onClick={retakeQuiz} variant="outline" className="flex-1 h-12 rounded-2xl border-white/10 text-white hover:bg-white/5 gap-2 font-bold">
+                    <RotateCcw className="h-4 w-4" /> Retake Quiz
+                  </Button>
+                  <Button onClick={() => setMode("overview")} className="flex-1 h-12 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white gap-2 font-bold shadow-lg shadow-indigo-500/20">
+                    <BookOpen className="h-4 w-4" /> Exit Preview
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )
