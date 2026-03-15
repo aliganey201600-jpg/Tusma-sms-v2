@@ -360,3 +360,52 @@ export async function updateLastAccessed(courseId: string, studentId: string, le
     return { success: false }
   }
 }
+
+export async function issueCertificate(courseId: string, studentId: string) {
+  try {
+    const existing = await prisma.certificate.findUnique({
+      where: {
+        studentId_courseId: { studentId, courseId }
+      }
+    })
+
+    if (existing) return { success: true, certificate: existing }
+
+    const uniqueId = `CER-${new Date().getFullYear()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`
+    
+    const certificate = await prisma.certificate.create({
+      data: {
+        courseId,
+        studentId,
+        certificateUniqueId: uniqueId
+      },
+      include: {
+        student: { select: { firstName: true, lastName: true } },
+        course: { select: { name: true } }
+      }
+    })
+
+    return { success: true, certificate }
+  } catch (error) {
+    console.error("Error issuing certificate:", error)
+    return { success: false }
+  }
+}
+
+export async function getCertificate(courseId: string, studentId: string) {
+  try {
+    const certificate = await prisma.certificate.findUnique({
+      where: {
+        studentId_courseId: { studentId, courseId }
+      },
+      include: {
+        student: { select: { firstName: true, lastName: true } },
+        course: { select: { name: true } }
+      }
+    })
+    return certificate
+  } catch (error) {
+    console.error("Error fetching certificate:", error)
+    return null
+  }
+}

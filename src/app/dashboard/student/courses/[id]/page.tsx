@@ -6,7 +6,8 @@ import {
   Clock, FileText, CheckCircle2, Video, Zap, ArrowRight,
   X, FileDown, BookOpenCheck, HelpCircle, GraduationCap,
   Layers, AlertCircle, Trophy, RotateCcw, Check, Eye,
-  Sparkles, MessageSquare, User, Shuffle, Star, Type
+  Sparkles, MessageSquare, User, Shuffle, Star, Type,
+  Printer, Download
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -14,6 +15,13 @@ import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 import { 
   getCourseStructure, 
   getQuizWithQuestions, 
@@ -21,7 +29,9 @@ import {
   getQuizAttempts,
   completeLesson,
   getCourseProgress,
-  updateLastAccessed
+  updateLastAccessed,
+  issueCertificate,
+  getCertificate
 } from "../../../admin/courses/builder-actions"
 import { useParams, useRouter } from "next/navigation"
 import { useCurrentUser } from "@/hooks/use-current-user"
@@ -80,7 +90,63 @@ function getAdvice(score: number, passed: boolean) {
   return "It happens to the best of us. Take a short break, review the lesson materials one more time, and try again. You've got this!"
 }
 
-// ─── Matching Drag-and-Drop Component ────────────────────────────────────────
+// ─── Certificate Visual Component ───────────────────────────────────────────
+function CertificateContent({ certificate, studentName, courseName }: any) {
+  return (
+    <div id="certificate-print" className="relative w-full aspect-[1.414/1] bg-white border-[16px] border-double border-indigo-900 p-12 flex flex-col items-center justify-between text-center overflow-hidden font-serif">
+      {/* Decorative Corners */}
+      <div className="absolute top-0 left-0 w-32 h-32 border-t-8 border-l-8 border-amber-400 -translate-x-4 -translate-y-4" />
+      <div className="absolute top-0 right-0 w-32 h-32 border-t-8 border-r-8 border-amber-400 translate-x-4 -translate-y-4" />
+      <div className="absolute bottom-0 left-0 w-32 h-32 border-b-8 border-l-8 border-amber-400 -translate-x-4 translate-y-4" />
+      <div className="absolute bottom-0 right-0 w-32 h-32 border-b-8 border-r-8 border-amber-400 translate-x-4 translate-y-4" />
+      
+      {/* Background Seal */}
+      <div className="absolute inset-0 flex items-center justify-center opacity-[0.03] pointer-events-none">
+        <GraduationCap className="w-[80%] h-[80%] text-indigo-900" />
+      </div>
+
+      <div className="space-y-6 relative z-10 w-full">
+        <div className="flex flex-col items-center gap-2">
+           <div className="h-20 w-20 bg-indigo-900 rounded-full flex items-center justify-center mb-4">
+              <Trophy className="h-10 w-10 text-amber-400" />
+           </div>
+           <h4 className="text-xl font-bold uppercase tracking-[0.3em] text-indigo-900">Certificate of Completion</h4>
+           <div className="w-48 h-1 bg-amber-400 mx-auto" />
+        </div>
+
+        <div className="pt-8">
+           <p className="text-lg italic text-slate-500">This is to certify that</p>
+           <h2 className="text-6xl font-black text-indigo-950 mt-4 mb-2 capitalize">{studentName}</h2>
+           <p className="text-lg text-slate-600 max-w-2xl mx-auto leading-relaxed">has successfully completed all requirements and mastered the concepts presented in the comprehensive course</p>
+        </div>
+
+        <div className="pt-4">
+           <h3 className="text-4xl font-bold text-indigo-900 underline decoration-amber-400 decoration-4 underline-offset-8">{courseName}</h3>
+        </div>
+      </div>
+
+      <div className="w-full flex justify-between items-end relative z-10 pt-12">
+        <div className="text-left space-y-2 border-t-2 border-slate-200 pt-4 px-8">
+           <p className="text-sm font-bold text-slate-900">Dr. Aliganey</p>
+           <p className="text-[10px] uppercase tracking-widest text-slate-400 font-sans">Academic Director</p>
+        </div>
+        
+        <div className="flex flex-col items-center pb-4">
+           <div className="h-24 w-24 border-4 border-amber-400 rounded-full flex items-center justify-center relative bg-white/50 backdrop-blur-sm">
+              <Sparkles className="h-12 w-12 text-amber-500" />
+              <div className="absolute inset-2 border-2 border-dashed border-amber-200 rounded-full animate-spin-slow" />
+           </div>
+           <p className="text-[8px] mt-4 font-mono text-slate-400">ID: {certificate?.certificateUniqueId}</p>
+        </div>
+
+        <div className="text-right space-y-2 border-t-2 border-slate-200 pt-4 px-8">
+           <p className="text-sm font-bold text-slate-900">{certificate ? format(new Date(certificate.issuedAt), "MMMM dd, yyyy") : "-"}</p>
+           <p className="text-[10px] uppercase tracking-widest text-slate-400 font-sans">Date Issued</p>
+        </div>
+      </div>
+    </div>
+  )
+}
 function MatchingQuestion({ options, value, onChange }: {
   options: any[]
   value: Record<string, string>
@@ -221,6 +287,8 @@ export default function StudentCourseViewerPage() {
   const [selectedAttempt, setSelectedAttempt] = React.useState<any>(null)
   const [courseProgress, setCourseProgress] = React.useState<number>(0)
   const [completedLessons, setCompletedLessons] = React.useState<string[]>([])
+  const [certificate, setCertificate] = React.useState<any>(null)
+  const [issuingCert, setIssuingCert] = React.useState(false)
   const timerRef = React.useRef<any>(null)
   const startTimeRef = React.useRef<number>(0)
 
@@ -230,9 +298,13 @@ export default function StudentCourseViewerPage() {
       if (data) setCourse(data)
       
       if (user?.studentId) {
-        const prog = await getCourseProgress(id as string, user.studentId)
+        const [prog, cert] = await Promise.all([
+          getCourseProgress(id as string, user.studentId),
+          getCertificate(id as string, user.studentId)
+        ])
         setCourseProgress(prog.progress)
         setCompletedLessons(prog.completedLessonIds)
+        setCertificate(cert)
       }
       setLoading(false)
     }
@@ -276,6 +348,13 @@ export default function StudentCourseViewerPage() {
       setCompletedLessons(prev => [...prev, lessonId])
       const prog = await getCourseProgress(id as string, user.studentId)
       setCourseProgress(prog.progress)
+      
+      if (prog.progress === 100 && !certificate) {
+        setIssuingCert(true)
+        const res = await issueCertificate(id as string, user.studentId)
+        if (res.success) setCertificate(res.certificate)
+        setIssuingCert(false)
+      }
     }
   }
 
@@ -1068,6 +1147,66 @@ export default function StudentCourseViewerPage() {
                 )}
               </CardContent>
             </Card>
+
+            {courseProgress === 100 && (
+              <Card className="border-none shadow-xl rounded-3xl overflow-hidden bg-gradient-to-br from-indigo-900 via-indigo-950 to-slate-950 text-white relative group">
+                <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-125 transition-transform duration-1000"><Trophy className="h-24 w-24" /></div>
+                <CardContent className="p-8 space-y-6 relative z-10">
+                   <div className="space-y-2">
+                      <div className="h-10 w-10 bg-amber-400 rounded-xl flex items-center justify-center shadow-lg shadow-amber-400/20 mb-4 animate-bounce">
+                         <Star className="h-5 w-5 text-indigo-950 fill-indigo-950" />
+                      </div>
+                      <h3 className="text-xl font-black tracking-tight">Mastery Achieved!</h3>
+                      <p className="text-xs text-white/50 leading-relaxed font-medium">You have successfully completed all course requirements. Your professional certificate is now ready.</p>
+                   </div>
+                   
+                   <Dialog>
+                      <DialogTrigger asChild>
+                        <Button className="w-full h-12 rounded-2xl bg-amber-400 text-indigo-950 font-black text-xs uppercase tracking-widest hover:bg-amber-300 transition-all border-b-4 border-amber-600 active:border-b-0 active:translate-y-1">
+                           View Certificate
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-[95vw] md:max-w-4xl p-0 bg-white border-none overflow-hidden rounded-[2rem]">
+                        <div className="p-4 border-b flex items-center justify-between bg-slate-50">
+                           <DialogTitle className="text-sm font-black uppercase tracking-widest text-slate-400">Course Certificate</DialogTitle>
+                           <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="h-9 rounded-xl gap-2 font-bold text-[10px] uppercase tracking-widest border-2"
+                              onClick={() => {
+                                const printContent = document.getElementById('certificate-print');
+                                const WinPrint = window.open('', '', 'width=1200,height=850');
+                                WinPrint?.document.write('<html><head><title>Certificate</title>');
+                                WinPrint?.document.write('<script src="https://cdn.tailwindcss.com"></script>');
+                                WinPrint?.document.write('<style>@media print { body { -webkit-print-color-adjust: exact; } .no-print { display: none; } }</style>');
+                                WinPrint?.document.write('</head><body>');
+                                WinPrint?.document.write(printContent?.innerHTML || '');
+                                WinPrint?.document.write('</body></html>');
+                                WinPrint?.document.close();
+                                WinPrint?.focus();
+                                setTimeout(() => {
+                                  WinPrint?.print();
+                                  WinPrint?.close();
+                                }, 1000);
+                              }}
+                            >
+                             <Printer className="h-4 w-4" /> Print PDF
+                           </Button>
+                        </div>
+                        <div className="p-4 md:p-10 overflow-x-auto">
+                           <div className="min-w-[800px]">
+                              <CertificateContent 
+                                certificate={certificate} 
+                                studentName={`${user?.firstName} ${user?.lastName}`}
+                                courseName={course?.name}
+                              />
+                           </div>
+                        </div>
+                      </DialogContent>
+                   </Dialog>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       </div>
