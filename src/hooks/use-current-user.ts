@@ -8,6 +8,7 @@ interface CurrentUser {
   email: string | undefined
   fullName: string
   firstName: string
+  lastName?: string
   role: string
   avatarUrl?: string
   studentId?: string | null
@@ -47,6 +48,7 @@ export function useCurrentUser() {
           "User"
 
         const firstName = fullName.split(" ")[0]
+        const lastName = fullName.split(" ").slice(1).join(" ")
 
         // Fetch extended data from API to be sure
         try {
@@ -58,6 +60,7 @@ export function useCurrentUser() {
               email: authUser.email,
               fullName,
               firstName,
+              lastName,
               role: meta.role || "STUDENT",
               avatarUrl: meta.avatar_url,
               studentId: data.student?.studentId,
@@ -73,6 +76,7 @@ export function useCurrentUser() {
               email: authUser.email,
               fullName,
               firstName,
+              lastName,
               role: meta.role || "STUDENT",
               avatarUrl: meta.avatar_url,
               studentId: meta.studentId || null,
@@ -110,6 +114,7 @@ export function useCurrentUser() {
           email: session.user.email,
           fullName,
           firstName: fullName.split(" ")[0],
+          lastName: fullName.split(" ").slice(1).join(" "),
           role: meta.role || "STUDENT",
           avatarUrl: meta.avatar_url,
         })

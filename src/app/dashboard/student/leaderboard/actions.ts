@@ -10,7 +10,6 @@ export async function getLeaderboardData() {
         firstName: true,
         lastName: true,
         totalXp: true,
-        user: { select: { avatarUrl: true } }
       },
       orderBy: { totalXp: 'desc' },
       take: 50 // Top 50 students
@@ -22,7 +21,7 @@ export async function getLeaderboardData() {
         id: s.id,
         name: `${s.firstName} ${s.lastName}`.trim(),
         xp: s.totalXp,
-        avatarUrl: s.user?.avatarUrl || null,
+        avatarUrl: null, // no avatar field exists
         rank: index + 1
       }))
     }
