@@ -410,7 +410,42 @@ export default function StudentCourseViewerPage() {
               )}
 
               {q?.type === "FILL_BLANK" && (
-                <input type="text" value={answers[q.id] || ""} onChange={e => setAnswer(q.id, e.target.value)} placeholder="Type your answer here..." className="w-full h-12 px-4 rounded-2xl border-2 border-slate-200 focus:border-indigo-400 outline-none text-sm transition-colors" />
+                <div className="space-y-2">
+                  <p className="text-xs text-slate-400 font-medium">Fill in the blank:</p>
+                  <input
+                    type="text"
+                    value={answers[q.id] || ""}
+                    onChange={e => setAnswer(q.id, e.target.value)}
+                    placeholder="Type your answer here..."
+                    className="w-full h-12 px-4 rounded-2xl border-2 border-slate-200 focus:border-indigo-400 outline-none text-sm transition-colors"
+                  />
+                </div>
+              )}
+
+              {q?.type === "SHORT_ANSWER" && (
+                <div className="space-y-2">
+                  <p className="text-xs text-slate-400 font-medium">Write a brief answer:</p>
+                  <textarea
+                    value={answers[q.id] || ""}
+                    onChange={e => setAnswer(q.id, e.target.value)}
+                    placeholder="Write your answer here..."
+                    rows={4}
+                    className="w-full px-4 py-3 rounded-2xl border-2 border-slate-200 focus:border-indigo-400 outline-none text-sm resize-none transition-colors"
+                  />
+                </div>
+              )}
+
+              {q?.type === "ESSAY" && (
+                <div className="space-y-2">
+                  <p className="text-xs text-slate-400 font-medium">Write your essay response:</p>
+                  <textarea
+                    value={answers[q.id] || ""}
+                    onChange={e => setAnswer(q.id, e.target.value)}
+                    placeholder="Write your essay here..."
+                    rows={8}
+                    className="w-full px-4 py-3 rounded-2xl border-2 border-slate-200 focus:border-indigo-400 outline-none text-sm resize-none transition-colors"
+                  />
+                </div>
               )}
             </div>
 
