@@ -67,8 +67,8 @@ export async function verifyStudentId(userId: string, studentId: string) {
 
     revalidatePath("/dashboard/student")
     return { success: true }
-  } catch (error) {
-    console.error("Verification error:", error)
-    return { success: false, error: "Cillad ayaa dhacday intii lagu guda jiray xaqiijinta." }
+  } catch (error: any) {
+    console.error("Verification error details:", error)
+    return { success: false, error: `Cillad: ${error.message || "Unknown error"}` }
   }
 }
