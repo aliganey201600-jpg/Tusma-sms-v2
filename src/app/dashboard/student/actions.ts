@@ -5,70 +5,69 @@ import { revalidatePath } from "next/cache"
 
 export async function verifyStudentId(userId: string, studentId: string) {
   try {
-    // 1. Find the master student record that matches this manual Student ID
-    // and hasn't been linked to a real User yet (or belongs to this user)
-    const masterRecord = await prisma.student.findFirst({
-      where: {
-        studentId: studentId.trim(),
-        status: { in: ["ACTIVE", "PENDING"] }
-      }
-    })
+    console.log("Starting verification for:", { userId, studentId })
 
-    if (!masterRecord) {
-      return { success: false, error: "Student ID-gan lama helin. Fadlan hubi ama la xiriir maamulka." }
+    // 1. Find the master record
+    const masterEntries: any[] = await prisma.$queryRawUnsafe(
+      `SELECT * FROM "Student" WHERE "studentId" = $1 LIMIT 1`,
+      studentId.trim()
+    )
+
+    if (masterEntries.length === 0) {
+      return { success: false, error: "Student ID-kan lama helin. Fadlan hubi ID-ga iskuulka." }
     }
 
-    // 2. Link the current logged-in User's student record to the Master data
-    // Finding or creating the current student session record
-    let currentUserStudent = await prisma.student.findUnique({
-      where: { userId }
-    })
+    const master = masterEntries[0]
 
-    // If the student record doesn't exist for this user, we will link the Master record directly to this User
-    if (!currentUserStudent) {
-      // Check if the master record is already linked to another user
-      if (masterRecord.userId && masterRecord.userId !== userId) {
-        // If it's linked to a 'stub' user created by admin, we might need to handle that,
-        // but for now, let's just reassign it to the real logged-in user if the stub user has no auth session.
+    // 2. Find current user's student record
+    const currentUserStudents: any[] = await prisma.$queryRawUnsafe(
+      `SELECT id FROM "Student" WHERE "userId" = $1 LIMIT 1`,
+      userId
+    )
+
+    const now = new Date()
+
+    if (currentUserStudents.length > 0) {
+      const currentId = currentUserStudents[0].id
+
+      // UPDATE existing student record with master data
+      await prisma.$executeRawUnsafe(
+        `UPDATE "Student" SET 
+          "studentId" = $1, 
+          "classId" = $2, 
+          "batchId" = $3, 
+          "firstName" = $4, 
+          "lastName" = $5, 
+          gender = $6, 
+          status = 'ACTIVE',
+          "updatedAt" = $7
+         WHERE id = $8`,
+        master.studentId, 
+        master.classId, 
+        master.batchId, 
+        master.firstName, 
+        master.lastName, 
+        master.gender || 'Male', // Default if missing
+        now,
+        currentId
+      )
+
+      // If master record was a separate stub (placeholder), delete it to avoid ghost records
+      if (master.id !== currentId) {
+        await prisma.$executeRawUnsafe(`DELETE FROM "Student" WHERE id = $1`, master.id)
       }
-      
-      await prisma.student.update({
-        where: { id: masterRecord.id },
-        data: { 
-          userId: userId, // Link this master record to the logged-in user
-          status: "ACTIVE" 
-        }
-      })
     } else {
-      // If student record exists but is empty/unverified, update it with master data
-      await prisma.student.update({
-        where: { id: currentUserStudent.id },
-        data: {
-          studentId: masterRecord.studentId,
-          classId: masterRecord.classId,
-          batchId: masterRecord.batchId,
-          firstName: masterRecord.firstName,
-          lastName: masterRecord.lastName,
-          gender: masterRecord.gender,
-          status: "ACTIVE"
-        }
-      })
-
-      // If we had a separate master record, we might want to clean it up or mark it
-      if (masterRecord.id !== currentUserStudent.id) {
-        // Delete the master record since we moved its logic or it was a duplicate
-        try {
-          await prisma.student.delete({ where: { id: masterRecord.id } })
-        } catch (e) {
-          console.warn("Could not delete duplicate master record:", e)
-        }
-      }
+      // LINK master record directly to this user if no student record exists yet
+      await prisma.$executeRawUnsafe(
+        `UPDATE "Student" SET "userId" = $1, status = 'ACTIVE', "updatedAt" = $2 WHERE id = $3`,
+        userId, now, master.id
+      )
     }
 
     revalidatePath("/dashboard/student")
     return { success: true }
   } catch (error: any) {
-    console.error("Verification error details:", error)
-    return { success: false, error: `Cillad: ${error.message || "Unknown error"}` }
+    console.error("Critical Verification Error:", error)
+    return { success: false, error: `Cillad: ${error.message || "Lama xaqiijin karo account-ka."}` }
   }
 }
