@@ -3,7 +3,7 @@
 import prisma from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 
-export async function getCourseStructure(courseId: string) {
+export async function getCourseStructure(courseId: string, studentId?: string) {
   try {
     const course = await prisma.course.findUnique({
       where: { id: courseId },
@@ -14,7 +14,11 @@ export async function getCourseStructure(courseId: string) {
             lessons: { orderBy: { order: 'asc' } },
             quizzes: { orderBy: { order: 'asc' } }
           }
-        }
+        },
+        enrollments: studentId ? {
+          where: { studentId },
+          take: 1
+        } : false
       }
     })
     return course
@@ -295,5 +299,64 @@ export async function getQuizAttempts(quizId: string, studentId: string) {
   } catch (error) {
     console.error("Error fetching attempts:", error)
     return []
+  }
+}
+
+export async function completeLesson(lessonId: string, studentId: string) {
+  try {
+    await prisma.lessonCompletion.upsert({
+      where: {
+        lessonId_studentId: { lessonId, studentId }
+      },
+      update: {},
+      create: { lessonId, studentId }
+    })
+    return { success: true }
+  } catch (error) {
+    console.error("Error completing lesson:", error)
+    return { success: false }
+  }
+}
+
+export async function getCourseProgress(courseId: string, studentId: string) {
+  try {
+    const [totalLessons, completions] = await Promise.all([
+      prisma.lesson.count({
+        where: { section: { courseId } }
+      }),
+      prisma.lessonCompletion.findMany({
+        where: {
+          studentId,
+          lesson: { section: { courseId } }
+        },
+        select: { lessonId: true }
+      })
+    ])
+
+    const completedLessonIds = completions.map(c => c.lessonId)
+    const progress = totalLessons > 0 ? Math.round((completedLessonIds.length / totalLessons) * 100) : 0
+
+    return { progress, completedLessonIds }
+  } catch (error) {
+    console.error("Error fetching progress:", error)
+    return { progress: 0, completedLessonIds: [] }
+  }
+}
+
+export async function updateLastAccessed(courseId: string, studentId: string, lessonId: string) {
+  try {
+    await prisma.enrollment.update({
+      where: {
+        studentId_courseId: { studentId, courseId }
+      },
+      data: {
+        lastLessonId: lessonId,
+        lastAccessedAt: new Date()
+      }
+    })
+    return { success: true }
+  } catch (error) {
+    console.error("Error updating last accessed:", error)
+    return { success: false }
   }
 }

@@ -18,7 +18,10 @@ import {
   getCourseStructure, 
   getQuizWithQuestions, 
   saveQuizAttempt, 
-  getQuizAttempts 
+  getQuizAttempts,
+  completeLesson,
+  getCourseProgress,
+  updateLastAccessed
 } from "../../../admin/courses/builder-actions"
 import { useParams, useRouter } from "next/navigation"
 import { useCurrentUser } from "@/hooks/use-current-user"
@@ -216,17 +219,25 @@ export default function StudentCourseViewerPage() {
   const [quizTab, setQuizTab] = React.useState<string>("questions")
   const [quizAttempts, setQuizAttempts] = React.useState<any[]>([])
   const [selectedAttempt, setSelectedAttempt] = React.useState<any>(null)
+  const [courseProgress, setCourseProgress] = React.useState<number>(0)
+  const [completedLessons, setCompletedLessons] = React.useState<string[]>([])
   const timerRef = React.useRef<any>(null)
   const startTimeRef = React.useRef<number>(0)
 
   React.useEffect(() => {
     async function load() {
-      const data = await getCourseStructure(id as string)
+      const data = await getCourseStructure(id as string, user?.studentId || undefined)
       if (data) setCourse(data)
+      
+      if (user?.studentId) {
+        const prog = await getCourseProgress(id as string, user.studentId)
+        setCourseProgress(prog.progress)
+        setCompletedLessons(prog.completedLessonIds)
+      }
       setLoading(false)
     }
     load()
-  }, [id])
+  }, [id, user?.studentId])
 
   React.useEffect(() => {
     if (mode === "quiz" && activeQuiz?.timeLimit && !submitted) {
@@ -244,10 +255,28 @@ export default function StudentCourseViewerPage() {
   const toggleSection = (sid: string) =>
     setExpandedSections(prev => prev.includes(sid) ? prev.filter(x => x !== sid) : [...prev, sid])
 
-  const openLesson = (lesson: any) => {
+  const openLesson = async (lesson: any) => {
     setActiveLesson(lesson)
     setActiveLessonTab("body")
     setMode("lesson")
+    if (user?.studentId) {
+      updateLastAccessed(id as string, user.studentId, lesson.id)
+      setCourse((prev: any) => {
+        if (!prev || !prev.enrollments?.[0]) return prev
+        const newEnrollments = [{ ...prev.enrollments[0], lastLessonId: lesson.id }]
+        return { ...prev, enrollments: newEnrollments }
+      })
+    }
+  }
+
+  const handleCompleteLesson = async (lessonId: string) => {
+    if (!user?.studentId) return
+    const res = await completeLesson(lessonId, user.studentId)
+    if (res.success) {
+      setCompletedLessons(prev => [...prev, lessonId])
+      const prog = await getCourseProgress(id as string, user.studentId)
+      setCourseProgress(prog.progress)
+    }
   }
 
   const openQuiz = async (quiz: any) => {
@@ -453,7 +482,17 @@ export default function StudentCourseViewerPage() {
                                <Badge className={cn("text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-xl", passed ? "bg-emerald-500 text-white" : "bg-red-50 text-red-600 border border-red-100")}>
                                 {passed ? "Passed" : "Needs Review"}
                                </Badge>
-                               <Button variant="ghost" className="text-white/40 hover:text-white hover:bg-white/5 h-10 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest gap-2" onClick={retakeQuiz}>
+                               <Badge variant="outline" className="border-white/20 text-white/60 text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-xl">
+                                  {score >= 90 ? "Excellent Precision" : score >= 80 ? "Great Effort" : score >= 70 ? "Good Standing" : score >= 50 ? "Fair Result" : "Retake Suggested"}
+                               </Badge>
+                             </div>
+                             <p className="text-white/40 text-[11px] font-medium max-w-md leading-relaxed">
+                                {score >= 90 ? "Outstanding performance! You've mastered this topic perfectly." : 
+                                 score >= 70 ? "Well done! You have a solid grasp of the material." : 
+                                 "Don't discourage yourself. Learning is a journey, try reviewing the lesson and attempt again."}
+                             </p>
+                             <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 mt-4">
+                                <Button variant="ghost" className="text-white/40 hover:text-white hover:bg-white/5 h-10 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest gap-2" onClick={retakeQuiz}>
                                   <RotateCcw className="h-4 w-4" /> Retake
                                </Button>
                             </div>
@@ -805,7 +844,21 @@ export default function StudentCourseViewerPage() {
               <p className="text-[10px] text-slate-400 font-medium">{course?.name}</p>
             </div>
           </div>
-          <Button variant="ghost" size="sm" onClick={() => setMode("overview")} className="text-slate-500 gap-1.5 text-xs font-semibold hover:bg-slate-50 rounded-xl h-9 px-4"><X className="h-3.5 w-3.5" /> Close</Button>
+          <div className="flex items-center gap-3">
+             <Button 
+                onClick={() => handleCompleteLesson(activeLesson.id)}
+                disabled={completedLessons.includes(activeLesson.id)}
+                className={cn(
+                  "hidden sm:flex text-[10px] font-black uppercase tracking-widest h-9 px-5 rounded-xl transition-all",
+                  completedLessons.includes(activeLesson.id) 
+                    ? "bg-emerald-50 text-emerald-600 border border-emerald-100 cursor-default" 
+                    : "bg-indigo-600 text-white hover:bg-indigo-700 shadow-lg shadow-indigo-100"
+                )}
+              >
+                {completedLessons.includes(activeLesson.id) ? "✓ Completed" : "Mark as Complete"}
+              </Button>
+             <Button variant="ghost" size="sm" onClick={() => setMode("overview")} className="text-slate-500 gap-1.5 text-xs font-semibold hover:bg-slate-50 rounded-xl h-9 px-4"><X className="h-3.5 w-3.5" /> Close</Button>
+          </div>
         </header>
 
         <div className="flex-1 overflow-y-auto">
@@ -897,18 +950,33 @@ export default function StudentCourseViewerPage() {
               </p>
             </div>
 
-            <div className="flex flex-wrap gap-4 lg:justify-end">
-              {[
-                { Icon: Layers, val: course?.sections?.length || 0, sub: "Chapters" },
-                { Icon: Video,  val: totalLessons, sub: "Lessons" },
-                { Icon: Zap,    val: totalQuizzes, sub: "Quizzes" },
-              ].map(s => (
-                <div key={s.sub} className="bg-white/5 border border-white/10 rounded-[2rem] p-5 min-w-[140px] flex flex-col gap-1 transition-all hover:bg-white/10 hover:border-white/20">
-                  <s.Icon className="h-5 w-5 text-indigo-400 mb-2" />
-                  <p className="text-2xl font-black text-white">{s.val}</p>
-                  <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest leading-none">{s.sub}</p>
-                </div>
-              ))}
+            <div className="flex flex-col gap-6 lg:items-end">
+              <div className="w-full max-w-sm bg-white/5 border border-white/10 rounded-[2.5rem] p-8 space-y-6 backdrop-blur-xl">
+                 <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-[10px] font-black text-white/40 uppercase tracking-widest leading-none mb-2">Overall Mastery</p>
+                      <h3 className="text-3xl font-black text-white">{courseProgress}%</h3>
+                    </div>
+                    <div className="h-12 w-12 bg-indigo-500 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                       <Trophy className="h-6 w-6 text-white" />
+                    </div>
+                 </div>
+                 <Progress value={courseProgress} className="h-2.5 rounded-full bg-white/10" />
+                 <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">{completedLessons.length} / {totalLessons} Lessons Completed</p>
+              </div>
+
+              <div className="flex flex-wrap gap-4 lg:justify-end">
+                {[
+                  { Icon: Layers, val: course?.sections?.length || 0, sub: "Chapters" },
+                  { Icon: Zap,    val: totalQuizzes, sub: "Quizzes" },
+                ].map(s => (
+                  <div key={s.sub} className="bg-white/5 border border-white/10 rounded-2xl p-4 min-w-[120px] flex flex-col gap-1 transition-all hover:bg-white/10 hover:border-white/20">
+                    <s.Icon className="h-4 w-4 text-indigo-400 mb-2" />
+                    <p className="text-xl font-black text-white">{s.val}</p>
+                    <p className="text-[9px] text-white/40 font-bold uppercase tracking-widest leading-none">{s.sub}</p>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -950,7 +1018,9 @@ export default function StudentCourseViewerPage() {
                             return items.map((item: any, iIdx: number) => (
                               item.type === "lesson" ? (
                                 <div key={item.id} onClick={() => openLesson(item)} className="group flex items-center gap-4 p-3.5 rounded-xl hover:bg-slate-50 cursor-pointer transition-all">
-                                  <div className="h-8 w-8 rounded-lg bg-slate-50 group-hover:bg-indigo-50 flex items-center justify-center text-slate-300 group-hover:text-indigo-600 transition-all text-xs font-bold shrink-0">{iIdx + 1}</div>
+                                  <div className="h-8 w-8 rounded-lg bg-slate-50 group-hover:bg-indigo-50 flex items-center justify-center text-slate-300 group-hover:text-indigo-600 transition-all text-xs font-bold shrink-0">
+                                    {completedLessons.includes(item.id) ? <CheckCircle2 className="h-4 w-4 text-emerald-500" /> : iIdx + 1}
+                                  </div>
                                   <div className="flex-1 min-w-0"><p className="text-sm font-semibold text-slate-700 group-hover:text-indigo-700 transition-colors truncate">{item.title}</p></div>
                                   <ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-indigo-400" />
                                 </div>
@@ -975,13 +1045,27 @@ export default function StudentCourseViewerPage() {
           <div className="col-span-12 lg:col-span-4 space-y-6">
             <Card className="border-none shadow-md rounded-3xl overflow-hidden bg-white">
               <CardContent className="p-8 space-y-6">
-                <Button
-                  onClick={() => {
-                    const first = course?.sections?.[0]?.lessons?.[0]
-                    if (first) openLesson(first)
-                  }}
-                  className="w-full h-12 rounded-2xl bg-indigo-600 text-white font-bold text-xs uppercase tracking-wider shadow-lg shadow-indigo-100 hover:bg-indigo-700 gap-2"
-                >Start Learning <ArrowRight className="h-4 w-4" /></Button>
+                {course?.enrollments?.[0]?.lastLessonId ? (
+                   <Button
+                    onClick={() => {
+                        const lesson = course.sections.flatMap((s: any) => s.lessons).find((l: any) => l.id === course.enrollments[0].lastLessonId)
+                        if (lesson) openLesson(lesson)
+                        else {
+                          const first = course?.sections?.[0]?.lessons?.[0]
+                          if (first) openLesson(first)
+                        }
+                    }}
+                    className="w-full h-12 rounded-2xl bg-indigo-600 text-white font-bold text-xs uppercase tracking-wider shadow-lg shadow-indigo-100 hover:bg-indigo-700 gap-2 border-b-4 border-indigo-800 active:border-b-0 active:translate-y-1 transition-all"
+                  >Continue Learning <ArrowRight className="h-4 w-4" /></Button>
+                ) : (
+                  <Button
+                    onClick={() => {
+                      const first = course?.sections?.[0]?.lessons?.[0]
+                      if (first) openLesson(first)
+                    }}
+                    className="w-full h-12 rounded-2xl bg-indigo-600 text-white font-bold text-xs uppercase tracking-wider shadow-lg shadow-indigo-100 hover:bg-indigo-700 gap-2 border-b-4 border-indigo-800 active:border-b-0 active:translate-y-1 transition-all"
+                  >Start Learning <ArrowRight className="h-4 w-4" /></Button>
+                )}
               </CardContent>
             </Card>
           </div>

@@ -70,6 +70,7 @@ model Student {
   updatedAt     DateTime @updatedAt
 
   quizAttempts  QuizAttempt[]
+  lessonCompletions LessonCompletion[]
 }
 
 
@@ -228,6 +229,7 @@ model Lesson {
   section         CourseSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
   
   quiz            Quiz?
+  completions     LessonCompletion[]
 
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -308,8 +310,21 @@ model Enrollment {
   course        Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
   
   enrolledAt    DateTime @default(now())
+  lastLessonId  String?
+  lastAccessedAt DateTime? @updatedAt
 
   @@unique([studentId, courseId])
+}
+
+model LessonCompletion {
+  id        String   @id @default(uuid())
+  lessonId  String
+  lesson    Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  studentId String
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  completedAt DateTime @default(now())
+
+  @@unique([lessonId, studentId])
 }
 
 model Assignment {
