@@ -11,6 +11,9 @@ import {
 } from "@/components/ui/sheet";
 import { Menu } from "lucide-react";
 
+// Pages where the public navbar should NOT appear
+const HIDDEN_PATHS = ["/dashboard", "/sign-in", "/sign-up"]
+
 export function Navbar() {
   const [mounted, setMounted] = React.useState(false);
   const pathname = usePathname();
@@ -18,6 +21,11 @@ export function Navbar() {
   React.useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Hide navbar on dashboard and auth pages
+  const isHidden = HIDDEN_PATHS.some((p) => pathname.startsWith(p))
+  if (isHidden) return null
+
 
   const navLinks = [
     { name: "Home", href: "/" },

@@ -29,11 +29,10 @@ export default function RootLayout({
     <html lang="en" className="antialiased">
       <body className={`${inter.className} min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950`}>
         <Navbar />
-        <main className="flex-1 flex flex-col">
-          {children}
-        </main>
+        {children}
         <Toaster position="top-center" richColors />
       </body>
     </html>
   )
 }
+
