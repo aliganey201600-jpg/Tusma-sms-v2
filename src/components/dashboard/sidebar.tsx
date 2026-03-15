@@ -2,7 +2,8 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
+import { createClient } from "@/utils/supabase/client"
 import {
   LayoutDashboard,
   Users,
@@ -40,6 +41,14 @@ interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {
 
 export function Sidebar({ className, role }: SidebarProps) {
   const pathname = usePathname()
+  const router = useRouter()
+  const supabase = createClient()
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    router.push("/sign-in")
+    router.refresh()
+  }
 
   const routes = {
     SUPER_ADMIN: [
@@ -125,11 +134,13 @@ export function Sidebar({ className, role }: SidebarProps) {
         </div>
       </div>
       <div className="px-3 py-2 border-t mt-auto">
-        <Button variant="ghost" className="w-full justify-start text-muted-foreground hover:text-destructive" asChild>
-          <Link href="/sign-in">
-            <LogOut className="mr-2 h-4 w-4" />
-            Logout
-          </Link>
+        <Button 
+          variant="ghost" 
+          className="w-full justify-start text-muted-foreground hover:text-destructive" 
+          onClick={handleLogout}
+        >
+          <LogOut className="mr-2 h-4 w-4" />
+          Logout
         </Button>
       </div>
     </div>

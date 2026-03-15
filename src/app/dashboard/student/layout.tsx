@@ -16,6 +16,8 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useCurrentUser } from "@/hooks/use-current-user"
+import { useRouter } from "next/navigation"
+import { createClient } from "@/utils/supabase/client"
 
 export default function StudentDashboardLayout({
   children,
@@ -24,6 +26,15 @@ export default function StudentDashboardLayout({
 }) {
   const [mounted, setMounted] = React.useState(false)
   const { user } = useCurrentUser()
+  const router = useRouter()
+  const supabase = createClient()
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    router.push("/sign-in")
+    router.refresh()
+  }
+
 
   React.useEffect(() => {
     setMounted(true)
@@ -89,7 +100,12 @@ export default function StudentDashboardLayout({
                     <DropdownMenuItem>My Profile</DropdownMenuItem>
                     <DropdownMenuItem>Transcript</DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem className="text-destructive">Log out</DropdownMenuItem>
+                    <DropdownMenuItem 
+                      className="text-destructive cursor-pointer" 
+                      onClick={handleLogout}
+                    >
+                      Log out
+                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </>

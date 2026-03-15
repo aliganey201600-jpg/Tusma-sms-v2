@@ -32,10 +32,11 @@ export async function verifyStudentId(userId: string, studentId: string) {
       console.log("Created missing User record for:", userId)
     }
 
-    // 2. Find the master record (created by Admin)
+    // 2. Find the master record (created by Admin) - Force Uppercase for consistency
+    const formattedId = studentId.trim().toUpperCase()
     const masterEntries: any[] = await prisma.$queryRawUnsafe(
-      `SELECT * FROM "Student" WHERE "studentId" = $1 LIMIT 1`,
-      studentId.trim()
+      `SELECT * FROM "Student" WHERE UPPER("studentId") = $1 LIMIT 1`,
+      formattedId
     )
 
     if (masterEntries.length === 0) {
