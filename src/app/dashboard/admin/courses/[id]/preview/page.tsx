@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import {
-  BookOpen, ChevronLeft, ChevronDown, ChevronRight,
+  BookOpen, ChevronLeft, ChevronDown, ChevronRight, ChevronRightCircle,
   Clock, FileText, CheckCircle2, Video, Zap, ArrowRight,
   X, FileDown, BookOpenCheck, HelpCircle, GraduationCap,
   Layers, AlertCircle, Trophy, RotateCcw, Check, Eye,
@@ -849,38 +849,55 @@ export default function CoursePreviewPage() {
      COURSE OVERVIEW PAGE
      ══════════════════════════════════════════════ */
   return (
-    <div className="min-h-screen bg-[#F8FAFC]">
-      {/* Hero */}
-      <div className="bg-slate-900 pt-14 pb-24 px-6 md:px-10 text-white relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-2/3 h-full bg-gradient-to-l from-indigo-500/10 via-transparent to-transparent pointer-events-none" />
-        <div className="absolute -top-24 -right-24 w-96 h-96 bg-indigo-600/15 rounded-full blur-[120px] pointer-events-none" />
+    <div className="min-h-screen bg-[#FDFDFD]">
+      {/* Premium Hero */}
+      <div className="bg-slate-950 py-20 px-6 md:px-10 text-white relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-1/3 h-full bg-gradient-to-l from-indigo-500/10 to-transparent pointer-events-none" />
+        <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
+        
         <div className="max-w-5xl mx-auto relative z-10">
-          <Button variant="ghost" className="text-white/40 hover:text-white hover:bg-white/5 mb-8 gap-2 p-0 h-auto text-xs font-bold" onClick={() => router.back()}>
-            <ChevronLeft className="h-4 w-4" /> Back to Builder
-          </Button>
-          <div className="space-y-5">
-            <Badge className="bg-indigo-500/20 text-indigo-300 border-none px-4 py-1 text-[10px] font-bold uppercase tracking-widest">
-              {course?.category || "General"}
+          <div className="flex items-center justify-between mb-10">
+            <Button 
+              variant="ghost" 
+              className="text-white/40 hover:text-white hover:bg-white/5 gap-2 p-0 h-auto text-[11px] font-bold uppercase tracking-widest transition-colors" 
+              onClick={() => router.back()}
+            >
+              <ChevronLeft className="h-4 w-4" /> Back to Builder
+            </Button>
+            <Badge className="bg-amber-500 text-white border-none px-3 py-1 text-[10px] font-bold uppercase tracking-widest animate-pulse">
+              Admin Preview
             </Badge>
-            <h1 className="text-4xl md:text-5xl font-black tracking-tight leading-tight">{course?.name}</h1>
-            <p className="text-lg text-white/50 max-w-2xl leading-relaxed">
-              {course?.description || "A comprehensive course designed to build mastery through structured lessons and assessments."}
-            </p>
-            <div className="flex flex-wrap gap-8 pt-4">
+          </div>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-end">
+            <div className="space-y-6">
+              <div className="flex items-center gap-3">
+                <Badge className="bg-indigo-500 text-white border-none px-3 py-1 text-[10px] font-bold uppercase tracking-widest">
+                  {course?.category || "Course"}
+                </Badge>
+                <div className="h-1 w-1 rounded-full bg-white/20" />
+                <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Level {course?.level || 1}</span>
+              </div>
+              
+              <h1 className="text-4xl md:text-6xl font-black tracking-tight leading-[1.1] text-white">
+                {course?.name}
+              </h1>
+              
+              <p className="text-lg text-white/50 max-w-xl leading-relaxed font-medium">
+                {course?.description || "Master the concepts through our structured curriculum and interactive assessments."}
+              </p>
+            </div>
+
+            <div className="flex flex-wrap gap-4 lg:justify-end">
               {[
-                { Icon: Layers, val: `${course?.sections?.length || 0} Chapters`, sub: "Sections", color: "indigo" },
-                { Icon: Video,  val: `${totalLessons} Lessons`,                  sub: "Total Units", color: "emerald" },
-                { Icon: Zap,    val: `${totalQuizzes} Quizzes`,                  sub: "Assessments", color: "amber" },
-                { Icon: Clock,  val: `${totalDuration} min`,                     sub: "Duration",    color: "purple" },
+                { Icon: Layers, val: course?.sections?.length || 0, sub: "Chapters" },
+                { Icon: Video,  val: totalLessons, sub: "Lessons" },
+                { Icon: Zap,    val: totalQuizzes, sub: "Quizzes" },
               ].map(s => (
-                <div key={s.sub} className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center">
-                    <s.Icon className="h-5 w-5 text-white/50" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-bold">{s.val}</p>
-                    <p className="text-[10px] text-white/30 font-semibold uppercase tracking-wider">{s.sub}</p>
-                  </div>
+                <div key={s.sub} className="bg-white/5 border border-white/10 rounded-[2rem] p-5 min-w-[140px] flex flex-col gap-1 transition-all hover:bg-white/10 hover:border-white/20">
+                  <s.Icon className="h-5 w-5 text-indigo-400 mb-2" />
+                  <p className="text-2xl font-black text-white">{s.val}</p>
+                  <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest leading-none">{s.sub}</p>
                 </div>
               ))}
             </div>
@@ -888,80 +905,86 @@ export default function CoursePreviewPage() {
         </div>
       </div>
 
-      {/* TOC */}
-      <div className="max-w-5xl mx-auto px-6 md:px-10 -mt-10 pb-24">
+      <div className="max-w-5xl mx-auto px-6 md:px-10 mt-12 pb-24">
         <div className="grid grid-cols-12 gap-8">
           <div className="col-span-12 lg:col-span-8 space-y-6">
             <div className="flex items-center gap-3 mb-2">
               <BookOpenCheck className="h-5 w-5 text-indigo-600" />
-              <h2 className="text-lg font-bold text-slate-900">Table of Contents</h2>
+              <h2 className="text-lg font-black text-slate-900 leading-none">Curriculum Journey</h2>
             </div>
 
             <div className="space-y-3">
               {course?.sections?.map((section: any, idx: number) => {
                 const isExpanded = expandedSections.includes(section.id)
                 return (
-                  <div key={section.id} className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                  <div key={section.id} className="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden">
                     <button
                       onClick={() => toggleSection(section.id)}
-                      className="w-full flex items-center justify-between p-5 hover:bg-slate-50/50 transition-colors text-left"
+                      className="w-full flex items-center justify-between p-6 hover:bg-slate-50/50 transition-colors text-left"
                     >
-                      <div className="flex items-center gap-4">
-                        <div className="h-10 w-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 font-bold text-sm shrink-0">
+                      <div className="flex items-center gap-5">
+                        <div className="h-11 w-11 rounded-[14px] bg-slate-900 flex items-center justify-center text-white font-black text-xs shrink-0 shadow-lg">
                           {idx + 1}
                         </div>
                         <div>
-                          <h3 className="text-[15px] font-bold text-slate-900">{section.title}</h3>
-                          <p className="text-[11px] text-slate-400 font-medium mt-0.5">
-                            {section.lessons?.length || 0} lessons • {section.quizzes?.length || 0} quizzes
+                          <h3 className="text-base font-black text-slate-900 leading-none">{section.title}</h3>
+                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-2 border-l-2 border-slate-100 pl-2">
+                            {section.lessons?.length || 0} units • {section.quizzes?.length || 0} assessments
                           </p>
                         </div>
                       </div>
-                      <ChevronDown className={cn("h-5 w-5 text-slate-300 transition-transform duration-300 shrink-0", isExpanded && "rotate-180")} />
+                      <ChevronDown className={cn("h-5 w-5 text-slate-300 transition-transform duration-500 shrink-0", isExpanded && "rotate-180")} />
                     </button>
 
-                    <div className={cn("transition-all duration-300 overflow-hidden", isExpanded ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0")}>
-                      <div className="border-t border-slate-50 px-5 pb-4 pt-2 space-y-1">
-                        {section.lessons?.map((lesson: any, lIdx: number) => (
-                          <div
-                            key={lesson.id}
-                            onClick={() => openLesson(lesson)}
-                            className="group flex items-center gap-4 p-3.5 rounded-xl hover:bg-indigo-50/50 border-2 border-transparent hover:border-indigo-100 cursor-pointer transition-all"
-                          >
-                            <div className="h-8 w-8 rounded-lg bg-slate-50 group-hover:bg-indigo-100 flex items-center justify-center text-slate-300 group-hover:text-indigo-600 transition-all text-xs font-bold shrink-0">
-                              {lIdx + 1}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-semibold text-slate-700 group-hover:text-indigo-700 transition-colors truncate">{lesson.title}</p>
-                              <p className="text-[10px] text-slate-400 font-medium">{lesson.duration || 0} min</p>
-                            </div>
-                            <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                              {lesson.videoUrl && <Video className="h-3.5 w-3.5 text-indigo-400" />}
-                              {lesson.attachmentUrl && <FileText className="h-3.5 w-3.5 text-amber-400" />}
-                              <ChevronRight className="h-4 w-4 text-slate-300" />
-                            </div>
-                          </div>
-                        ))}
+                    <div className={cn("transition-all duration-500 ease-in-out overflow-hidden", isExpanded ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0")}>
+                      <div className="border-t border-slate-50 px-6 pb-6 pt-3 space-y-1">
+                        {(() => {
+                          const items = [
+                            ...(section.lessons || []).map((l: any) => ({ ...l, type: "lesson" })),
+                            ...(section.quizzes || []).map((q: any) => ({ ...q, type: "quiz" }))
+                          ].sort((a, b) => (a.order || 0) - (b.order || 0))
 
-                        {section.quizzes?.map((quiz: any) => (
-                          <div
-                            key={quiz.id}
-                            onClick={() => openQuiz(quiz)}
-                            className="group flex items-center gap-4 p-3.5 rounded-xl hover:bg-amber-50/60 border-2 border-transparent hover:border-amber-100 cursor-pointer transition-all"
-                          >
-                            <div className="h-8 w-8 rounded-lg bg-amber-50 group-hover:bg-amber-100 flex items-center justify-center text-amber-500 shrink-0 transition-all">
-                              <Zap className="h-3.5 w-3.5" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-semibold text-slate-700 group-hover:text-amber-700 transition-colors truncate">{quiz.title}</p>
-                              <p className="text-[10px] text-slate-400 font-medium">Quiz • {quiz.passingScore}% to pass</p>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Badge variant="secondary" className="bg-amber-50 text-amber-600 border-none text-[9px] font-bold uppercase tracking-wider">Take Quiz</Badge>
-                              <ChevronRight className="h-4 w-4 text-amber-300 group-hover:text-amber-500 transition-colors" />
-                            </div>
-                          </div>
-                        ))}
+                          return items.map((item: any, iIdx: number) => (
+                            item.type === "lesson" ? (
+                              <div
+                                key={item.id}
+                                onClick={() => openLesson(item)}
+                                className="group flex items-center gap-4 p-4 rounded-2xl hover:bg-indigo-50/40 border-2 border-transparent hover:border-indigo-100 cursor-pointer transition-all"
+                              >
+                                <div className="h-9 w-9 rounded-xl bg-white border border-slate-100 group-hover:bg-white group-hover:border-indigo-200 group-hover:shadow-sm flex items-center justify-center text-slate-300 group-hover:text-indigo-600 transition-all text-[11px] font-black shrink-0">
+                                  {iIdx + 1}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-bold text-slate-700 group-hover:text-indigo-700 transition-colors truncate">{item.title}</p>
+                                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{item.duration || 0} min unit</p>
+                                </div>
+                                <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  {item.videoUrl && <Video className="h-4 w-4 text-indigo-400" />}
+                                  {item.attachmentUrl && <FileText className="h-4 w-4 text-amber-400" />}
+                                  <ChevronRightCircle className="h-5 w-5 text-indigo-500" />
+                                </div>
+                              </div>
+                            ) : (
+                              <div
+                                key={item.id}
+                                onClick={() => openQuiz(item)}
+                                className="group flex items-center gap-4 p-4 rounded-2xl hover:bg-amber-50/40 border-2 border-transparent hover:border-amber-100 cursor-pointer transition-all"
+                              >
+                                <div className="h-9 w-9 rounded-xl bg-amber-50 group-hover:bg-amber-100 flex items-center justify-center text-amber-500 shrink-0 transition-all">
+                                  <Zap className="h-4 w-4" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-bold text-slate-700 group-hover:text-amber-800 transition-colors truncate">{item.title}</p>
+                                  <p className="text-[10px] text-amber-600/60 font-black uppercase tracking-widest">Assessment • {item.passingScore}% threshold</p>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Badge className="bg-amber-100/50 text-amber-600 border-none text-[9px] font-black uppercase tracking-[0.2em] px-3 py-1.5 rounded-lg">Launch</Badge>
+                                  <ChevronRightCircle className="h-5 w-5 text-amber-500" />
+                                </div>
+                              </div>
+                            )
+                          ))
+                        })()}
                       </div>
                     </div>
                   </div>

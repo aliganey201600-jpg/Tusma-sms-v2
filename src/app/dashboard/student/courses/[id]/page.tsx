@@ -696,23 +696,51 @@ export default function StudentCourseViewerPage() {
   const totalQuizzes = course?.sections?.reduce((a: number, s: any) => a + (s.quizzes?.length || 0), 0) || 0
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC]">
-      <div className="bg-slate-900 pt-14 pb-24 px-6 md:px-10 text-white relative overflow-hidden">
+    <div className="min-h-screen bg-[#FDFDFD]">
+      {/* Premium Course Header */}
+      <div className="bg-slate-950 py-20 px-6 md:px-10 text-white relative overflow-hidden">
+        {/* Background Decorative Elements */}
+        <div className="absolute top-0 right-0 w-1/3 h-full bg-gradient-to-l from-indigo-500/10 to-transparent pointer-events-none" />
+        <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
+        
         <div className="max-w-5xl mx-auto relative z-10">
-          <Button variant="ghost" className="text-white/40 hover:text-white hover:bg-white/5 mb-8 gap-2 p-0 h-auto text-xs font-bold" onClick={() => router.back()}><ChevronLeft className="h-4 w-4" /> Back to Courses</Button>
-          <div className="space-y-5">
-            <Badge className="bg-indigo-500/20 text-indigo-300 border-none px-4 py-1 text-[10px] font-bold uppercase tracking-widest">{course?.category || "General"}</Badge>
-            <h1 className="text-4xl md:text-5xl font-black tracking-tight leading-tight">{course?.name}</h1>
-            <p className="text-lg text-white/50 max-w-2xl leading-relaxed">{course?.description || "A comprehensive course designed to build mastery through structured lessons and assessments."}</p>
-            <div className="flex flex-wrap gap-8 pt-4">
+          <Button 
+            variant="ghost" 
+            className="text-white/40 hover:text-white hover:bg-white/5 mb-10 gap-2 p-0 h-auto text-[11px] font-bold uppercase tracking-widest transition-colors" 
+            onClick={() => router.back()}
+          >
+            <ChevronLeft className="h-4 w-4" /> Back to Dashboard
+          </Button>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-end">
+            <div className="space-y-6">
+              <div className="flex items-center gap-3">
+                <Badge className="bg-indigo-500 text-white border-none px-3 py-1 text-[10px] font-bold uppercase tracking-widest">
+                  {course?.category || "Course"}
+                </Badge>
+                <div className="h-1 w-1 rounded-full bg-white/20" />
+                <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Level {course?.level || 1}</span>
+              </div>
+              
+              <h1 className="text-4xl md:text-6xl font-black tracking-tight leading-[1.1] text-white">
+                {course?.name}
+              </h1>
+              
+              <p className="text-lg text-white/50 max-w-xl leading-relaxed font-medium">
+                {course?.description || "Master the concepts through our structured curriculum and interactive assessments."}
+              </p>
+            </div>
+
+            <div className="flex flex-wrap gap-4 lg:justify-end">
               {[
-                { Icon: Layers, val: `${course?.sections?.length || 0} Chapters`, sub: "Sections" },
-                { Icon: Video,  val: `${totalLessons} Lessons`, sub: "Units" },
-                { Icon: Zap,    val: `${totalQuizzes} Quizzes`, sub: "Assessments" },
+                { Icon: Layers, val: course?.sections?.length || 0, sub: "Chapters" },
+                { Icon: Video,  val: totalLessons, sub: "Lessons" },
+                { Icon: Zap,    val: totalQuizzes, sub: "Quizzes" },
               ].map(s => (
-                <div key={s.sub} className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center"><s.Icon className="h-5 w-5 text-white/50" /></div>
-                  <div><p className="text-sm font-bold">{s.val}</p><p className="text-[10px] text-white/30 font-semibold uppercase tracking-wider">{s.sub}</p></div>
+                <div key={s.sub} className="bg-white/5 border border-white/10 rounded-[2rem] p-5 min-w-[140px] flex flex-col gap-1 transition-all hover:bg-white/10 hover:border-white/20">
+                  <s.Icon className="h-5 w-5 text-indigo-400 mb-2" />
+                  <p className="text-2xl font-black text-white">{s.val}</p>
+                  <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest leading-none">{s.sub}</p>
                 </div>
               ))}
             </div>
@@ -720,7 +748,7 @@ export default function StudentCourseViewerPage() {
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-6 md:px-10 -mt-10 pb-24">
+      <div className="max-w-5xl mx-auto px-6 md:px-10 mt-12 pb-32">
         <div className="grid grid-cols-12 gap-8">
           <div className="col-span-12 lg:col-span-8 space-y-6">
             <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
@@ -742,20 +770,28 @@ export default function StudentCourseViewerPage() {
                       </button>
                       <div className={cn("transition-all duration-300 overflow-hidden", isExpanded ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0")}>
                         <div className="border-t border-slate-50 px-5 pb-4 pt-2 space-y-1">
-                          {section.lessons?.map((lesson: any, lIdx: number) => (
-                            <div key={lesson.id} onClick={() => openLesson(lesson)} className="group flex items-center gap-4 p-3.5 rounded-xl hover:bg-indigo-50/50 cursor-pointer transition-all">
-                              <div className="h-8 w-8 rounded-lg bg-slate-50 group-hover:bg-indigo-100 flex items-center justify-center text-slate-300 group-hover:text-indigo-600 transition-all text-xs font-bold shrink-0">{lIdx + 1}</div>
-                              <div className="flex-1 min-w-0"><p className="text-sm font-semibold text-slate-700 group-hover:text-indigo-700 transition-colors truncate">{lesson.title}</p></div>
-                              <ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-indigo-400" />
-                            </div>
-                          ))}
-                          {section.quizzes?.map((quiz: any) => (
-                            <div key={quiz.id} onClick={() => openQuiz(quiz)} className="group flex items-center gap-4 p-3.5 rounded-xl hover:bg-amber-50/60 cursor-pointer transition-all">
-                              <div className="h-8 w-8 rounded-lg bg-amber-50 group-hover:bg-amber-100 flex items-center justify-center text-amber-500 shrink-0 transition-all"><Zap className="h-3.5 w-3.5" /></div>
-                              <p className="text-sm font-semibold text-slate-700 group-hover:text-amber-700 transition-colors flex-1 truncate">{quiz.title}</p>
-                              <ChevronRight className="h-4 w-4 text-amber-300 group-hover:text-amber-500" />
-                            </div>
-                          ))}
+                          {(() => {
+                            const items = [
+                              ...(section.lessons || []).map((l: any) => ({ ...l, type: "lesson" })),
+                              ...(section.quizzes || []).map((q: any) => ({ ...q, type: "quiz" }))
+                            ].sort((a, b) => (a.order || 0) - (b.order || 0))
+
+                            return items.map((item: any, iIdx: number) => (
+                              item.type === "lesson" ? (
+                                <div key={item.id} onClick={() => openLesson(item)} className="group flex items-center gap-4 p-3.5 rounded-xl hover:bg-slate-50 cursor-pointer transition-all">
+                                  <div className="h-8 w-8 rounded-lg bg-slate-50 group-hover:bg-indigo-50 flex items-center justify-center text-slate-300 group-hover:text-indigo-600 transition-all text-xs font-bold shrink-0">{iIdx + 1}</div>
+                                  <div className="flex-1 min-w-0"><p className="text-sm font-semibold text-slate-700 group-hover:text-indigo-700 transition-colors truncate">{item.title}</p></div>
+                                  <ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-indigo-400" />
+                                </div>
+                              ) : (
+                                <div key={item.id} onClick={() => openQuiz(item)} className="group flex items-center gap-4 p-3.5 rounded-xl hover:bg-amber-50/40 cursor-pointer transition-all">
+                                  <div className="h-8 w-8 rounded-lg bg-amber-50/50 group-hover:bg-amber-100 flex items-center justify-center text-amber-500 shrink-0 transition-all"><Zap className="h-3.5 w-3.5" /></div>
+                                  <p className="text-sm font-semibold text-slate-700 group-hover:text-amber-700 transition-colors flex-1 truncate">{item.title}</p>
+                                  <ChevronRight className="h-4 w-4 text-amber-300 group-hover:text-amber-500" />
+                                </div>
+                              )
+                            ))
+                          })()}
                         </div>
                       </div>
                     </div>

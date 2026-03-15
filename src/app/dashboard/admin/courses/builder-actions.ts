@@ -46,11 +46,13 @@ export async function addSection(courseId: string, title: string) {
 
 export async function addLesson(sectionId: string, title: string) {
   try {
-    const lastLesson = await prisma.lesson.findFirst({
-      where: { sectionId },
-      orderBy: { order: 'desc' }
-    })
-    const order = lastLesson ? lastLesson.order + 1 : 0
+    const [lastL, lastQ] = await Promise.all([
+      prisma.lesson.findFirst({ where: { sectionId }, orderBy: { order: 'desc' } }),
+      prisma.quiz.findFirst({ where: { sectionId }, orderBy: { order: 'desc' } })
+    ])
+    const maxL = lastL?.order ?? -1
+    const maxQ = lastQ?.order ?? -1
+    const order = Math.max(maxL, maxQ) + 1
     
     const lesson = await prisma.lesson.create({
       data: { sectionId, title, order },
@@ -68,11 +70,13 @@ export async function addLesson(sectionId: string, title: string) {
 
 export async function addQuiz(sectionId: string, title: string) {
   try {
-    const lastQuiz = await prisma.quiz.findFirst({
-      where: { sectionId },
-      orderBy: { order: 'desc' }
-    })
-    const order = lastQuiz ? lastQuiz.order + 1 : 0
+    const [lastL, lastQ] = await Promise.all([
+      prisma.lesson.findFirst({ where: { sectionId }, orderBy: { order: 'desc' } }),
+      prisma.quiz.findFirst({ where: { sectionId }, orderBy: { order: 'desc' } })
+    ])
+    const maxL = lastL?.order ?? -1
+    const maxQ = lastQ?.order ?? -1
+    const order = Math.max(maxL, maxQ) + 1
     
     const quiz = await prisma.quiz.create({
       data: { sectionId, title, order },
@@ -207,6 +211,42 @@ export async function deleteSection(id: string) {
     revalidatePath(`/dashboard/admin/courses/${section.courseId}/preview`)
     return { success: true }
   } catch (error) {
+    return { success: false }
+  }
+}
+
+export async function reorderSections(courseId: string, sections: { id: string, order: number }[]) {
+  try {
+    const updates = sections.map(s => prisma.courseSection.update({
+      where: { id: s.id },
+      data: { order: s.order }
+    }))
+    await prisma.$transaction(updates)
+    revalidatePath(`/dashboard/admin/courses/${courseId}/builder`)
+    revalidatePath(`/dashboard/admin/courses/${courseId}/preview`)
+    return { success: true }
+  } catch (error) {
+    console.error("Reorder Sections Error:", error)
+    return { success: false }
+  }
+}
+
+export async function reorderItems(courseId: string, items: { id: string, type: 'lesson' | 'quiz', order: number }[]) {
+  try {
+    const updates = items.map(item => {
+      if (item.type === 'lesson') {
+        return prisma.lesson.update({ where: { id: item.id }, data: { order: item.order } })
+      } else {
+        return prisma.quiz.update({ where: { id: item.id }, data: { order: item.order } })
+      }
+    })
+    await prisma.$transaction(updates)
+    revalidatePath(`/dashboard/admin/courses/${courseId}/builder`)
+    revalidatePath(`/dashboard/admin/courses/${courseId}/preview`)
+    revalidatePath(`/dashboard/student/courses/${courseId}`)
+    return { success: true }
+  } catch (error) {
+    console.error("Reorder Items Error:", error)
     return { success: false }
   }
 }
