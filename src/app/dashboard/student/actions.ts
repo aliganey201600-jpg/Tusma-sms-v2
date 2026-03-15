@@ -55,34 +55,26 @@ export async function verifyStudentId(userId: string, studentId: string) {
     if (currentUserStudents.length > 0) {
       const currentId = currentUserStudents[0].id
 
-      // UPDATE existing student record with master data
-      await prisma.$executeRawUnsafe(
-        `UPDATE "Student" SET 
-          "studentId" = $1, 
-          "classId" = $2, 
-          "batchId" = $3, 
-          "firstName" = $4, 
-          "lastName" = $5, 
-          gender = $6, 
-          status = 'ACTIVE',
-          "updatedAt" = $7
-         WHERE id = $8`,
-        master.studentId, 
-        master.classId, 
-        master.batchId, 
-        master.firstName, 
-        master.lastName, 
-        master.gender || 'Male',
-        now,
-        currentId
-      )
-
-      // Delete the master placeholder since it's now merged
       if (master.id !== currentId) {
-        await prisma.$executeRawUnsafe(`DELETE FROM "Student" WHERE id = $1`, master.id)
+        // PRIORITIZE THE MASTER RECORD (The one from Admin which has history)
+        // 1. Link Master record to the current User
+        await prisma.$executeRawUnsafe(
+          `UPDATE "Student" SET "userId" = $1, status = 'ACTIVE', "updatedAt" = $2 WHERE id = $3`,
+          userId, now, master.id
+        )
+
+        // 2. Delete the temporary Session record (created during sign up)
+        // Since the dashboard was blocked, it shouldn't have any real data yet.
+        await prisma.$executeRawUnsafe(`DELETE FROM "Student" WHERE id = $1`, currentId)
+      } else {
+        // If they are the same, just activate
+        await prisma.$executeRawUnsafe(
+          `UPDATE "Student" SET status = 'ACTIVE', "updatedAt" = $1 WHERE id = $2`,
+          now, currentId
+        )
       }
     } else {
-      // No student record exists for this user, so we link the Master record to them
+      // LINK master record directly to this user if no student record exists yet
       await prisma.$executeRawUnsafe(
         `UPDATE "Student" SET "userId" = $1, status = 'ACTIVE', "updatedAt" = $2 WHERE id = $3`,
         userId, now, master.id
