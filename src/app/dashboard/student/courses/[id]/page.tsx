@@ -1097,23 +1097,89 @@ export default function StudentCourseViewerPage() {
                               ...(section.quizzes || []).map((q: any) => ({ ...q, type: "quiz" }))
                             ].sort((a, b) => (a.order || 0) - (b.order || 0))
 
-                            return items.map((item: any, iIdx: number) => (
-                              item.type === "lesson" ? (
-                                <div key={item.id} onClick={() => openLesson(item)} className="group flex items-center gap-4 p-3.5 rounded-xl hover:bg-slate-50 cursor-pointer transition-all">
-                                  <div className="h-8 w-8 rounded-lg bg-slate-50 group-hover:bg-indigo-50 flex items-center justify-center text-slate-300 group-hover:text-indigo-600 transition-all text-xs font-bold shrink-0">
-                                    {completedLessons.includes(item.id) ? <CheckCircle2 className="h-4 w-4 text-emerald-500" /> : iIdx + 1}
+                            return items.map((item: any, iIdx: number) => {
+                              // Determine if this item should be locked
+                              // An item is unlocked if:
+                              // 1. It is the very first lesson in the very first section
+                              // 2. Or, the previous item in the *entire course sequence* has been completed.
+                              const courseItems = course?.sections?.flatMap((s: any) => 
+                                [
+                                  ...(s.lessons || []).map((l: any) => ({ ...l, type: "lesson", sectionId: s.id })),
+                                  ...(s.quizzes || []).map((q: any) => ({ ...q, type: "quiz", sectionId: s.id }))
+                                ].sort((a, b) => (a.order || 0) - (b.order || 0))
+                              ) || []
+                              
+                              const globalIndex = courseItems.findIndex((ci: any) => ci.id === item.id)
+                              const isFirstItem = globalIndex === 0
+                              
+                              let isLocked = false
+                              if (!isFirstItem) {
+                                const prevItem = courseItems[globalIndex - 1]
+                                if (prevItem) {
+                                  if (prevItem.type === "lesson") {
+                                    isLocked = !completedLessons.includes(prevItem.id)
+                                  } else if (prevItem.type === "quiz") {
+                                    // Assuming passing a quiz unlocks the next step. If we don't have passing status here easily, we might just check if they attempted it, or keep it simple. Let's assume if it's a quiz, we need to find its passing status in user's attempts... actually, keeping it simpler: if they have ANY completed lessons, let's just use the `completedLessons` array. Wait, quizzes aren't in `completedLessons`.
+                                    // For now, let's just lock based on the previous *lesson* being completed, or keep it strict but maybe allow quizzes if the lesson before it is done.
+                                    // A safer strict lock for this prototype: if the previous item is a lesson, it MUST be completed. 
+                                    isLocked = prevItem.type === "lesson" ? !completedLessons.includes(prevItem.id) : false; // Allow if prev is quiz for now, as tracking quiz completion in this specific view might be complex without fetching all attempts here.
+                                  }
+                                }
+                              }
+                              
+                              // Check if THIS item is already completed (to avoid locking something already done)
+                              if (item.type === "lesson" && completedLessons.includes(item.id)) isLocked = false;
+
+                              if (item.type === "lesson") {
+                                return (
+                                  <div 
+                                    key={item.id} 
+                                    onClick={() => !isLocked && openLesson(item)} 
+                                    className={cn(
+                                      "group flex items-center gap-4 p-3.5 rounded-xl transition-all",
+                                      isLocked ? "opacity-50 cursor-not-allowed bg-slate-50" : "hover:bg-slate-50 cursor-pointer"
+                                    )}
+                                  >
+                                    <div className={cn(
+                                      "h-8 w-8 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 transition-all",
+                                      isLocked ? "bg-slate-100 text-slate-300" : "bg-slate-50 group-hover:bg-indigo-50 text-slate-300 group-hover:text-indigo-600"
+                                    )}>
+                                      {completedLessons.includes(item.id) ? <CheckCircle2 className="h-4 w-4 text-emerald-500" /> : isLocked ? <CheckCircle2 className="h-4 w-4 text-slate-300 opacity-50" /> : iIdx + 1}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <p className={cn(
+                                        "text-sm font-semibold truncate transition-colors",
+                                        isLocked ? "text-slate-400" : "text-slate-700 group-hover:text-indigo-700"
+                                      )}>{item.title}</p>
+                                    </div>
+                                    <ChevronRight className={cn("h-4 w-4", isLocked ? "text-slate-200" : "text-slate-300 group-hover:text-indigo-400")} />
                                   </div>
-                                  <div className="flex-1 min-w-0"><p className="text-sm font-semibold text-slate-700 group-hover:text-indigo-700 transition-colors truncate">{item.title}</p></div>
-                                  <ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-indigo-400" />
-                                </div>
-                              ) : (
-                                <div key={item.id} onClick={() => openQuiz(item)} className="group flex items-center gap-4 p-3.5 rounded-xl hover:bg-amber-50/40 cursor-pointer transition-all">
-                                  <div className="h-8 w-8 rounded-lg bg-amber-50/50 group-hover:bg-amber-100 flex items-center justify-center text-amber-500 shrink-0 transition-all"><Zap className="h-3.5 w-3.5" /></div>
-                                  <p className="text-sm font-semibold text-slate-700 group-hover:text-amber-700 transition-colors flex-1 truncate">{item.title}</p>
-                                  <ChevronRight className="h-4 w-4 text-amber-300 group-hover:text-amber-500" />
-                                </div>
-                              )
-                            ))
+                                )
+                              } else {
+                                return (
+                                  <div 
+                                    key={item.id} 
+                                    onClick={() => !isLocked && openQuiz(item)} 
+                                    className={cn(
+                                      "group flex items-center gap-4 p-3.5 rounded-xl transition-all",
+                                      isLocked ? "opacity-50 cursor-not-allowed bg-slate-50" : "hover:bg-amber-50/40 cursor-pointer"
+                                    )}
+                                  >
+                                    <div className={cn(
+                                      "h-8 w-8 rounded-lg flex items-center justify-center shrink-0 transition-all",
+                                      isLocked ? "bg-slate-100 text-slate-300" : "bg-amber-50/50 group-hover:bg-amber-100 text-amber-500"
+                                    )}>
+                                      <Zap className="h-3.5 w-3.5" />
+                                    </div>
+                                    <p className={cn(
+                                      "text-sm font-semibold flex-1 truncate transition-colors",
+                                      isLocked ? "text-slate-400" : "text-slate-700 group-hover:text-amber-700"
+                                    )}>{item.title}</p>
+                                    <ChevronRight className={cn("h-4 w-4", isLocked ? "text-slate-200" : "text-amber-300 group-hover:text-amber-500")} />
+                                  </div>
+                                )
+                              }
+                            })
                           })()}
                         </div>
                       </div>
