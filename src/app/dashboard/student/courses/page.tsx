@@ -25,95 +25,53 @@ import {
   ArrowUpRight,
   Filter,
 } from "lucide-react"
-
-const courses = [
-  {
-    id: 1,
-    name: "Advanced Mathematics",
-    teacher: "Mr. Abdi Warsame",
-    progress: 65,
-    grade: "B+",
-    color: "violet",
-    lessons: 24,
-    completedLessons: 16,
-    nextLesson: "Integration by Parts",
-    schedule: "Mon · Wed · Fri",
-    time: "08:00 – 09:30",
-  },
-  {
-    id: 2,
-    name: "Physics",
-    teacher: "Ms. Fadumo Ali",
-    progress: 42,
-    grade: "B",
-    color: "blue",
-    lessons: 20,
-    completedLessons: 8,
-    nextLesson: "Newton's 3rd Law",
-    schedule: "Tue · Thu",
-    time: "10:00 – 11:30",
-  },
-  {
-    id: 3,
-    name: "Computer Science",
-    teacher: "Mr. Khalid Hassan",
-    progress: 88,
-    grade: "A",
-    color: "emerald",
-    lessons: 30,
-    completedLessons: 26,
-    nextLesson: "Sorting Algorithms",
-    schedule: "Mon · Wed",
-    time: "13:00 – 14:30",
-  },
-  {
-    id: 4,
-    name: "History & Civilization",
-    teacher: "Ms. Hodan Jama",
-    progress: 55,
-    grade: "B-",
-    color: "amber",
-    lessons: 18,
-    completedLessons: 10,
-    nextLesson: "The Ottoman Empire",
-    schedule: "Tue · Fri",
-    time: "09:00 – 10:00",
-  },
-  {
-    id: 5,
-    name: "English Literature",
-    teacher: "Mr. Mahad Yusuf",
-    progress: 72,
-    grade: "A-",
-    color: "rose",
-    lessons: 22,
-    completedLessons: 16,
-    nextLesson: "Shakespeare: Hamlet",
-    schedule: "Wed · Thu",
-    time: "11:00 – 12:30",
-  },
-  {
-    id: 6,
-    name: "Biology",
-    teacher: "Ms. Sagal Omar",
-    progress: 38,
-    grade: "C+",
-    color: "lime",
-    lessons: 26,
-    completedLessons: 10,
-    nextLesson: "Cell Division & Mitosis",
-    schedule: "Mon · Thu",
-    time: "14:30 – 16:00",
-  },
-]
+import { useCurrentUser } from "@/hooks/use-current-user"
+import { fetchStudentCourses } from "./actions"
+import { toast } from "sonner"
 
 export default function StudentCoursesPage() {
   const [search, setSearch] = React.useState("")
+  const { user, loading: userLoading } = useCurrentUser()
+  const [courses, setCourses] = React.useState<any[]>([])
+  const [loading, setLoading] = React.useState(true)
 
-  const filtered = courses.filter((c) =>
+  React.useEffect(() => {
+    if (user?.id) {
+      loadCourses()
+    }
+  }, [user])
+
+  const loadCourses = async () => {
+    setLoading(true)
+    try {
+      const res = await fetchStudentCourses(user?.id || "")
+      if (res.success) {
+        setCourses(res.courses || [])
+      } else {
+        toast.error(res.error || "Failed to load courses")
+      }
+    } catch (err) {
+      toast.error("An error occurred")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const filtered = (courses || []).filter((c) =>
     c.name.toLowerCase().includes(search.toLowerCase()) ||
     c.teacher.toLowerCase().includes(search.toLowerCase())
   )
+
+  if (loading || userLoading) {
+    return (
+      <div className="p-4 space-y-8 max-w-[1400px] mx-auto animate-pulse">
+        <div className="h-20 w-1/3 bg-slate-100 rounded-2xl" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {[1, 2, 3].map(i => <div key={i} className="h-64 bg-slate-50 rounded-[32px]" />)}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="p-2 md:p-4 space-y-8 max-w-[1400px] mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -151,10 +109,10 @@ export default function StudentCoursesPage() {
       {/* Overall progress */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { label: "Total Courses", value: "6", color: "violet" },
-          { label: "Completed Lessons", value: "86", color: "emerald" },
-          { label: "Avg. Progress", value: "60%", color: "blue" },
-          { label: "Current GPA", value: "3.7", color: "amber" },
+          { label: "Total Courses", value: courses.length.toString(), color: "violet" },
+          { label: "Completed Lessons", value: "0", color: "emerald" }, // Mocked for now
+          { label: "Avg. Progress", value: "0%", color: "blue" }, // Mocked for now
+          { label: "Current GPA", value: "N/A", color: "amber" }, // Mocked for now
         ].map((s, i) => {
           const colors: any = {
             violet: "from-violet-500 to-purple-600",
@@ -188,7 +146,7 @@ export default function StudentCoursesPage() {
   )
 }
 
-function CourseCard({ course }: { course: typeof courses[0] }) {
+function CourseCard({ course }: { course: any }) {
   const colorMap: any = {
     violet: { bar: "bg-violet-500", badge: "bg-violet-50 text-violet-700", icon: "bg-violet-100 text-violet-600", ring: "ring-violet-200" },
     blue: { bar: "bg-blue-500", badge: "bg-blue-50 text-blue-700", icon: "bg-blue-100 text-blue-600", ring: "ring-blue-200" },
