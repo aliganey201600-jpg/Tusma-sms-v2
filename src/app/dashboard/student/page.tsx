@@ -85,19 +85,19 @@ export default function StudentDashboardPage() {
 
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!studentIdInput.trim()) return toast.error("Fadlan geli Student ID-gaaga.")
+    if (!studentIdInput.trim()) return toast.error("Please enter your Student ID.")
     
     setVerifying(true)
     try {
       const res = await verifyStudentId(user?.id || "", studentIdInput)
       if (res.success) {
-        toast.success("Hambalyo! Account-kaaga waa la xaqiijiyay.")
+        toast.success("Congratulations! Your account has been verified.")
         window.location.reload()
       } else {
         toast.error(res.error)
       }
     } catch (err) {
-      toast.error("Cillad ayaa dhacday.")
+      toast.error("An error occurred.")
     } finally {
       setVerifying(false)
     }
@@ -128,10 +128,10 @@ export default function StudentDashboardPage() {
               <GraduationCap className="h-10 w-10 text-violet-600" />
             </div>
             <h2 className="text-3xl font-black text-slate-900 tracking-tighter leading-tight">
-              Xaqiiji Account-kaaga
+              Verify Your Account
             </h2>
             <p className="text-slate-500 font-medium max-w-xs mx-auto text-sm leading-relaxed">
-              Fadlan geli Student ID-gaaga si aad u aragto fasalkaaga, maadooyinkaaga iyo buundooyinkaaga.
+              Please enter your Student ID to access your classes, courses, and grades.
             </p>
           </div>
 
@@ -150,7 +150,7 @@ export default function StudentDashboardPage() {
               disabled={verifying}
             >
               {verifying ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <CheckCircle2 className="h-5 w-5 mr-2" />}
-              Xaqiiji Hadda
+              Verify Now
             </Button>
           </form>
         </Card>
@@ -179,7 +179,7 @@ export default function StudentDashboardPage() {
             <span className="text-yellow-300">{firstName}</span>
           </h1>
           <p className="text-violet-100 font-medium text-sm md:text-base max-w-md leading-relaxed">
-            Waxaad leedahay <strong className="text-white">2 shaqo guri</strong> asbuucan. Horumarkaaga waa mid aad u wanaagsan. Sii wad!
+            You have <strong className="text-white">2 assignments</strong> due this week. Your progress is looking excellent. Keep it up!
           </p>
         </div>
 
@@ -188,7 +188,7 @@ export default function StudentDashboardPage() {
           <Button className="w-full md:w-auto rounded-2xl bg-white text-violet-700 hover:bg-slate-50 font-bold h-12 px-6 shadow-lg shadow-black/10" asChild>
             <Link href="/dashboard/student/courses">
               <PlayCircle className="mr-2 h-5 w-5" />
-              Sii wad Barashada
+              Continue Learning
             </Link>
           </Button>
         </div>
@@ -197,28 +197,28 @@ export default function StudentDashboardPage() {
       {/* ── Stats Cards (Horizontal Scroll on Mobile) ── */}
       <div className="flex overflow-x-auto pb-4 -mx-4 px-4 md:mx-0 md:px-0 md:grid md:grid-cols-4 gap-4 no-scrollbar snap-x">
         <StatCard
-          title="Koorsooyinka"
+          title="Courses"
           value={displayCourses.length.toString()}
           icon={<BookOpen className="h-5 w-5 md:h-6 md:w-6" />}
           color="violet"
           href="/dashboard/student/courses"
         />
         <StatCard
-          title="Buundooyinka"
+          title="Grades"
           value="A-"
           icon={<Award className="h-5 w-5 md:h-6 md:w-6" />}
           color="emerald"
           href="/dashboard/student/grades"
         />
         <StatCard
-          title="Shaqooyinka"
+          title="Assignments"
           value="4"
           icon={<ClipboardList className="h-5 w-5 md:h-6 md:w-6" />}
           color="amber"
           href="/dashboard/student/assignments"
         />
         <StatCard
-          title="Imaanshaha"
+          title="Attendance"
           value="98%"
           icon={<CheckCircle2 className="h-5 w-5 md:h-6 md:w-6" />}
           color="blue"
@@ -233,11 +233,11 @@ export default function StudentDashboardPage() {
           
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-2xl font-black text-slate-900 tracking-tight">Maadooyinkaaga</h2>
-              <p className="text-sm text-slate-500 font-medium">Horumarkaaga semistarka</p>
+              <h2 className="text-2xl font-black text-slate-900 tracking-tight">Your Courses</h2>
+              <p className="text-sm text-slate-500 font-medium">Semester progress</p>
             </div>
             <Button variant="ghost" className="text-violet-600 font-bold hidden md:flex" asChild>
-              <Link href="/dashboard/student/courses">Dhamaan <ChevronRight className="ml-1 h-4 w-4" /></Link>
+              <Link href="/dashboard/student/courses">View All <ChevronRight className="ml-1 h-4 w-4" /></Link>
             </Button>
           </div>
 
@@ -253,7 +253,7 @@ export default function StudentDashboardPage() {
           
           {/* Mobile view all button */}
           <Button variant="outline" className="w-full rounded-2xl h-14 font-bold border-slate-200 text-slate-700 md:hidden" asChild>
-            <Link href="/dashboard/student/courses">Arag Dhamaan Maadooyinka</Link>
+            <Link href="/dashboard/student/courses">View All Courses</Link>
           </Button>
 
         </div>
@@ -264,8 +264,8 @@ export default function StudentDashboardPage() {
           <Card className="border-none shadow-xl shadow-slate-100/50 rounded-[32px] overflow-hidden bg-white">
             <CardHeader className="p-6 md:p-8 flex flex-row items-center justify-between pb-4">
               <div>
-                <CardTitle className="text-xl font-black text-slate-900">Shaqo Guri</CardTitle>
-                <CardDescription className="text-slate-400 font-medium">Kuwa soo socda</CardDescription>
+                <CardTitle className="text-xl font-black text-slate-900">Assignments</CardTitle>
+                <CardDescription className="text-slate-400 font-medium">Upcoming deadlines</CardDescription>
               </div>
               <div className="h-10 w-10 rounded-xl bg-orange-50 flex items-center justify-center">
                 <Bell className="h-5 w-5 text-orange-500" />
@@ -281,8 +281,8 @@ export default function StudentDashboardPage() {
           <Card className="border-none shadow-xl shadow-slate-100/50 rounded-[32px] overflow-hidden bg-white bg-gradient-to-br from-slate-900 to-slate-800 text-white">
             <CardHeader className="p-6 md:p-8 flex flex-row items-center justify-between pb-4">
               <div>
-                <CardTitle className="text-xl font-black text-white">Buundooyin Cusub</CardTitle>
-                <CardDescription className="text-slate-400 font-medium">Natiijadii ugu dambeysay</CardDescription>
+                <CardTitle className="text-xl font-black text-white">Recent Grades</CardTitle>
+                <CardDescription className="text-slate-400 font-medium">Latest results</CardDescription>
               </div>
               <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-slate-700 text-white" asChild>
                 <Link href="/dashboard/student/grades">
@@ -367,7 +367,7 @@ function CourseAppCard({ course }: any) {
 
         <div className="relative z-10 mt-6 md:mt-8 space-y-2.5">
           <div className="flex justify-between text-sm font-bold">
-            <span className="text-slate-500">Horumarka</span>
+            <span className="text-slate-500">Progress</span>
             <span className="text-slate-900">{progress}%</span>
           </div>
           <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
