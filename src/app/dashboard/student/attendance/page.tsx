@@ -116,7 +116,7 @@ export default function StudentAttendancePage() {
               {["Mon", "Tue", "Wed", "Thu", "Fri"].map((d) => (
                 <div key={d} className="text-center text-[10px] font-black text-slate-400 uppercase pb-1">{d}</div>
               ))}
-              {attendanceLog.map((d, i) => {
+              {attendanceLog.map((d: any, i: number) => {
                 const bgMap: any = {
                   present: "bg-emerald-500 shadow-emerald-200",
                   absent: "bg-red-400 shadow-red-200",
@@ -181,7 +181,7 @@ export default function StudentAttendancePage() {
         </CardHeader>
         <CardContent className="p-0">
           <div className="divide-y divide-slate-50">
-            {[...attendanceLog].reverse().slice(0, 8).map((d, i) => {
+            {[...attendanceLog].reverse().slice(0, 8).map((d: any, i: number) => {
               const statusMap: any = {
                 present: { bg: "bg-emerald-50 text-emerald-700 border-emerald-100", icon: <CheckCircle2 className="h-4 w-4 text-emerald-600" />, label: "Present" },
                 absent: { bg: "bg-red-50 text-red-700 border-red-100", icon: <XCircle className="h-4 w-4 text-red-500" />, label: "Absent" },
