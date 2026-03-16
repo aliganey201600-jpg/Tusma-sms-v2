@@ -971,7 +971,7 @@ export default function StudentCourseViewerPage() {
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto pb-32">
           <div className="max-w-4xl mx-auto px-6 py-10 space-y-10">
             {/* ── Lesson Banner ── */}
             <div className="space-y-2">
@@ -1060,6 +1060,65 @@ export default function StudentCourseViewerPage() {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* ── Lesson Navigation Footer ── */}
+        <div className="h-20 bg-white border-t border-slate-100 flex items-center justify-between px-6 md:px-10 shrink-0 z-50">
+           {(() => {
+             const courseItems = course?.sections?.flatMap((s: any) =>
+                [
+                  ...(s.lessons || []).map((l: any) => ({ ...l, type: "lesson", sectionId: s.id })),
+                  ...(s.quizzes || []).map((q: any) => ({ ...q, type: "quiz", sectionId: s.id }))
+                ].sort((a, b) => (a.order || 0) - (b.order || 0))
+             ) || []
+             
+             const currentIndex = courseItems.findIndex((ci: any) => ci.id === activeLesson.id)
+             const prevItem = currentIndex > 0 ? courseItems[currentIndex - 1] : null
+             const nextItem = currentIndex < courseItems.length - 1 ? courseItems[currentIndex + 1] : null
+             
+             // Check if next item is locked
+             let nextIsLocked = !completedLessons.includes(activeLesson.id)
+             if (completedLessons.includes(nextItem?.id)) nextIsLocked = false
+
+             return (
+               <>
+                 <Button 
+                   variant="outline" 
+                   disabled={!prevItem}
+                   onClick={() => prevItem.type === "lesson" ? openLesson(prevItem) : openQuiz(prevItem)}
+                   className="rounded-xl h-11 px-6 font-black text-[10px] uppercase tracking-widest gap-2 border-slate-200 text-slate-600 disabled:opacity-30"
+                 >
+                   <ChevronLeft className="h-4 w-4" /> Previous
+                 </Button>
+
+                 <div className="hidden md:flex flex-col items-center">
+                    <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Lesson Progress</p>
+                    <div className="flex items-center gap-1 mt-1">
+                       {courseItems.map((item: any, idx: number) => (
+                         <div 
+                           key={idx} 
+                           className={cn(
+                             "h-1.5 w-6 rounded-full transition-all",
+                             idx === currentIndex ? "bg-indigo-600" : (completedLessons.includes(item.id) ? "bg-emerald-400" : "bg-slate-100")
+                           )} 
+                         />
+                       ))}
+                    </div>
+                 </div>
+
+                 <Button 
+                   disabled={!nextItem || nextIsLocked}
+                   onClick={() => nextItem.type === "lesson" ? openLesson(nextItem) : openQuiz(nextItem)}
+                   className={cn(
+                     "rounded-xl h-11 px-8 font-black text-[10px] uppercase tracking-widest gap-2 shadow-lg transition-all",
+                     nextIsLocked ? "bg-slate-100 text-slate-300 border-none opacity-50 shadow-none" : "bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-100"
+                   )}
+                 >
+                   Next {nextItem?.type === "quiz" ? "Quiz" : "Lesson"} <ChevronRight className="h-4 w-4" />
+                 </Button>
+               </>
+             )
+           })()}
         </div>
       </div>
     )
