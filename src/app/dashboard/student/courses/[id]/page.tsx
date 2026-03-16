@@ -1418,8 +1418,8 @@ export default function StudentCourseViewerPage() {
                 {course?.sections?.map((section: Section, idx: number) => {
                   const isExpanded = expandedSections.includes(section.id)
                   const sectionCompletedItems = [
-                    ...(section.lessons || []).filter((l:Lesson) => completedLessons.includes(l.id)),
-                    ...(section.quizzes || []).filter((q:Quiz) => completedLessons.includes(q.id))
+                    ...(section.lessons || []).filter((l: BaseLesson) => completedLessons.includes(l.id)),
+                    ...(section.quizzes || []).filter((q: BaseQuiz) => completedLessons.includes(q.id))
                   ].length
                   const sectionTotalItems = (section.lessons?.length || 0) + (section.quizzes?.length || 0)
                   const sectionProgress = sectionTotalItems > 0 ? Math.round((sectionCompletedItems / sectionTotalItems) * 100) : 0
@@ -1626,7 +1626,7 @@ export default function StudentCourseViewerPage() {
                         </div>
                         <div className="p-4 md:p-14 overflow-x-auto bg-slate-100/50">
                            <div className="min-w-[800px] shadow-2xl">
-                              <CertificateContent certificate={certificate} studentName={`${user?.firstName} ${user?.lastName}`} courseName={course?.name}/>
+                              <CertificateContent certificate={certificate} studentName={`${user?.firstName} ${user?.lastName}`} courseName={course?.name || ''}/>
                            </div>
                         </div>
                       </DialogContent>
