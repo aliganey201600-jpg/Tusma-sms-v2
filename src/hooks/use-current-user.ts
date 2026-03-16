@@ -63,7 +63,7 @@ export function useCurrentUser() {
               lastName,
               role: meta.role || "STUDENT",
               avatarUrl: meta.avatar_url,
-              studentId: data.student?.studentId,
+              studentId: data.student?.id || data.student?.studentId,
               status: data.student?.status,
               classId: data.student?.classId,
               totalXp: data.student?.totalXp || 0
@@ -128,7 +128,7 @@ export function useCurrentUser() {
                 lastName: fullName.split(" ").slice(1).join(" "),
                 role: meta.role || "STUDENT",
                 avatarUrl: meta.avatar_url,
-                studentId: data.student?.studentId,
+                studentId: data.student?.id || data.student?.studentId,
                 status: data.student?.status,
                 classId: data.student?.classId,
                 totalXp: data.student?.totalXp || 0

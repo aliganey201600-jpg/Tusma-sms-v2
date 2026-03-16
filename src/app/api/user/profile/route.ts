@@ -15,6 +15,7 @@ export async function GET(request: Request) {
       include: {
         student: {
           select: {
+            id: true,
             studentId: true,
             status: true,
             classId: true,
