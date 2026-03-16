@@ -1309,13 +1309,13 @@ export default function StudentCourseViewerPage() {
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
       {/* ── Premium Dynamic Header ── */}
-      <div className="relative pt-24 pb-48 px-6 md:px-10 overflow-hidden">
+      <div className="relative pt-16 pb-16 px-6 md:px-10 overflow-hidden">
         {/* Background Layer: Deep professional gradient with accent pops */}
-        <div className="absolute inset-0 bg-slate-950">
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-[#182042] to-slate-900">
           <div className="absolute top-0 right-0 w-[50%] h-full bg-gradient-to-l from-indigo-500/20 to-transparent" />
-          <div className="absolute -top-24 -left-24 w-96 h-96 bg-violet-600/20 rounded-full blur-[120px]" />
-          <div className="absolute bottom-0 right-10 w-64 h-64 bg-emerald-500/10 rounded-full blur-[80px]" />
-          <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(#fff 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
+          <div className="absolute -top-24 -left-24 w-96 h-96 bg-indigo-600/20 rounded-full blur-[120px]" />
+          <div className="absolute bottom-0 right-10 w-64 h-64 bg-violet-500/10 rounded-full blur-[80px]" />
+          <div className="absolute inset-0 opacity-[0.05]" style={{ backgroundImage: 'radial-gradient(#fff 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
         </div>
 
         <div className="max-w-6xl mx-auto relative z-10">
@@ -1347,11 +1347,11 @@ export default function StudentCourseViewerPage() {
                 </Badge>
               </div>
 
-              <div className="space-y-6">
-                <h1 className="text-6xl md:text-9xl font-black tracking-tight leading-[0.9] text-white">
-                  {course?.name}<span className="text-indigo-500">.</span>
+              <div className="space-y-4">
+                <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight leading-none text-white">
+                  {course?.name}<span className="text-indigo-400">.</span>
                 </h1>
-                <p className="text-xl md:text-2xl text-slate-400 max-w-2xl leading-relaxed font-medium">
+                <p className="text-lg md:text-xl text-slate-300 max-w-2xl leading-relaxed font-medium">
                   {course?.description || "Master the concepts through our structured curriculum and interactive assessments."}
                 </p>
               </div>
@@ -1398,7 +1398,7 @@ export default function StudentCourseViewerPage() {
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-6 md:px-10 -mt-28 relative z-20 pb-40">
+      <div className="max-w-6xl mx-auto px-6 md:px-10 mt-12 relative z-20 pb-40">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
           <div className="lg:col-span-8 space-y-12">
             {/* ── Integrated Curriculum Section ── */}
