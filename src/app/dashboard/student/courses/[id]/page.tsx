@@ -35,6 +35,7 @@ import {
 } from "../../../admin/courses/builder-actions"
 import { useParams, useRouter } from "next/navigation"
 import { useCurrentUser } from "@/hooks/use-current-user"
+import { LessonDiscussions } from "./lesson-discussions"
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
 import { 
@@ -925,10 +926,26 @@ export default function StudentCourseViewerPage() {
           </div>
           <div className="flex items-center gap-3">
              <Button 
-                onClick={() => handleCompleteLesson(activeLesson.id)}
+                onClick={async () => {
+                  try {
+                    const btn = document.getElementById("mark-done-btn");
+                    if (btn) {
+                      btn.innerHTML = `<svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Completing...`;
+                      btn.setAttribute("disabled", "true");
+                    }
+                    await handleCompleteLesson(activeLesson.id);
+                  } finally {
+                    const btn = document.getElementById("mark-done-btn");
+                    if (btn && !completedLessons.includes(activeLesson.id)) {
+                      btn.innerHTML = "Mark as Complete";
+                      btn.removeAttribute("disabled");
+                    }
+                  }
+                }}
+                id="mark-done-btn"
                 disabled={completedLessons.includes(activeLesson.id)}
                 className={cn(
-                  "hidden sm:flex text-[10px] font-black uppercase tracking-widest h-9 px-5 rounded-xl transition-all",
+                  "flex text-[10px] font-black uppercase tracking-widest h-9 px-5 rounded-xl transition-all",
                   completedLessons.includes(activeLesson.id) 
                     ? "bg-emerald-50 text-emerald-600 border border-emerald-100 cursor-default" 
                     : "bg-indigo-600 text-white hover:bg-indigo-700 shadow-lg shadow-indigo-100"
@@ -936,7 +953,7 @@ export default function StudentCourseViewerPage() {
               >
                 {completedLessons.includes(activeLesson.id) ? "✓ Completed" : "Mark as Complete"}
               </Button>
-             <Button variant="ghost" size="sm" onClick={() => setMode("overview")} className="text-slate-500 gap-1.5 text-xs font-semibold hover:bg-slate-50 rounded-xl h-9 px-4"><X className="h-3.5 w-3.5" /> Close</Button>
+             <Button variant="ghost" size="sm" onClick={() => setMode("overview")} className="text-slate-500 gap-1.5 text-xs font-semibold hover:bg-slate-50 rounded-xl h-9 px-3 sm:px-4"><X className="h-4 w-4 sm:h-3.5 sm:w-3.5" /><span className="hidden sm:inline">Close</span></Button>
           </div>
         </header>
 
@@ -958,6 +975,7 @@ export default function StudentCourseViewerPage() {
                   { key: "body", label: "Lesson Body", icon: BookOpen },
                   { key: "materials", label: "Materials", icon: FileText },
                   { key: "video", label: "Video", icon: Video },
+                  { key: "qa", label: "Q&A Discussion", icon: MessageSquare },
                 ].map(tab => (
                   <button key={tab.key} onClick={() => setActiveLessonTab(tab.key)} className={cn("flex-1 flex items-center justify-center gap-2 py-4 px-3 text-xs font-bold uppercase tracking-wider transition-all border-b-2", activeLessonTab === tab.key ? "border-indigo-600 text-indigo-600 bg-indigo-50/40" : "border-transparent text-slate-400 hover:text-slate-600 hover:bg-slate-50")}><tab.icon className="h-4 w-4" /><span className="hidden sm:inline">{tab.label}</span></button>
                 ))}
@@ -981,6 +999,9 @@ export default function StudentCourseViewerPage() {
                       <div className="flex flex-col items-center justify-center py-16 bg-slate-50 rounded-2xl text-slate-300 border border-dashed border-slate-200"><Video className="h-12 w-12 mb-4" /><p className="text-sm font-semibold text-slate-400">No video available</p></div>
                     )}
                   </div>
+                )}
+                {activeLessonTab === "qa" && (
+                  <LessonDiscussions lessonId={activeLesson.id} user={user} />
                 )}
               </div>
             </div>
