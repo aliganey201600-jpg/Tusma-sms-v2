@@ -56,10 +56,9 @@ interface Material {
   url: string;
 }
 
-interface Lesson {
+interface BaseLesson {
   id: string;
   title: string;
-  type?: "lesson";
   content?: string;
   videoUrl?: string;
   materials?: Material[];
@@ -67,6 +66,10 @@ interface Lesson {
   objectives?: string;
   order: number;
   sectionId?: string;
+}
+
+interface Lesson extends BaseLesson {
+  type: "lesson";
 }
 
 interface QuizOption {
@@ -78,10 +81,9 @@ interface QuizOption {
   options?: { id: string; text: string }[];
 }
 
-interface Quiz {
+interface BaseQuiz {
   id: string;
   title: string;
-  type?: "quiz";
   timeLimit?: number;
   passingScore?: number;
   questions?: Question[];
@@ -90,12 +92,16 @@ interface Quiz {
   description?: string;
 }
 
+interface Quiz extends BaseQuiz {
+  type: "quiz";
+}
+
 interface Section {
   id: string;
   title: string;
   order: number;
-  lessons: Lesson[];
-  quizzes: Quiz[];
+  lessons: BaseLesson[];
+  quizzes: BaseQuiz[];
 }
 
 interface Question {
@@ -605,7 +611,7 @@ export default function StudentCourseViewerPage() {
       const data = {
         ...rawData,
         type: "quiz" as const,
-        attempts: (rawData as any).attempts || []
+        attempts: (rawData as unknown as { attempts: QuizAttempt[] }).attempts || []
       } as unknown as (Quiz & { attempts: QuizAttempt[] })
 
       setActiveQuiz(data)
@@ -1221,8 +1227,8 @@ export default function StudentCourseViewerPage() {
         <div className="h-20 bg-white border-t border-slate-100 flex items-center justify-between px-6 md:px-10 shrink-0 z-50">
            {(() => {
              const courseItems = course?.sections?.flatMap((s: Section) => {
-                const lessons = (s.lessons || []).map((l: Lesson) => ({ ...l, type: "lesson" as const, sectionId: s.id }));
-                const quizzes = (s.quizzes || []).map((q: Quiz) => ({ ...q, type: "quiz" as const, sectionId: s.id }));
+                const lessons = (s.lessons || []).map((l: BaseLesson) => ({ ...l, type: "lesson" as const, sectionId: s.id }));
+                const quizzes = (s.quizzes || []).map((q: BaseQuiz) => ({ ...q, type: "quiz" as const, sectionId: s.id }));
                 return [...lessons, ...quizzes].sort((a, b) => (a.order || 0) - (b.order || 0));
              }) || []
 
@@ -1460,15 +1466,15 @@ export default function StudentCourseViewerPage() {
                         <div className="p-6 md:p-10 space-y-4">
                           {(() => {
                             const items = [
-                              ...(section.lessons || []).map((l: Lesson) => ({ ...l, type: "lesson" as const })),
-                              ...(section.quizzes || []).map((q: Quiz) => ({ ...q, type: "quiz" as const }))
+                              ...(section.lessons || []).map((l: BaseLesson) => ({ ...l, type: "lesson" as const })),
+                              ...(section.quizzes || []).map((q: BaseQuiz) => ({ ...q, type: "quiz" as const }))
                             ].sort((a, b) => (a.order || 0) - (b.order || 0))
 
                             return items.map((item: Lesson | Quiz, iIdx: number) => {
                               const courseItems = course?.sections?.flatMap((s: Section) =>
                                 [
-                                  ...(s.lessons || []).map((l: Lesson) => ({ ...l, type: "lesson" as const, sectionId: s.id })),
-                                  ...(s.quizzes || []).map((q: Quiz) => ({ ...q, type: "quiz" as const, sectionId: s.id }))
+                                  ...(s.lessons || []).map((l: BaseLesson) => ({ ...l, type: "lesson" as const, sectionId: s.id })),
+                                  ...(s.quizzes || []).map((q: BaseQuiz) => ({ ...q, type: "quiz" as const, sectionId: s.id }))
                                 ].sort((a, b) => (a.order || 0) - (b.order || 0))
                               ) || []
 
@@ -1530,8 +1536,8 @@ export default function StudentCourseViewerPage() {
                 {(() => {
                   const items = course?.sections?.flatMap((s: Section) =>
                     [
-                      ...(s.lessons || []).map((l: Lesson) => ({ ...l, type: "lesson" as const })),
-                      ...(s.quizzes || []).map((q: Quiz) => ({ ...q, type: "quiz" as const }))
+                      ...(s.lessons || []).map((l: BaseLesson) => ({ ...l, type: "lesson" as const })),
+                      ...(s.quizzes || []).map((q: BaseQuiz) => ({ ...q, type: "quiz" as const }))
                     ].sort((a, b) => (a.order || 0) - (b.order || 0))
                   ) || []
                   const next = items.find((it) => !completedLessons.includes(it.id)) || items[0]
