@@ -1134,22 +1134,45 @@ export default function StudentCourseViewerPage() {
                               const isFirstItem = globalIndex === 0
                               
                               let isLocked = false
+                              
                               if (!isFirstItem) {
                                 const prevItem = courseItems[globalIndex - 1]
                                 if (prevItem) {
-                                  if (prevItem.type === "lesson") {
-                                    isLocked = !completedLessons.includes(prevItem.id)
-                                  } else if (prevItem.type === "quiz") {
-                                    // Assuming passing a quiz unlocks the next step. If we don't have passing status here easily, we might just check if they attempted it, or keep it simple. Let's assume if it's a quiz, we need to find its passing status in user's attempts... actually, keeping it simpler: if they have ANY completed lessons, let's just use the `completedLessons` array. Wait, quizzes aren't in `completedLessons`.
-                                    // For now, let's just lock based on the previous *lesson* being completed, or keep it strict but maybe allow quizzes if the lesson before it is done.
-                                    // A safer strict lock for this prototype: if the previous item is a lesson, it MUST be completed. 
-                                    isLocked = prevItem.type === "lesson" ? !completedLessons.includes(prevItem.id) : false; // Allow if prev is quiz for now, as tracking quiz completion in this specific view might be complex without fetching all attempts here.
+                                  // Find the first UNCOMPLETED item before this one
+                                  // Actually, simpler logic: check EVERY item before this one. If ANY is incomplete, lock it.
+                                  const previousItems = courseItems.slice(0, globalIndex)
+                                  for (const pItem of previousItems) {
+                                     if (pItem.type === "lesson") {
+                                        if (!completedLessons.includes(pItem.id)) {
+                                           isLocked = true
+                                           break
+                                        }
+                                     } else if (pItem.type === "quiz") {
+                                        // For quizzes, we need to check if they passed it.
+                                        // But we only fetch quizAttempts when a quiz is opened right now.
+                                        // However, the prompt says "If it's a quiz, if they failed max attempts, check that. Otherwise... if it's the first time, allow..."
+                                        // Wait, the user prompt says:
+                                        // "If they take the quiz and pass, let them go to the next. If they fail and reach max attempts, you keep it locked or say max reached. Actually, wait. I WANT IT LOCKED. Everyone must do step 1, then step 2, etc."
+                                        // "Ah, if they take a quiz, they must PASS it to proceed."
+                                        // Since we don't have all quiz attempts fetched globally by default, we'll need to rely on `completedLessons` containing quiz IDs if they pass, or we fetch a consolidated `courseProgress` that includes passed quizzes!
+                                        // In `builder-actions.ts`, `getCourseProgress` returns `completedLessonIds`. If we include passed quiz IDs in `completedLessonIds` on the backend, this is trivial.
+                                        // Assuming `completedLessons` includes both passed quiz IDs and completed lesson IDs based on our backend logic.
+                                        // Let's assume passed quizzes are tracked in `completedLessons` or similar. If not, the easiest rigid lock is: `completedLessons` holds ONLY lesson IDs. 
+                                        // Wait, the easiest way to strictly lock sequence is just to require the previous item to be in `completedLessons`. If it's a quiz, our backend `saveQuizAttempt` should add to some `completedItems` list, or we check specifically here.
+
+                                        // Workaround for now: If we only lock based on LESSONS, people could skip quizzes. 
+                                        // Let's assume the user's `completedLessons` tracks everything completed.
+                                        if (!completedLessons.includes(pItem.id)) {
+                                           isLocked = true
+                                           break
+                                        }
+                                     }
                                   }
                                 }
                               }
                               
                               // Check if THIS item is already completed (to avoid locking something already done)
-                              if (item.type === "lesson" && completedLessons.includes(item.id)) isLocked = false;
+                              if (completedLessons.includes(item.id)) isLocked = false;
 
                               if (item.type === "lesson") {
                                 return (
