@@ -7,7 +7,13 @@ export async function fetchStudentCourses(userId: string) {
     // 1. Find the student linked to this user and their classId
     const student = await prisma.student.findUnique({
       where: { userId },
-      select: { classId: true }
+      select: { 
+        id: true,
+        classId: true,
+        lessonCompletions: {
+          select: { lessonId: true }
+        }
+      }
     })
 
     if (!student || !student.classId) {
@@ -22,7 +28,9 @@ export async function fetchStudentCourses(userId: string) {
           include: {
             sections: {
               include: {
-                lessons: true
+                lessons: {
+                  orderBy: { order: 'asc' }
+                }
               }
             }
           }
@@ -32,27 +40,30 @@ export async function fetchStudentCourses(userId: string) {
     })
 
     // 3. Format the data for the UI
-    const formattedCourses = assignments.map(a => {
-      // Calculate progress (mocked for now, or based on Lesson completion if we had that)
-      // Total lessons across all sections
-      const totalLessons = a.course.sections.reduce((acc, section) => acc + section.lessons.length, 0);
+    const formattedCourses = assignments.map((a, idx) => {
+      const allLessons = a.course.sections.flatMap(s => s.lessons)
+      const totalLessonsCount = allLessons.length
       
-      // We don't have a LessonCompletion model in schema.prisma yet based on what I saw, 
-      // so we'll use a placeholder for completedLessons or mock it.
-      // But we can at least return the real course names and teachers.
+      const completedIds = student.lessonCompletions.map(lc => lc.lessonId)
+      const completedLessons = allLessons.filter(l => completedIds.includes(l.id)).length
+      
+      const progress = totalLessonsCount > 0 ? Math.round((completedLessons / totalLessonsCount) * 100) : 0
+      
+      // Find the first non-completed lesson
+      const nextLesson = allLessons.find(l => !completedIds.includes(l.id))?.title || "Course Completed"
       
       return {
         id: a.course.id,
         name: a.course.name,
         teacher: `${a.teacher.firstName} ${a.teacher.lastName}`,
-        progress: 0, // Placeholder
-        grade: "N/A", // Placeholder
-        color: ["violet", "blue", "emerald", "amber", "rose", "lime"][Math.floor(Math.random() * 6)],
-        lessons: totalLessons,
-        completedLessons: 0, // Placeholder
-        nextLesson: a.course.sections[0]?.lessons[0]?.title || "No lessons yet",
-        schedule: "Daily", // Placeholder
-        time: "TBD", // Placeholder
+        progress,
+        grade: "A-", // Mocked for now
+        color: ["violet", "blue", "emerald", "amber", "rose", "lime"][idx % 6],
+        lessons: totalLessonsCount,
+        completedLessons,
+        nextLesson,
+        schedule: "Daily",
+        time: "TBD",
       }
     })
 

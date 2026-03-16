@@ -102,12 +102,110 @@ export async function logoutAndResetStudent(userId: string) {
     return { success: false }
   }
 }
+
+export async function getStudentDashboardOverview(userId: string) {
+  try {
+    const student = await prisma.student.findUnique({
+      where: { userId },
+      select: { 
+        id: true,
+        classId: true,
+        firstName: true,
+        lastName: true,
+        studentId: true,
+        status: true,
+        lessonCompletions: {
+          select: { lessonId: true }
+        },
+        attendances: {
+          select: { status: true }
+        },
+        grades: {
+          select: { score: true }
+        },
+        examResults: {
+          select: { marksObtained: true, exam: { select: { maxMarks: true } } }
+        }
+      }
+    })
+
+    if (!student || !student.classId) {
+      return {
+        coursesCount: 0,
+        pendingAssignments: 0,
+        recentResults: [],
+        attendance: 100,
+        overallGPA: "N/A"
+      }
+    }
+
+    // 1. Fetch Course Count
+    const courseCount = await prisma.teacherAssignment.count({
+      where: { classId: student.classId }
+    })
+
+    // 2. Fetch Assignments
+    const courseAssignments = await prisma.teacherAssignment.findMany({
+      where: { classId: student.classId },
+      select: { courseId: true }
+    })
+    const courseIds = courseAssignments.map(ca => ca.courseId)
+
+    const assignments = await prisma.assignment.findMany({
+      where: { courseId: { in: courseIds } },
+      include: { 
+        course: { select: { name: true } },
+        grades: { where: { studentId: student.id }, take: 1 }
+      },
+      orderBy: { dueDate: 'asc' },
+      take: 10
+    })
+
+    const pendingAssignmentsCount = assignments.filter(a => a.grades.length === 0).length
+
+    // 3. Recent Quiz/Exam Results
+    const quizAttempts = await prisma.quizAttempt.findMany({
+      where: { studentId: student.id },
+      include: { quiz: { select: { title: true, section: { select: { course: { select: { name: true } } } } } } },
+      orderBy: { createdAt: 'desc' },
+      take: 5
+    })
+
+    const recentResults = quizAttempts.map(qa => ({
+      subject: qa.quiz.section.course.name,
+      title: qa.quiz.title,
+      grade: qa.score >= 90 ? "A" : (qa.score >= 80 ? "B" : (qa.score >= 70 ? "C" : "D")),
+      score: `${qa.score}/100`, // Matching the format expected by Dashboard
+      date: new Date(qa.createdAt).toLocaleDateString("en-US", { month: 'short', day: 'numeric' })
+    }))
+
+    // 4. Attendance Calc
+    const totalDays = student.attendances.length
+    const presentDays = student.attendances.filter(a => a.status === 'PRESENT').length
+    const attendance = totalDays > 0 ? Math.round((presentDays / totalDays) * 100) : 100
+
+    // 5. GPA Approximation
+    const allScores = [
+      ...student.grades.map(g => g.score),
+      ...student.examResults.map(er => (er.marksObtained / er.exam.maxMarks) * 100)
+    ]
+    const avg = allScores.length > 0 ? allScores.reduce((a, b) => a + b, 0) / allScores.length : 0
+    let gpa = "N/A"
+    if (avg >= 90) gpa = "A"
+    else if (avg >= 80) gpa = "A-"
+    else if (avg >= 70) gpa = "B+"
+    else if (avg >= 60) gpa = "B"
+
+    return {
+      coursesCount: courseCount,
+      pendingAssignments: pendingAssignmentsCount,
+      recentResults: recentResults.slice(0, 3),
       attendance,
-      pendingAssignments: formattedAssignments.filter(a => a.status !== "submitted").length,
-      overallGPA: "A-" // Hardcoded for now
+      overallGPA: gpa
     }
   } catch (error) {
     console.error("Dashboard overview error:", error)
     return null
   }
 }
+

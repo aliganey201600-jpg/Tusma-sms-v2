@@ -29,7 +29,7 @@ import {
   Bell
 } from "lucide-react"
 import { useCurrentUser } from "@/hooks/use-current-user"
-import { verifyStudentId } from "./actions"
+import { verifyStudentId, getStudentDashboardOverview } from "./actions"
 import { fetchStudentCourses } from "./courses/actions"
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
@@ -63,23 +63,35 @@ export default function StudentDashboardPage() {
   
   const [realCourses, setRealCourses] = React.useState<any[]>([])
   const [loadingCourses, setLoadingCourses] = React.useState(true)
+  const [overview, setOverview] = React.useState<any>(null)
+  const [loadingOverview, setLoadingOverview] = React.useState(true)
 
   React.useEffect(() => {
-    async function loadCourses() {
+    async function loadData() {
       if (user?.id) {
         try {
-          const res = await fetchStudentCourses(user.id)
-          if (res.success && res.courses) {
-            setRealCourses(res.courses)
+          // Fetch courses
+          const courseRes = await fetchStudentCourses(user.id)
+          if (courseRes.success && courseRes.courses) {
+            setRealCourses(courseRes.courses)
           }
+          setLoadingCourses(false)
+
+          // Fetch overview
+          const overviewData = await getStudentDashboardOverview(user.id)
+          if (overviewData) {
+            setOverview(overviewData)
+          }
+          setLoadingOverview(false)
         } catch (error) {
-          console.error("Failed to load real courses", error)
+          console.error("Failed to load dashboard data", error)
+          setLoadingCourses(false)
+          setLoadingOverview(false)
         }
       }
-      setLoadingCourses(false)
     }
     if (user && !userLoading) {
-      loadCourses()
+      loadData()
     }
   }, [user, userLoading])
 
@@ -179,7 +191,7 @@ export default function StudentDashboardPage() {
             <span className="text-yellow-300">{firstName}</span>
           </h1>
           <p className="text-violet-100 font-medium text-sm md:text-base max-w-md leading-relaxed">
-            You have <strong className="text-white">2 assignments</strong> due this week. Your progress is looking excellent. Keep it up!
+            You have <strong className="text-white">{loadingOverview ? "..." : (overview?.pendingAssignments || 0)} assignments</strong> due soon. Your progress is looking excellent. Keep it up!
           </p>
         </div>
 
@@ -198,28 +210,28 @@ export default function StudentDashboardPage() {
       <div className="flex overflow-x-auto pb-4 -mx-4 px-4 md:mx-0 md:px-0 md:grid md:grid-cols-4 gap-4 no-scrollbar snap-x">
         <StatCard
           title="Courses"
-          value={displayCourses.length.toString()}
+          value={loadingOverview ? "..." : (overview?.coursesCount || realCourses.length || 0).toString()}
           icon={<BookOpen className="h-5 w-5 md:h-6 md:w-6" />}
           color="violet"
           href="/dashboard/student/courses"
         />
         <StatCard
           title="Grades"
-          value="A-"
+          value={loadingOverview ? "..." : (overview?.overallGPA || "N/A")}
           icon={<Award className="h-5 w-5 md:h-6 md:w-6" />}
           color="emerald"
           href="/dashboard/student/grades"
         />
         <StatCard
           title="Assignments"
-          value="4"
+          value={loadingOverview ? "..." : (overview?.pendingAssignments || 0).toString()}
           icon={<ClipboardList className="h-5 w-5 md:h-6 md:w-6" />}
           color="amber"
           href="/dashboard/student/assignments"
         />
         <StatCard
           title="Attendance"
-          value="98%"
+          value={loadingOverview ? "..." : `${overview?.attendance || 100}%`}
           icon={<CheckCircle2 className="h-5 w-5 md:h-6 md:w-6" />}
           color="blue"
           href="/dashboard/student/attendance"
@@ -272,9 +284,15 @@ export default function StudentDashboardPage() {
               </div>
             </CardHeader>
             <CardContent className="px-6 md:px-8 pb-8 space-y-4">
-              {deadlines.map((task, i) => (
-                <DeadlineItem key={i} task={task} />
-              ))}
+              {loadingOverview ? (
+                [1,2,3].map(i => <div key={i} className="h-12 bg-slate-50 animate-pulse rounded-xl" />)
+              ) : (overview?.recentAssignments?.length > 0 || deadlines.length > 0) ? (
+                (overview?.recentAssignments || deadlines).slice(0, 3).map((task: any, i: number) => (
+                  <DeadlineItem key={i} task={task} />
+                ))
+              ) : (
+                <p className="text-xs text-slate-400 text-center py-4">No assignments due soon</p>
+              )}
             </CardContent>
           </Card>
 
@@ -291,9 +309,17 @@ export default function StudentDashboardPage() {
               </Button>
             </CardHeader>
             <CardContent className="px-6 md:px-8 pb-8 space-y-5">
-              {recentGrades.slice(0,2).map((g, i) => (
-                <GradeDarkItem key={i} grade={g} />
-              ))}
+              {loadingOverview ? (
+                [1,2].map(i => <div key={i} className="h-16 bg-slate-800 animate-pulse rounded-2xl" />)
+              ) : (overview?.recentResults?.length > 0) ? (
+                overview.recentResults.slice(0, 2).map((g: any, i: number) => (
+                  <GradeDarkItem key={i} grade={g} />
+                ))
+              ) : (
+                recentGrades.slice(0, 2).map((g, i) => (
+                  <GradeDarkItem key={i} grade={g} />
+                ))
+              )}
             </CardContent>
           </Card>
 

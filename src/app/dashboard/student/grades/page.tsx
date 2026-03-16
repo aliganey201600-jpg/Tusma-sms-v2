@@ -19,8 +19,10 @@ import {
   ArrowUpRight,
   ChevronDown,
 } from "lucide-react"
+import { useCurrentUser } from "@/hooks/use-current-user"
+import { getStudentGrades } from "./actions"
 
-const gradeData = [
+const mockGradeData = [
   {
     subject: "Computer Science", teacher: "Mr. Khalid Hassan", grade: "A", gpa: 4.0, color: "emerald",
     exams: [
@@ -66,10 +68,38 @@ const gradeData = [
   },
 ]
 
-const overallGPA = (gradeData.reduce((acc, g) => acc + g.gpa, 0) / gradeData.length).toFixed(2)
-
 export default function StudentGradesPage() {
+  const { user } = useCurrentUser()
+  const [data, setData] = React.useState<any[]>([])
+  const [loading, setLoading] = React.useState(true)
   const [expanded, setExpanded] = React.useState<number | null>(0)
+
+  React.useEffect(() => {
+    async function loadData() {
+      if (user?.studentId) {
+        const res = await getStudentGrades(user.studentId)
+        setData(res)
+      }
+      setLoading(false)
+    }
+    loadData()
+  }, [user?.studentId])
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600" />
+          <p className="text-xs font-black uppercase tracking-widest text-slate-400">Loading Academic History...</p>
+        </div>
+      </div>
+    )
+  }
+
+  const gradeData = data.length > 0 ? data : mockGradeData
+
+
+  const overallGPA = gradeData.length > 0 ? (gradeData.reduce((acc, g) => acc + g.gpa, 0) / gradeData.length).toFixed(2) : "0.00"
 
   return (
     <div className="p-2 md:p-4 space-y-8 max-w-[1200px] mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700">

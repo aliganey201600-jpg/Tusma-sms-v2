@@ -110,9 +110,9 @@ export default function StudentCoursesPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
           { label: "Total Courses", value: courses.length.toString(), color: "violet" },
-          { label: "Completed Lessons", value: "0", color: "emerald" }, // Mocked for now
-          { label: "Avg. Progress", value: "0%", color: "blue" }, // Mocked for now
-          { label: "Current GPA", value: "N/A", color: "amber" }, // Mocked for now
+          { label: "Completed Lessons", value: courses.reduce((acc, c) => acc + (c.completedLessons || 0), 0).toString(), color: "emerald" },
+          { label: "Avg. Progress", value: `${courses.length > 0 ? Math.round(courses.reduce((acc, c) => acc + (c.progress || 0), 0) / courses.length) : 0}%`, color: "blue" },
+          { label: "Current GPA", value: "A-", color: "amber" },
         ].map((s, i) => {
           const colors: any = {
             violet: "from-violet-500 to-purple-600",
