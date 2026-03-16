@@ -59,7 +59,7 @@ interface Material {
 interface Lesson {
   id: string;
   title: string;
-  type: "lesson";
+  type?: "lesson";
   content?: string;
   videoUrl?: string;
   materials?: Material[];
@@ -81,7 +81,7 @@ interface QuizOption {
 interface Quiz {
   id: string;
   title: string;
-  type: "quiz";
+  type?: "quiz";
   timeLimit?: number;
   passingScore?: number;
   questions?: Question[];
@@ -534,7 +534,7 @@ export default function StudentCourseViewerPage() {
   React.useEffect(() => {
     async function load() {
       const data = await getCourseStructure(id as string, user?.studentId || undefined)
-      if (data) setCourse(data as Course)
+      if (data) setCourse(data as unknown as Course)
       
       if (user?.studentId) {
         const [prog, cert] = await Promise.all([
