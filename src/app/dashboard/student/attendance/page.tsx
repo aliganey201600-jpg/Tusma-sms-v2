@@ -15,6 +15,7 @@ import {
   XCircle,
   AlertCircle,
   CalendarDays,
+  TrendingUp,
   Star,
   Zap,
 } from "lucide-react"
