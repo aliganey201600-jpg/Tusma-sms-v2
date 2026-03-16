@@ -29,10 +29,31 @@ import {
   Bell
 } from "lucide-react"
 import { useCurrentUser } from "@/hooks/use-current-user"
-import { verifyStudentId, getStudentDashboardOverview } from "./actions"
+import { verifyStudentId } from "./actions"
+import { fetchStudentCourses } from "./courses/actions"
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
-import { Loader2, Sparkles } from "lucide-react"
+import { Loader2 } from "lucide-react"
+
+// ─── Fallback Mock Data ────────────────────────────────────────────────────────
+const mockCourses = [
+  { name: "Mathematics", progress: 65, grade: "B+", color: "violet" },
+  { name: "Physics", progress: 42, grade: "B", color: "blue" },
+  { name: "Computer Science", progress: 88, grade: "A", color: "emerald" },
+  { name: "History", progress: 55, grade: "B-", color: "amber" },
+]
+
+const deadlines = [
+  { title: "Algebra Quiz", due: "Tomorrow", urgency: "high", subject: "Math" },
+  { title: "Physics Lab Report", due: "Friday", urgency: "medium", subject: "Physics" },
+  { title: "CS Project Phase 2", due: "Next Wed", urgency: "low", subject: "CS" },
+]
+
+const recentGrades = [
+  { subject: "Computer Science", title: "Mid-term Exam", grade: "A", score: "94/100", date: "Mar 10" },
+  { subject: "Mathematics", title: "Chapter 5 Test", grade: "B+", score: "87/100", date: "Mar 7" },
+  { subject: "Physics", title: "Lab Practical", grade: "B", score: "80/100", date: "Mar 5" },
+]
 
 export default function StudentDashboardPage() {
   const { user, loading: userLoading } = useCurrentUser()
@@ -40,25 +61,25 @@ export default function StudentDashboardPage() {
   const [verifying, setVerifying] = React.useState(false)
   const [studentIdInput, setStudentIdInput] = React.useState("")
   
-  const [overview, setOverview] = React.useState<any>(null)
-  const [loadingOverview, setLoadingOverview] = React.useState(true)
+  const [realCourses, setRealCourses] = React.useState<any[]>([])
+  const [loadingCourses, setLoadingCourses] = React.useState(true)
 
   React.useEffect(() => {
-    async function loadOverview() {
+    async function loadCourses() {
       if (user?.id) {
         try {
-          const data = await getStudentDashboardOverview(user.id)
-          if (data) {
-            setOverview(data)
+          const res = await fetchStudentCourses(user.id)
+          if (res.success && res.courses) {
+            setRealCourses(res.courses)
           }
         } catch (error) {
-          console.error("Failed to load dashboard overview", error)
+          console.error("Failed to load real courses", error)
         }
       }
-      setLoadingOverview(false)
+      setLoadingCourses(false)
     }
     if (user && !userLoading) {
-      loadOverview()
+      loadCourses()
     }
   }, [user, userLoading])
 
@@ -150,7 +171,7 @@ export default function StudentDashboardPage() {
 
         <div className="relative z-10 space-y-4">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 border border-white/10 backdrop-blur-md">
-            <Sparkles className="h-3 w-3 text-yellow-300" />
+            <SparklesIcon className="h-3 w-3 text-yellow-300" />
             <span className="text-[10px] font-black uppercase tracking-widest text-white">Student Portal</span>
           </div>
           <h1 className="text-4xl md:text-5xl font-black tracking-tighter shrink-0 break-words max-w-full">
@@ -158,7 +179,7 @@ export default function StudentDashboardPage() {
             <span className="text-yellow-300">{firstName}</span>
           </h1>
           <p className="text-violet-100 font-medium text-sm md:text-base max-w-md leading-relaxed">
-            You have <strong className="text-white">{overview?.pendingAssignments || 0} assignments</strong> due soon. Your progress is looking excellent. Keep it up!
+            You have <strong className="text-white">2 assignments</strong> due this week. Your progress is looking excellent. Keep it up!
           </p>
         </div>
 
@@ -177,28 +198,28 @@ export default function StudentDashboardPage() {
       <div className="flex overflow-x-auto pb-4 -mx-4 px-4 md:mx-0 md:px-0 md:grid md:grid-cols-4 gap-4 no-scrollbar snap-x">
         <StatCard
           title="Courses"
-          value={overview?.courses?.length || 0}
+          value={displayCourses.length.toString()}
           icon={<BookOpen className="h-5 w-5 md:h-6 md:w-6" />}
           color="violet"
           href="/dashboard/student/courses"
         />
         <StatCard
           title="Grades"
-          value={overview?.overallGPA || "N/A"}
+          value="A-"
           icon={<Award className="h-5 w-5 md:h-6 md:w-6" />}
           color="emerald"
           href="/dashboard/student/grades"
         />
         <StatCard
           title="Assignments"
-          value={overview?.pendingAssignments || 0}
+          value="4"
           icon={<ClipboardList className="h-5 w-5 md:h-6 md:w-6" />}
           color="amber"
           href="/dashboard/student/assignments"
         />
         <StatCard
           title="Attendance"
-          value={`${overview?.attendance || 100}%`}
+          value="98%"
           icon={<CheckCircle2 className="h-5 w-5 md:h-6 md:w-6" />}
           color="blue"
           href="/dashboard/student/attendance"
@@ -221,17 +242,12 @@ export default function StudentDashboardPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-            {loadingOverview ? (
+            {loadingCourses ? (
               [1, 2, 3, 4].map(i => <div key={i} className="h-40 bg-slate-50 animate-pulse rounded-[28px]" />)
             ) : (
-              overview?.courses?.slice(0, 4).map((course: any, i: number) => (
+              displayCourses.slice(0, 4).map((course, i) => (
                 <CourseAppCard key={course.id || i} course={course} />
               ))
-            )}
-            {!loadingOverview && (!overview?.courses || overview.courses.length === 0) && (
-               <div className="col-span-full py-12 text-center bg-slate-50 rounded-[28px] border-2 border-dashed border-slate-100">
-                  <p className="text-slate-400 font-bold italic">No courses found yet.</p>
-               </div>
             )}
           </div>
           
@@ -256,11 +272,9 @@ export default function StudentDashboardPage() {
               </div>
             </CardHeader>
             <CardContent className="px-6 md:px-8 pb-8 space-y-4">
-              {overview?.assignments?.map((task: any, i: number) => (
+              {deadlines.map((task, i) => (
                 <DeadlineItem key={i} task={task} />
-              )) || (
-                 <p className="text-xs text-slate-400 text-center py-4">No assignments due soon</p>
-              )}
+              ))}
             </CardContent>
           </Card>
 
@@ -277,11 +291,9 @@ export default function StudentDashboardPage() {
               </Button>
             </CardHeader>
             <CardContent className="px-6 md:px-8 pb-8 space-y-5">
-              {overview?.recentResults?.slice(0,3).map((g: any, i: number) => (
+              {recentGrades.slice(0,2).map((g, i) => (
                 <GradeDarkItem key={i} grade={g} />
-              )) || (
-                 <p className="text-xs text-slate-500 text-center py-4">No results available yet</p>
-              )}
+              ))}
             </CardContent>
           </Card>
 
@@ -293,6 +305,13 @@ export default function StudentDashboardPage() {
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
 
+function SparklesIcon(props: any) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" />
+    </svg>
+  )
+}
 
 function StatCard({ title, value, icon, color, href }: any) {
   const colorMap: any = {
