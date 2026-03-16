@@ -77,12 +77,12 @@ function getSimilarity(s1: string, s2: string): number {
 }
 
 function getQualitativeGrade(score: number) {
-  if (score === 100) return { label: "Excellent", color: "text-emerald-400", bg: "bg-emerald-500/20", message: "Mashallah! Perfect score!" }
-  if (score >= 90) return { label: "Outstanding", color: "text-emerald-400", bg: "bg-emerald-500/20", message: "Aad u wanaagsan! Close to perfection." }
-  if (score >= 80) return { label: "Very Good", color: "text-blue-400", bg: "bg-blue-500/20", message: "Aad u fiican! Great job." }
-  if (score >= 70) return { label: "Good", color: "text-indigo-400", bg: "bg-indigo-500/20", message: "Waa lagu mahadsanyahay! You passed." }
-  if (score >= 60) return { label: "Average", color: "text-amber-400", bg: "bg-amber-500/20", message: "Isku day wanaagsan! You are getting there." }
-  return { label: "Poor", color: "text-red-400", bg: "bg-red-500/20", message: "Dadaal ayaa lagaa rabaa! Don't give up." }
+  if (score === 100) return { label: "Excellent", color: "text-emerald-400", bg: "bg-emerald-500/20", message: "Mashallah! A perfect score!" }
+  if (score >= 90) return { label: "Outstanding", color: "text-emerald-400", bg: "bg-emerald-500/20", message: "Outstanding work! Very close to perfection." }
+  if (score >= 80) return { label: "Very Good", color: "text-blue-400", bg: "bg-blue-500/20", message: "Great job! Keep pushing higher." }
+  if (score >= 70) return { label: "Good", color: "text-indigo-400", bg: "bg-indigo-500/20", message: "Well done! You passed this assessment." }
+  if (score >= 60) return { label: "Average", color: "text-amber-400", bg: "bg-amber-500/20", message: "Good effort! You are getting there." }
+  return { label: "Poor", color: "text-red-400", bg: "bg-red-500/20", message: "Don't give up! Review the material and try again." }
 }
 
 function getAdvice(score: number, passed: boolean) {
@@ -450,9 +450,23 @@ export default function StudentCourseViewerPage() {
         results: feedback,
         timeSpent
       })
-      // Refresh attempts
+      // Refresh attempts list
       const updatedAttempts = await getQuizAttempts(activeQuiz.id, user.studentId)
       setQuizAttempts(updatedAttempts)
+
+      // ─── KEY: Refresh course progress so passed quiz IDs are included
+      // in completedLessons, which immediately unlocks the next item
+      const prog = await getCourseProgress(id as string, user.studentId)
+      setCourseProgress(prog.progress)
+      setCompletedLessons(prog.completedLessonIds)
+
+      // If 100% done and no cert yet, auto-issue certificate
+      if (prog.progress === 100 && !certificate) {
+        setIssuingCert(true)
+        const certRes = await issueCertificate(id as string, user.studentId)
+        if (certRes.success) setCertificate(certRes.certificate)
+        setIssuingCert(false)
+      }
     }
   }
 
@@ -1119,60 +1133,33 @@ export default function StudentCourseViewerPage() {
                             ].sort((a, b) => (a.order || 0) - (b.order || 0))
 
                             return items.map((item: any, iIdx: number) => {
-                              // Determine if this item should be locked
-                              // An item is unlocked if:
-                              // 1. It is the very first lesson in the very first section
-                              // 2. Or, the previous item in the *entire course sequence* has been completed.
-                              const courseItems = course?.sections?.flatMap((s: any) => 
+                              // Build global ordered sequence of all items in the course
+                              const courseItems = course?.sections?.flatMap((s: any) =>
                                 [
                                   ...(s.lessons || []).map((l: any) => ({ ...l, type: "lesson", sectionId: s.id })),
                                   ...(s.quizzes || []).map((q: any) => ({ ...q, type: "quiz", sectionId: s.id }))
                                 ].sort((a, b) => (a.order || 0) - (b.order || 0))
                               ) || []
-                              
+
                               const globalIndex = courseItems.findIndex((ci: any) => ci.id === item.id)
                               const isFirstItem = globalIndex === 0
-                              
-                              let isLocked = false
-                              
-                              if (!isFirstItem) {
-                                const prevItem = courseItems[globalIndex - 1]
-                                if (prevItem) {
-                                  // Find the first UNCOMPLETED item before this one
-                                  // Actually, simpler logic: check EVERY item before this one. If ANY is incomplete, lock it.
-                                  const previousItems = courseItems.slice(0, globalIndex)
-                                  for (const pItem of previousItems) {
-                                     if (pItem.type === "lesson") {
-                                        if (!completedLessons.includes(pItem.id)) {
-                                           isLocked = true
-                                           break
-                                        }
-                                     } else if (pItem.type === "quiz") {
-                                        // For quizzes, we need to check if they passed it.
-                                        // But we only fetch quizAttempts when a quiz is opened right now.
-                                        // However, the prompt says "If it's a quiz, if they failed max attempts, check that. Otherwise... if it's the first time, allow..."
-                                        // Wait, the user prompt says:
-                                        // "If they take the quiz and pass, let them go to the next. If they fail and reach max attempts, you keep it locked or say max reached. Actually, wait. I WANT IT LOCKED. Everyone must do step 1, then step 2, etc."
-                                        // "Ah, if they take a quiz, they must PASS it to proceed."
-                                        // Since we don't have all quiz attempts fetched globally by default, we'll need to rely on `completedLessons` containing quiz IDs if they pass, or we fetch a consolidated `courseProgress` that includes passed quizzes!
-                                        // In `builder-actions.ts`, `getCourseProgress` returns `completedLessonIds`. If we include passed quiz IDs in `completedLessonIds` on the backend, this is trivial.
-                                        // Assuming `completedLessons` includes both passed quiz IDs and completed lesson IDs based on our backend logic.
-                                        // Let's assume passed quizzes are tracked in `completedLessons` or similar. If not, the easiest rigid lock is: `completedLessons` holds ONLY lesson IDs. 
-                                        // Wait, the easiest way to strictly lock sequence is just to require the previous item to be in `completedLessons`. If it's a quiz, our backend `saveQuizAttempt` should add to some `completedItems` list, or we check specifically here.
 
-                                        // Workaround for now: If we only lock based on LESSONS, people could skip quizzes. 
-                                        // Let's assume the user's `completedLessons` tracks everything completed.
-                                        if (!completedLessons.includes(pItem.id)) {
-                                           isLocked = true
-                                           break
-                                        }
-                                     }
+                              // An item is locked if ANY preceding item has not been completed.
+                              // `completedLessons` contains both completed lesson IDs AND passed quiz IDs
+                              // (returned by getCourseProgress which merges both).
+                              let isLocked = false
+                              if (!isFirstItem) {
+                                const previousItems = courseItems.slice(0, globalIndex)
+                                for (const pItem of previousItems) {
+                                  if (!completedLessons.includes(pItem.id)) {
+                                    isLocked = true
+                                    break
                                   }
                                 }
                               }
-                              
-                              // Check if THIS item is already completed (to avoid locking something already done)
-                              if (completedLessons.includes(item.id)) isLocked = false;
+
+                              // Already completed items are never rendered as locked
+                              if (completedLessons.includes(item.id)) isLocked = false
 
                               if (item.type === "lesson") {
                                 return (

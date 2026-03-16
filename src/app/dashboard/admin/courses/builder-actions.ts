@@ -354,8 +354,11 @@ export async function completeLesson(lessonId: string, studentId: string) {
 
 export async function getCourseProgress(courseId: string, studentId: string) {
   try {
-    const [totalLessons, completions] = await Promise.all([
+    const [totalLessons, totalQuizzes, lessonCompletions, passedQuizAttempts] = await Promise.all([
       prisma.lesson.count({
+        where: { section: { courseId } }
+      }),
+      prisma.quiz.count({
         where: { section: { courseId } }
       }),
       prisma.lessonCompletion.findMany({
@@ -364,13 +367,32 @@ export async function getCourseProgress(courseId: string, studentId: string) {
           lesson: { section: { courseId } }
         },
         select: { lessonId: true }
+      }),
+      // Get the best (highest score) attempt per quiz—if passed, count it as completed
+      prisma.quizAttempt.findMany({
+        where: {
+          studentId,
+          passed: true,
+          quiz: { section: { courseId } }
+        },
+        select: { quizId: true },
+        distinct: ['quizId']
       })
     ])
 
-    const completedLessonIds = completions.map(c => c.lessonId)
-    const progress = totalLessons > 0 ? Math.round((completedLessonIds.length / totalLessons) * 100) : 0
+    const completedLessonIds = lessonCompletions.map(c => c.lessonId)
+    const passedQuizIds = passedQuizAttempts.map(a => a.quizId)
 
-    return { progress, completedLessonIds }
+    // Unified list of all completed items (lessons + passed quizzes)
+    const completedItemIds = [...completedLessonIds, ...passedQuizIds]
+
+    // Progress is based on the total number of lessons + quizzes
+    const totalItems = totalLessons + totalQuizzes
+    const progress = totalItems > 0
+      ? Math.round((completedItemIds.length / totalItems) * 100)
+      : 0
+
+    return { progress, completedLessonIds: completedItemIds }
   } catch (error) {
     console.error("Error fetching progress:", error)
     return { progress: 0, completedLessonIds: [] }
