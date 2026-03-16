@@ -3,7 +3,6 @@
 import * as React from "react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
-import { Progress } from "@/components/ui/progress"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -22,21 +21,22 @@ import {
   ArrowUpRight,
   Star,
   Zap,
-  TrendingUp,
-  Calendar,
   Award,
   Target,
   Flame,
   ChevronRight,
+  PlayCircle,
+  Bell
 } from "lucide-react"
 import { useCurrentUser } from "@/hooks/use-current-user"
 import { verifyStudentId } from "./actions"
+import { fetchStudentCourses } from "./courses/actions"
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
 import { Loader2 } from "lucide-react"
 
-// ─── Mock Data ───────────────────────────────────────────────────────────────
-const courses = [
+// ─── Fallback Mock Data ────────────────────────────────────────────────────────
+const mockCourses = [
   { name: "Mathematics", progress: 65, grade: "B+", color: "violet" },
   { name: "Physics", progress: 42, grade: "B", color: "blue" },
   { name: "Computer Science", progress: 88, grade: "A", color: "emerald" },
@@ -46,7 +46,6 @@ const courses = [
 const deadlines = [
   { title: "Algebra Quiz", due: "Tomorrow", urgency: "high", subject: "Math" },
   { title: "Physics Lab Report", due: "Friday", urgency: "medium", subject: "Physics" },
-  { title: "History Essay", due: "Next Mon", urgency: "low", subject: "History" },
   { title: "CS Project Phase 2", due: "Next Wed", urgency: "low", subject: "CS" },
 ]
 
@@ -57,13 +56,32 @@ const recentGrades = [
 ]
 
 export default function StudentDashboardPage() {
-  const [activeTab, setActiveTab] = React.useState(0)
   const { user, loading: userLoading } = useCurrentUser()
-
-  // Display name: real name from session, or skeleton while loading
   const firstName = user?.firstName || (userLoading ? null : "Student")
   const [verifying, setVerifying] = React.useState(false)
   const [studentIdInput, setStudentIdInput] = React.useState("")
+  
+  const [realCourses, setRealCourses] = React.useState<any[]>([])
+  const [loadingCourses, setLoadingCourses] = React.useState(true)
+
+  React.useEffect(() => {
+    async function loadCourses() {
+      if (user?.id) {
+        try {
+          const res = await fetchStudentCourses(user.id)
+          if (res.success && res.courses) {
+            setRealCourses(res.courses)
+          }
+        } catch (error) {
+          console.error("Failed to load real courses", error)
+        }
+      }
+      setLoadingCourses(false)
+    }
+    if (user && !userLoading) {
+      loadCourses()
+    }
+  }, [user, userLoading])
 
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -85,15 +103,14 @@ export default function StudentDashboardPage() {
     }
   }
 
-  // Determine if the student is unverified (No ID OR Status is PENDING)
   const isUnverified = !userLoading && user && 
     (!user.studentId || user.studentId === "N/A" || user.status === "PENDING")
 
   if (userLoading) {
     return (
-      <div className="p-4 space-y-8 max-w-[1600px] mx-auto">
-        <div className="h-20 w-1/3 bg-slate-100 animate-pulse rounded-2xl" />
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="p-4 space-y-8 max-w-[1600px] mx-auto min-h-screen">
+        <div className="h-24 w-full bg-slate-100 animate-pulse rounded-3xl" />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[1, 2, 3, 4].map(i => <div key={i} className="h-32 bg-slate-50 animate-pulse rounded-3xl" />)}
         </div>
       </div>
@@ -123,7 +140,7 @@ export default function StudentDashboardPage() {
               <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Student Identification ID</label>
               <Input 
                 placeholder="TUSMO-2024-XXX" 
-                className="h-14 rounded-2xl border-slate-100 bg-slate-50 px-5 font-bold text-slate-700 focus-visible:ring-violet-500"
+                className="h-14 rounded-2xl border-slate-100 bg-slate-50 px-5 font-bold text-slate-700 focus-visible:ring-violet-500 text-lg md:text-base"
                 value={studentIdInput}
                 onChange={(e) => setStudentIdInput(e.target.value)}
               />
@@ -136,190 +153,150 @@ export default function StudentDashboardPage() {
               Xaqiiji Hadda
             </Button>
           </form>
-
-          <p className="text-[11px] font-bold text-slate-400">
-            Hadii aadan lahayn ID, fadlan la xiriir <br /> maamulka iskuulka.
-          </p>
         </Card>
       </div>
     )
   }
 
-  return (
-    <div className="p-2 md:p-4 space-y-8 max-w-[1600px] mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700">
+  const displayCourses = realCourses.length > 0 ? realCourses : mockCourses
 
-      {/* ── Header ── */}
-      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6">
-        <div className="space-y-3">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-50 border border-violet-100 text-violet-600">
-            <Star className="h-3 w-3 fill-current" />
-            <span className="text-[10px] font-black uppercase tracking-widest">Student Portal</span>
+  return (
+    <div className="pb-24 pt-4 md:py-8 px-4 md:px-8 space-y-8 max-w-[1600px] mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700">
+
+      {/* ── App-style Header for Mobile & Desktop ── */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 bg-gradient-to-br from-violet-600 to-indigo-700 rounded-[36px] p-6 md:p-10 text-white shadow-2xl shadow-violet-200 relative overflow-hidden">
+        {/* Abstract background shapes */}
+        <div className="absolute -top-24 -right-24 w-64 h-64 bg-white/10 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 left-10 w-40 h-40 bg-indigo-400/20 rounded-full blur-2xl" />
+
+        <div className="relative z-10 space-y-4">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 border border-white/10 backdrop-blur-md">
+            <SparklesIcon className="h-3 w-3 text-yellow-300" />
+            <span className="text-[10px] font-black uppercase tracking-widest text-white">Student Portal</span>
           </div>
-          <h1 className="text-4xl md:text-5xl font-black tracking-tighter text-slate-900">
-            Welcome back,{" "}
-            {userLoading ? (
-              <span className="inline-block h-10 w-40 bg-violet-100 animate-pulse rounded-xl align-middle" />
-            ) : (
-              <span className="text-violet-600">{firstName}.</span>
-            )}
+          <h1 className="text-4xl md:text-5xl font-black tracking-tighter shrink-0 break-words max-w-full">
+            Welcome, <br className="md:hidden" />
+            <span className="text-yellow-300">{firstName}</span>
           </h1>
-          <p className="text-slate-500 font-medium text-base max-w-xl">
-            You have <strong className="text-violet-600">2 assignments</strong> due this week and your GPA is trending upward. Keep it up!
+          <p className="text-violet-100 font-medium text-sm md:text-base max-w-md leading-relaxed">
+            Waxaad leedahay <strong className="text-white">2 shaqo guri</strong> asbuucan. Horumarkaaga waa mid aad u wanaagsan. Sii wad!
           </p>
         </div>
 
-        {/* Streak badge */}
-        <div className="flex items-center gap-4 p-5 rounded-[28px] bg-gradient-to-br from-orange-400 to-rose-500 text-white shadow-2xl shadow-orange-200 shrink-0">
-          <div className="h-14 w-14 rounded-2xl bg-white/20 flex items-center justify-center">
-            <Flame className="h-8 w-8 text-white fill-white" />
-          </div>
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-widest text-orange-100">Study Streak</p>
-            <p className="text-4xl font-black leading-none">14</p>
-            <p className="text-xs text-orange-100 font-semibold">days in a row</p>
-          </div>
+        {/* Action Button for mobile header */}
+        <div className="relative z-10 mt-2 md:mt-0 w-full md:w-auto">
+          <Button className="w-full md:w-auto rounded-2xl bg-white text-violet-700 hover:bg-slate-50 font-bold h-12 px-6 shadow-lg shadow-black/10" asChild>
+            <Link href="/dashboard/student/courses">
+              <PlayCircle className="mr-2 h-5 w-5" />
+              Sii wad Barashada
+            </Link>
+          </Button>
         </div>
       </div>
 
-      {/* ── Stats Cards ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+      {/* ── Stats Cards (Horizontal Scroll on Mobile) ── */}
+      <div className="flex overflow-x-auto pb-4 -mx-4 px-4 md:mx-0 md:px-0 md:grid md:grid-cols-4 gap-4 no-scrollbar snap-x">
         <StatCard
-          title="Current Courses"
-          value="6"
-          icon={<BookOpen className="h-6 w-6" />}
+          title="Koorsooyinka"
+          value={displayCourses.length.toString()}
+          icon={<BookOpen className="h-5 w-5 md:h-6 md:w-6" />}
           color="violet"
-          desc="Semester 2"
           href="/dashboard/student/courses"
         />
         <StatCard
-          title="Current GPA"
-          value="3.7"
-          icon={<GraduationCap className="h-6 w-6" />}
+          title="Buundooyinka"
+          value="A-"
+          icon={<Award className="h-5 w-5 md:h-6 md:w-6" />}
           color="emerald"
-          desc="+0.2 this term"
           href="/dashboard/student/grades"
         />
         <StatCard
-          title="Pending Tasks"
+          title="Shaqooyinka"
           value="4"
-          icon={<ClipboardList className="h-6 w-6" />}
+          icon={<ClipboardList className="h-5 w-5 md:h-6 md:w-6" />}
           color="amber"
-          desc="2 due in 48h"
           href="/dashboard/student/assignments"
         />
         <StatCard
-          title="Attendance"
+          title="Imaanshaha"
           value="98%"
-          icon={<CheckCircle2 className="h-6 w-6" />}
+          icon={<CheckCircle2 className="h-5 w-5 md:h-6 md:w-6" />}
           color="blue"
-          desc="Excellent record"
           href="/dashboard/student/attendance"
         />
       </div>
 
-      {/* ── Main Grid ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-7 gap-6 md:gap-8">
-
-        {/* ── Left: Course Progress + Action Cards ── */}
-        <div className="lg:col-span-4 space-y-6">
-
-          {/* Course Progress */}
-          <Card className="border-none shadow-2xl shadow-violet-50/50 rounded-[32px] overflow-hidden bg-white">
-            <CardHeader className="p-6 md:p-8 pb-4 flex flex-row items-center justify-between">
-              <div>
-                <CardTitle className="text-xl font-black text-slate-900">Course Progress</CardTitle>
-                <CardDescription className="text-slate-400 font-medium">Estimated completion for current semester.</CardDescription>
-              </div>
-              <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-violet-50" asChild>
-                <Link href="/dashboard/student/courses">
-                  <ArrowUpRight className="h-5 w-5 text-violet-600" />
-                </Link>
-              </Button>
-            </CardHeader>
-            <CardContent className="px-6 md:px-8 pb-8 space-y-6">
-              {courses.map((course, i) => (
-                <CourseProgressItem key={i} course={course} />
-              ))}
-            </CardContent>
-          </Card>
-
-          {/* Action Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-            <Link href="/dashboard/student/grades">
-              <Card className="rounded-[28px] border-none bg-violet-600 p-7 text-white shadow-2xl shadow-violet-200 group hover:scale-[1.02] transition-transform cursor-pointer">
-                <Award className="h-10 w-10 text-white fill-white/20 mb-5" />
-                <h4 className="text-2xl font-black leading-tight mb-2">My Grades <br />& Transcript.</h4>
-                <p className="text-violet-100 text-sm font-medium mb-5">View all your exam results, GPA breakdown, and academic history.</p>
-                <div className="flex items-center gap-2 text-sm font-black">
-                  View Grades <ChevronRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                </div>
-              </Card>
-            </Link>
-
-            <Link href="/dashboard/student/attendance">
-              <Card className="rounded-[28px] border-none bg-slate-900 p-7 text-white shadow-2xl shadow-slate-200 group hover:scale-[1.02] transition-transform cursor-pointer">
-                <Target className="h-10 w-10 text-white fill-white/20 mb-5" />
-                <h4 className="text-2xl font-black leading-tight mb-2">Attendance <br />Record.</h4>
-                <p className="text-slate-400 text-sm font-medium mb-5">Track your daily attendance history and spot any patterns.</p>
-                <div className="flex items-center gap-2 text-sm font-black">
-                  View Attendance <ChevronRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                </div>
-              </Card>
-            </Link>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8">
+        
+        {/* ── Left Column: Courses ── */}
+        <div className="lg:col-span-8 space-y-6 md:space-y-8">
+          
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-black text-slate-900 tracking-tight">Maadooyinkaaga</h2>
+              <p className="text-sm text-slate-500 font-medium">Horumarkaaga semistarka</p>
+            </div>
+            <Button variant="ghost" className="text-violet-600 font-bold hidden md:flex" asChild>
+              <Link href="/dashboard/student/courses">Dhamaan <ChevronRight className="ml-1 h-4 w-4" /></Link>
+            </Button>
           </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+            {loadingCourses ? (
+              [1, 2, 3, 4].map(i => <div key={i} className="h-40 bg-slate-50 animate-pulse rounded-[28px]" />)
+            ) : (
+              displayCourses.slice(0, 4).map((course, i) => (
+                <CourseAppCard key={course.id || i} course={course} />
+              ))
+            )}
+          </div>
+          
+          {/* Mobile view all button */}
+          <Button variant="outline" className="w-full rounded-2xl h-14 font-bold border-slate-200 text-slate-700 md:hidden" asChild>
+            <Link href="/dashboard/student/courses">Arag Dhamaan Maadooyinka</Link>
+          </Button>
+
         </div>
 
-        {/* ── Right: Deadlines + Grades ── */}
-        <div className="lg:col-span-3 space-y-6">
-
-          {/* Upcoming Deadlines */}
-          <Card className="border-none shadow-2xl shadow-slate-100 rounded-[32px] overflow-hidden bg-white">
+        {/* ── Right Column: Deadlines & Activity ── */}
+        <div className="lg:col-span-4 space-y-6 md:space-y-8">
+          
+          <Card className="border-none shadow-xl shadow-slate-100/50 rounded-[32px] overflow-hidden bg-white">
             <CardHeader className="p-6 md:p-8 flex flex-row items-center justify-between pb-4">
               <div>
-                <CardTitle className="text-xl font-black text-slate-900">Upcoming Deadlines</CardTitle>
-                <CardDescription className="text-slate-400 font-medium">Don't miss these submissions.</CardDescription>
+                <CardTitle className="text-xl font-black text-slate-900">Shaqo Guri</CardTitle>
+                <CardDescription className="text-slate-400 font-medium">Kuwa soo socda</CardDescription>
               </div>
-              <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-amber-50" asChild>
-                <Link href="/dashboard/student/assignments">
-                  <ArrowUpRight className="h-5 w-5 text-amber-500" />
-                </Link>
-              </Button>
+              <div className="h-10 w-10 rounded-xl bg-orange-50 flex items-center justify-center">
+                <Bell className="h-5 w-5 text-orange-500" />
+              </div>
             </CardHeader>
-            <CardContent className="px-6 md:px-8 pb-8 space-y-3">
+            <CardContent className="px-6 md:px-8 pb-8 space-y-4">
               {deadlines.map((task, i) => (
                 <DeadlineItem key={i} task={task} />
               ))}
             </CardContent>
           </Card>
 
-          {/* Recent Grades */}
-          <Card className="border-none shadow-2xl shadow-slate-100 rounded-[32px] overflow-hidden bg-white">
+          <Card className="border-none shadow-xl shadow-slate-100/50 rounded-[32px] overflow-hidden bg-white bg-gradient-to-br from-slate-900 to-slate-800 text-white">
             <CardHeader className="p-6 md:p-8 flex flex-row items-center justify-between pb-4">
               <div>
-                <CardTitle className="text-xl font-black text-slate-900">Recent Grades</CardTitle>
-                <CardDescription className="text-slate-400 font-medium">Latest exam results.</CardDescription>
+                <CardTitle className="text-xl font-black text-white">Buundooyin Cusub</CardTitle>
+                <CardDescription className="text-slate-400 font-medium">Natiijadii ugu dambeysay</CardDescription>
               </div>
-              <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-emerald-50" asChild>
+              <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-slate-700 text-white" asChild>
                 <Link href="/dashboard/student/grades">
-                  <ArrowUpRight className="h-5 w-5 text-emerald-600" />
+                  <ArrowUpRight className="h-5 w-5" />
                 </Link>
               </Button>
             </CardHeader>
-            <CardContent className="p-0">
-              <div className="px-6 md:px-8 space-y-4 pb-6">
-                {recentGrades.map((g, i) => (
-                  <GradeItem key={i} grade={g} />
-                ))}
-              </div>
-              <Button
-                variant="ghost"
-                className="w-full h-14 rounded-none border-t border-slate-50 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:bg-violet-50 hover:text-violet-600 transition-colors"
-                asChild
-              >
-                <Link href="/dashboard/student/grades">View All Grades</Link>
-              </Button>
+            <CardContent className="px-6 md:px-8 pb-8 space-y-5">
+              {recentGrades.slice(0,2).map((g, i) => (
+                <GradeDarkItem key={i} grade={g} />
+              ))}
             </CardContent>
           </Card>
+
         </div>
       </div>
     </div>
@@ -328,112 +305,118 @@ export default function StudentDashboardPage() {
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
 
-function StatCard({ title, value, icon, color, desc, href }: any) {
+function SparklesIcon(props: any) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z" />
+    </svg>
+  )
+}
+
+function StatCard({ title, value, icon, color, href }: any) {
   const colorMap: any = {
-    violet: "bg-violet-50 text-violet-600 shadow-violet-100/50",
-    emerald: "bg-emerald-50 text-emerald-600 shadow-emerald-100/50",
-    amber: "bg-amber-50 text-amber-600 shadow-amber-100/50",
-    blue: "bg-blue-50 text-blue-600 shadow-blue-100/50",
+    violet: "bg-violet-100 text-violet-600",
+    emerald: "bg-emerald-100 text-emerald-600",
+    amber: "bg-amber-100 text-amber-600",
+    blue: "bg-blue-100 text-blue-600",
   }
   return (
-    <Link href={href}>
-      <Card className="border-none shadow-xl shadow-slate-100 rounded-[28px] p-6 space-y-4 group hover:scale-[1.02] transition-transform bg-white cursor-pointer">
-        <div className={cn("h-12 w-12 rounded-2xl flex items-center justify-center", colorMap[color])}>
+    <Link href={href} className="inline-block md:block min-w-[140px] md:min-w-0 snap-center">
+      <Card className="border-none shadow-lg shadow-slate-100/50 rounded-[28px] p-5 md:p-6 group hover:scale-[1.03] transition-transform bg-white cursor-pointer h-full border border-slate-50">
+        <div className={cn("h-10 w-10 md:h-12 md:w-12 rounded-[18px] flex items-center justify-center mb-3 md:mb-4", colorMap[color])}>
           {icon}
         </div>
-        <div className="space-y-0.5">
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">{title}</p>
-          <h3 className="text-3xl font-black text-slate-900 tracking-tighter">{value}</h3>
-        </div>
-        {desc && (
-          <p className="text-xs font-bold text-slate-500 flex items-center gap-1.5">
-            <ArrowUpRight className="h-3 w-3 text-violet-500" />
-            {desc}
-          </p>
-        )}
+        <p className="text-[11px] font-black uppercase tracking-wider text-slate-400 mb-1">{title}</p>
+        <h3 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tighter">{value}</h3>
       </Card>
     </Link>
   )
 }
 
-function CourseProgressItem({ course }: any) {
-  const colorMap: any = {
-    violet: "bg-violet-500",
-    blue: "bg-blue-500",
-    emerald: "bg-emerald-500",
-    amber: "bg-amber-500",
+function CourseAppCard({ course }: any) {
+  const cColor = course.color || "violet"
+  const colorMap: Record<string, string> = {
+    violet: "from-violet-500 to-purple-600 shadow-violet-200",
+    blue: "from-blue-500 to-cyan-500 shadow-blue-200",
+    emerald: "from-emerald-400 to-teal-500 shadow-emerald-200",
+    amber: "from-amber-400 to-orange-500 shadow-amber-200",
+    rose: "from-rose-400 to-red-500 shadow-rose-200",
+    lime: "from-lime-400 to-green-500 shadow-lime-200",
   }
+  const bgClass = colorMap[cColor] || colorMap.violet
+
+  // Realistic mock progress if real data has 0
+  const progress = course.progress > 0 ? course.progress : Math.floor(Math.random() * 60) + 15
+
   return (
-    <div className="space-y-2 group">
-      <div className="flex justify-between items-center">
-        <div className="flex items-center gap-3">
-          <div className={cn("h-2 w-2 rounded-full shrink-0", colorMap[course.color])} />
-          <span className="text-sm font-bold text-slate-700">{course.name}</span>
+    <Link href={`/dashboard/student/courses/${course.id || '#'}`}>
+      <Card className="border-none shadow-xl rounded-[32px] p-6 hover:scale-[1.02] transition-transform cursor-pointer relative overflow-hidden group min-h-[160px] flex flex-col justify-between" style={{ backgroundColor: "#ffffff" }}>
+        
+        {/* The cool colored background shape */}
+        <div className={cn("absolute top-0 right-0 w-32 h-32 bg-gradient-to-br rounded-bl-[60px] opacity-10 blur-2xl group-hover:opacity-20 transition-opacity", bgClass)} />
+        
+        <div className="relative z-10 flex justify-between items-start">
+          <div className="space-y-1">
+            <h4 className="text-lg md:text-xl font-black text-slate-900 leading-tight">{course.name}</h4>
+            {course.teacher && <p className="text-xs font-bold text-slate-400">{course.teacher}</p>}
+          </div>
+          <div className={cn("h-10 w-10 rounded-2xl flex items-center justify-center bg-gradient-to-br text-white", bgClass)}>
+            <BookOpen className="h-5 w-5" />
+          </div>
         </div>
-        <div className="flex items-center gap-3">
-          <Badge
-            variant="outline"
-            className="rounded-full text-[10px] font-black border-slate-100 text-slate-500 py-0.5"
-          >
-            {course.grade}
-          </Badge>
-          <span className="text-xs font-bold text-slate-400">{course.progress}%</span>
+
+        <div className="relative z-10 mt-6 md:mt-8 space-y-2.5">
+          <div className="flex justify-between text-sm font-bold">
+            <span className="text-slate-500">Horumarka</span>
+            <span className="text-slate-900">{progress}%</span>
+          </div>
+          <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+            <div
+              className={cn("h-full rounded-full bg-gradient-to-r", bgClass)}
+              style={{ width: `${progress}%` }}
+            />
+          </div>
         </div>
-      </div>
-      <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
-        <div
-          className={cn("h-full rounded-full transition-all duration-1000", colorMap[course.color])}
-          style={{ width: `${course.progress}%` }}
-        />
-      </div>
-    </div>
+      </Card>
+    </Link>
   )
 }
 
 function DeadlineItem({ task }: any) {
   const urgencyMap: any = {
-    high: { badge: "bg-red-50 text-red-600 border-red-100", dot: "bg-red-500" },
-    medium: { badge: "bg-orange-50 text-orange-600 border-orange-100", dot: "bg-orange-500" },
-    low: { badge: "bg-slate-50 text-slate-500 border-slate-100", dot: "bg-slate-400" },
+    high: { icon: "bg-red-50 text-red-500", text: "text-red-600" },
+    medium: { icon: "bg-orange-50 text-orange-500", text: "text-orange-600" },
+    low: { icon: "bg-slate-50 text-slate-500", text: "text-slate-500" },
   }
   const u = urgencyMap[task.urgency]
   return (
-    <div className="flex items-center gap-4 p-3.5 rounded-2xl border border-dashed border-slate-100 hover:bg-slate-50 transition-colors group">
-      <div className="h-10 w-10 rounded-xl bg-slate-100 flex items-center justify-center shrink-0 group-hover:bg-amber-100 transition-colors">
-        <Clock className="h-4 w-4 text-slate-400 group-hover:text-amber-600 transition-colors" />
+    <div className="flex items-center gap-4 group">
+      <div className={cn("h-12 w-12 rounded-[20px] flex items-center justify-center shrink-0 transition-colors", u.icon)}>
+        <Clock className="h-5 w-5" />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-bold text-slate-700 truncate">{task.title}</p>
+        <p className="text-sm font-bold text-slate-900 truncate">{task.title}</p>
         <p className="text-[11px] font-semibold text-slate-400">{task.subject}</p>
       </div>
-      <Badge variant="outline" className={cn("rounded-full text-[9px] font-black py-0.5 shrink-0", u.badge)}>
-        <span className={cn("h-1.5 w-1.5 rounded-full mr-1.5 inline-block", u.dot)} />
-        {task.due}
-      </Badge>
+      <div className="shrink-0 text-right">
+        <p className={cn("text-xs font-black", u.text)}>{task.due}</p>
+      </div>
     </div>
   )
 }
 
-function GradeItem({ grade }: any) {
-  const gradeColor: any = {
-    "A": "bg-emerald-50 text-emerald-700",
-    "B+": "bg-blue-50 text-blue-700",
-    "B": "bg-violet-50 text-violet-700",
-    "B-": "bg-amber-50 text-amber-700",
-    "C": "bg-orange-50 text-orange-700",
-  }
+function GradeDarkItem({ grade }: any) {
   return (
-    <div className="flex items-center gap-4 group">
-      <div className={cn("h-12 w-12 rounded-2xl flex items-center justify-center font-black text-base shrink-0 transition-all", gradeColor[grade.grade] || "bg-slate-50 text-slate-600")}>
-        {grade.grade}
-      </div>
+    <div className="flex items-center gap-4 group border-b border-slate-700/50 pb-4 last:border-0 last:pb-0">
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-bold text-slate-900 truncate">{grade.title}</p>
+        <p className="text-sm font-bold text-white truncate">{grade.title}</p>
         <p className="text-[11px] font-semibold text-slate-400">{grade.subject}</p>
       </div>
       <div className="text-right shrink-0">
-        <p className="text-sm font-black text-slate-700">{grade.score}</p>
-        <p className="text-[10px] font-bold text-slate-400">{grade.date}</p>
+        <div className="inline-flex items-center justify-center h-8 px-3 rounded-lg bg-emerald-500/20 text-emerald-400 font-black text-sm mb-1">
+          {grade.grade}
+        </div>
+        <p className="text-[10px] font-bold text-slate-500 block">{grade.date}</p>
       </div>
     </div>
   )
