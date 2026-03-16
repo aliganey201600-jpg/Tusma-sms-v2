@@ -6,7 +6,7 @@ import {
   Clock, FileText, CheckCircle2, Video, Zap, ArrowRight,
   X, FileDown, BookOpenCheck, HelpCircle, GraduationCap,
   Layers, AlertCircle, Trophy, RotateCcw, Check, Eye,
-  Sparkles, MessageSquare, User, Shuffle, Star, Type,
+  Sparkles, MessageSquare, User, Shuffle, Star, Type, Target,
   Printer, Download
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
