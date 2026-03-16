@@ -123,7 +123,16 @@ export async function getStudentDashboardOverview(userId: string) {
       }
     })
 
-    if (!student) return null
+    if (!student || !student.classId) {
+      return {
+        courses: [],
+        assignments: [],
+        recentResults: [],
+        attendance: 100,
+        pendingAssignments: 0,
+        overallGPA: "N/A"
+      }
+    }
 
     // 1. Fetch Courses
     const courseAssignments = await prisma.teacherAssignment.findMany({
