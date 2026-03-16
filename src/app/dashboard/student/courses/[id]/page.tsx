@@ -972,14 +972,54 @@ export default function StudentCourseViewerPage() {
         </header>
 
         <div className="flex-1 overflow-y-auto">
-          <div className="max-w-4xl mx-auto px-6 py-10 space-y-8">
-            <div className="bg-gradient-to-br from-indigo-600 to-indigo-700 rounded-3xl p-8 text-white shadow-lg relative overflow-hidden">
-               <div className="relative z-10">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="h-10 w-10 bg-white/10 rounded-xl flex items-center justify-center"><GraduationCap className="h-5 w-5 text-indigo-200" /></div>
-                  <h3 className="text-sm font-bold uppercase tracking-wider text-indigo-200">Lesson Objectives</h3>
+          <div className="max-w-4xl mx-auto px-6 py-10 space-y-10">
+            {/* ── Lesson Banner ── */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-indigo-600 font-black text-[10px] uppercase tracking-[0.2em] animate-in fade-in slide-in-from-left-4 duration-500">
+                <Layers className="h-3 w-3" />
+                {course?.sections?.find((s: any) => s.id === activeLesson?.sectionId)?.title || "Course Module"}
+                <span className="h-1 w-1 rounded-full bg-slate-300 mx-1" />
+                Lesson {(course?.sections?.find((s: any) => s.id === activeLesson?.sectionId)?.lessons?.findIndex((l: any) => l.id === activeLesson.id) || 0) + 1}
+              </div>
+              <h1 className="text-3xl md:text-5xl font-black text-slate-900 tracking-tighter animate-in fade-in slide-in-from-left-4 duration-700">
+                {activeLesson.title}
+              </h1>
+            </div>
+
+            {/* ── Premium Objectives Card ── */}
+            <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-[2.5rem] p-8 md:p-12 text-white shadow-2xl shadow-indigo-100 relative overflow-hidden group animate-in zoom-in-95 duration-700">
+               {/* Abstract background shapes */}
+               <div className="absolute -top-20 -right-20 w-80 h-80 bg-white/10 rounded-full blur-3xl group-hover:scale-125 transition-transform duration-1000" />
+               <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-indigo-400/20 rounded-full blur-3xl" />
+               
+               <div className="relative z-10 space-y-8">
+                <div className="flex items-center gap-4">
+                  <div className="h-14 w-14 bg-white/10 backdrop-blur-xl rounded-[20px] flex items-center justify-center border border-white/20 shadow-xl">
+                    <Target className="h-7 w-7 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-black uppercase tracking-[0.2em] text-indigo-100">Learning Objectives</h3>
+                    <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Target outcomes for this lesson</p>
+                  </div>
                 </div>
-                <p className="text-white/90 text-base leading-relaxed whitespace-pre-wrap">{activeLesson.objectives || "No objectives defined for this lesson."}</p>
+
+                <div className="space-y-4">
+                  {activeLesson.objectives ? (
+                    activeLesson.objectives.split('\n').filter((line: string) => line.trim()).map((line: string, idx: number) => (
+                      <div key={idx} className="flex items-start gap-4 group/item">
+                         <div className="mt-2 h-2 w-2 rounded-full bg-yellow-400 shrink-0 shadow-[0_0_12px_rgba(250,204,21,0.6)] group-hover/item:scale-125 transition-transform" />
+                         <p className="text-white/90 text-sm md:text-lg leading-relaxed font-medium">
+                           {line.replace(/^[•\-\*]\s*/, '')}
+                         </p>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="flex items-center gap-3 p-4 rounded-2xl bg-white/5 border border-white/10 italic text-white/60 text-sm">
+                      <Sparkles className="h-4 w-4" />
+                      Focus on the primary concepts defined in this teaching module.
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
