@@ -1321,31 +1321,59 @@ export default function StudentCourseViewerPage() {
           </div>
 
           <div className="col-span-12 lg:col-span-4 space-y-6">
-            <Card className="border-none shadow-md rounded-3xl overflow-hidden bg-white">
+            <Card className="border-none shadow-[0_20px_50px_-20px_rgba(0,0,0,0.1)] rounded-[2.5rem] overflow-hidden bg-white">
               <CardContent className="p-8 space-y-6">
-                {course?.enrollments?.[0]?.lastLessonId ? (
-                   <Button
-                    onClick={() => {
-                        const lesson = course.sections.flatMap((s: any) => s.lessons).find((l: any) => l.id === course.enrollments[0].lastLessonId)
-                        if (lesson) openLesson(lesson)
-                        else {
-                          const first = course?.sections?.[0]?.lessons?.[0]
-                          if (first) openLesson(first)
-                        }
-                    }}
-                    className="w-full h-12 rounded-2xl bg-indigo-600 text-white font-bold text-xs uppercase tracking-wider shadow-lg shadow-indigo-100 hover:bg-indigo-700 gap-2 border-b-4 border-indigo-800 active:border-b-0 active:translate-y-1 transition-all"
-                  >Continue Learning <ArrowRight className="h-4 w-4" /></Button>
-                ) : (
-                  <Button
-                    onClick={() => {
-                      const first = course?.sections?.[0]?.lessons?.[0]
-                      if (first) openLesson(first)
-                    }}
-                    className="w-full h-12 rounded-2xl bg-indigo-600 text-white font-bold text-xs uppercase tracking-wider shadow-lg shadow-indigo-100 hover:bg-indigo-700 gap-2 border-b-4 border-indigo-800 active:border-b-0 active:translate-y-1 transition-all"
-                  >Start Learning <ArrowRight className="h-4 w-4" /></Button>
-                )}
+                {(() => {
+                  const courseItems = course?.sections?.flatMap((s: any) =>
+                    [
+                      ...(s.lessons || []).map((l: any) => ({ ...l, type: "lesson" })),
+                      ...(s.quizzes || []).map((q: any) => ({ ...q, type: "quiz" }))
+                    ].sort((a, b) => (a.order || 0) - (b.order || 0))
+                  ) || []
+                  
+                  const nextItem = courseItems.find((item: any) => !completedLessons.includes(item.id)) || courseItems[0]
+                  const hasStarted = completedLessons.length > 0
+
+                  return (
+                    <div className="space-y-4">
+                      <div className="flex flex-col gap-1">
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
+                          {hasStarted ? "Next Up" : "Begin Journey"}
+                        </p>
+                        <h4 className="text-sm font-bold text-slate-900 line-clamp-1">
+                          {nextItem?.title || "Welcome to the course!"}
+                        </h4>
+                      </div>
+                      
+                      <Button
+                        onClick={() => {
+                          if (!nextItem) return
+                          nextItem.type === "lesson" ? openLesson(nextItem) : openQuiz(nextItem)
+                        }}
+                        className="w-full h-14 rounded-2xl bg-indigo-600 text-white font-black text-xs uppercase tracking-widest shadow-xl shadow-indigo-100 hover:bg-indigo-700 gap-3 border-b-4 border-indigo-800 active:border-b-0 active:translate-y-1 transition-all group"
+                      >
+                        {hasStarted ? "Continue Learning" : "Start Learning"} 
+                        <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                      </Button>
+                    </div>
+                  )
+                })()}
               </CardContent>
             </Card>
+
+            {course?.teacher && (
+              <Card className="border-none shadow-sm rounded-[2rem] bg-slate-50 border border-slate-100 p-6">
+                <div className="flex items-center gap-4">
+                  <div className="h-12 w-12 rounded-2xl bg-indigo-100 flex items-center justify-center text-indigo-600">
+                    <User className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Instructor</p>
+                    <h4 className="text-sm font-bold text-slate-900">{course.teacher.firstName} {course.teacher.lastName}</h4>
+                  </div>
+                </div>
+              </Card>
+            )}
 
             {courseProgress === 100 && (
               <Card className="border-none shadow-xl rounded-3xl overflow-hidden bg-gradient-to-br from-indigo-900 via-indigo-950 to-slate-950 text-white relative group">
