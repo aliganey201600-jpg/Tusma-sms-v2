@@ -853,14 +853,14 @@ export default function StudentCourseViewerPage() {
                         )}
 
                         {q?.type === "MATCHING" && (
-                          <MatchingQuestion options={q.options} value={answers[q.id] || {}} onChange={v => setAnswer(q.id, v)} />
+                          <MatchingQuestion options={q.options} value={(answers[q.id] as Record<string, string>) || {}} onChange={v => setAnswer(q.id, v)} />
                         )}
 
                         {(q?.type === "FILL_BLANK" || q?.type === "SHORT_ANSWER" || q?.type === "ESSAY") && (
                           <div className="space-y-4">
                              <div className="relative group">
                                 <textarea
-                                  value={answers[q.id] || ""}
+                                  value={(answers[q.id] as string) || ""}
                                   onChange={e => setAnswer(q.id, e.target.value)}
                                   placeholder="Formulate your intellectual response..."
                                   className="w-full min-h-[200px] p-8 rounded-[2.5rem] border-2 border-slate-100 bg-slate-50 focus:bg-white focus:border-indigo-500 focus:shadow-2xl focus:shadow-indigo-100/50 outline-none text-xl font-medium transition-all duration-500 resize-none"
