@@ -151,17 +151,42 @@ export async function getStudentDashboardOverview(userId: string) {
     })
     const courseIds = courseAssignments.map(ca => ca.courseId)
 
-    const assignments = await prisma.assignment.findMany({
+    const allAssignments = await prisma.assignment.findMany({
       where: { courseId: { in: courseIds } },
       include: { 
         course: { select: { name: true } },
-        grades: { where: { studentId: student.id }, take: 1 }
+        grades: { where: { studentId: student.id }, select: { id: true } }
       },
-      orderBy: { dueDate: 'asc' },
-      take: 10
+      orderBy: { dueDate: 'asc' }
     })
 
-    const pendingAssignmentsCount = assignments.filter(a => a.grades.length === 0).length
+    const pendingAssignmentsCount = allAssignments.filter(a => a.grades.length === 0).length
+    
+    const formattedAssignments = allAssignments.slice(0, 4).map(a => {
+      const isSubmitted = a.grades.length > 0
+      const now = new Date()
+      const due = new Date(a.dueDate)
+      const isOverdue = !isSubmitted && due < now
+      
+      let urgency = "low"
+      if (isOverdue) urgency = "high"
+      else if (!isSubmitted) {
+        const diff = due.getTime() - now.getTime()
+        const days = diff / (1000 * 60 * 60 * 24)
+        if (days <= 2) urgency = "high"
+        else if (days <= 5) urgency = "medium"
+      }
+
+      return {
+        id: a.id,
+        title: a.title,
+        subject: a.course.name,
+        due: due.toLocaleDateString("en-US", { month: 'short', day: 'numeric' }),
+        urgency,
+        status: isSubmitted ? "submitted" : (isOverdue ? "overdue" : "pending")
+      }
+    })
+
 
     // 3. Recent Quiz/Exam Results
     const quizAttempts = await prisma.quizAttempt.findMany({
@@ -199,6 +224,7 @@ export async function getStudentDashboardOverview(userId: string) {
     return {
       coursesCount: courseCount,
       pendingAssignments: pendingAssignmentsCount,
+      recentAssignments: formattedAssignments.slice(0, 4),
       recentResults: recentResults.slice(0, 3),
       attendance,
       overallGPA: gpa
