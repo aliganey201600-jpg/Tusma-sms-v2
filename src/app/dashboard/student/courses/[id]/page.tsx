@@ -598,8 +598,16 @@ export default function StudentCourseViewerPage() {
 
   const openQuiz = async (quiz: Quiz) => {
     setQuizLoading(true)
-    const data = await getQuizWithQuestions(quiz.id, user?.studentId || undefined) as unknown as (Quiz & { type: "quiz", attempts: QuizAttempt[] });
-    if (data) {
+    const rawData = await getQuizWithQuestions(quiz.id, user?.studentId || undefined)
+    
+    if (rawData) {
+      // Force type compliance for the state and sub-properties
+      const data = {
+        ...rawData,
+        type: "quiz" as const,
+        attempts: (rawData as any).attempts || []
+      } as unknown as (Quiz & { attempts: QuizAttempt[] })
+
       setActiveQuiz(data)
       setAnswers({})
       setSubmitted(false)
@@ -607,7 +615,7 @@ export default function StudentCourseViewerPage() {
       setCurrentQ(0)
       setTimeLeft(null)
       setQuizTab("questions")
-      setQuizAttempts(data.attempts || [])
+      setQuizAttempts(data.attempts)
       setMode("quiz")
       startTimeRef.current = Date.now()
     }
