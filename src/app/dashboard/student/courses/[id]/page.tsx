@@ -598,7 +598,7 @@ export default function StudentCourseViewerPage() {
 
   const openQuiz = async (quiz: Quiz) => {
     setQuizLoading(true)
-    const data = await getQuizWithQuestions(quiz.id, user?.studentId || undefined) as (Quiz & { type: "quiz", attempts: QuizAttempt[] });
+    const data = await getQuizWithQuestions(quiz.id, user?.studentId || undefined) as unknown as (Quiz & { type: "quiz", attempts: QuizAttempt[] });
     if (data) {
       setActiveQuiz(data)
       setAnswers({})
