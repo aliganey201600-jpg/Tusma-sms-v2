@@ -377,7 +377,7 @@ export default function StudentCourseViewerPage() {
   const [activeLessonTab, setActiveLessonTab] = React.useState("body")
   const [activeQuiz, setActiveQuiz] = React.useState<Quiz | null>(null)
   const [quizLoading, setQuizLoading] = React.useState(false)
-  const [expandedSections, setExpandedSections] = React.useState<string[]>([])
+  const [expandedSectionId, setExpandedSectionId] = React.useState<string | null>(null)
 
   const [submitted, setSubmitted] = React.useState(false)
   const [score, setScore] = React.useState(0)
@@ -571,7 +571,7 @@ export default function StudentCourseViewerPage() {
   }, [timeLeft, handleSubmitQuiz])
 
   const toggleSection = (sid: string) =>
-    setExpandedSections(prev => prev.includes(sid) ? prev.filter(x => x !== sid) : [...prev, sid])
+    setExpandedSectionId(prev => prev === sid ? null : sid)
 
   const openLesson = async (lesson: Lesson) => {
     setActiveLesson(lesson)
@@ -1419,7 +1419,7 @@ export default function StudentCourseViewerPage() {
 
                <div className="space-y-6">
                 {course?.sections?.map((section: Section, idx: number) => {
-                  const isExpanded = expandedSections.includes(section.id)
+                  const isExpanded = expandedSectionId === section.id
                   const sectionCompletedItems = [
                     ...(section.lessons || []).filter((l: BaseLesson) => completedLessons.includes(l.id)),
                     ...(section.quizzes || []).filter((q: BaseQuiz) => completedLessons.includes(q.id))
@@ -1429,7 +1429,7 @@ export default function StudentCourseViewerPage() {
 
                   return (
                     <div key={section.id} className={cn("group bg-white rounded-[2.5rem] border transition-all duration-500 overflow-hidden", isExpanded ? "border-indigo-100 shadow-[0_12px_40px_-12px_rgba(79,70,229,0.1)]" : "border-slate-100 hover:border-slate-200 shadow-sm")}>
-                      <button onClick={() => toggleSection(section.id)} className="w-full flex items-center justify-between p-6 mdx:p-8 hover:bg-slate-50/30 transition-colors text-left relative">
+                      <button onClick={() => toggleSection(section.id)} className="w-full flex items-center justify-between p-6 md:p-8 hover:bg-slate-50/30 transition-colors text-left relative">
                         {/* Section highlight for expanded state */}
                         {isExpanded && <div className="absolute top-0 left-0 w-1.5 h-full bg-indigo-600" />}
 

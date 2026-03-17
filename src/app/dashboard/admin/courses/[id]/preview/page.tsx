@@ -15,10 +15,21 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { Separator } from "@/components/ui/separator"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { getCourseStructure, getQuizWithQuestions } from "../../builder-actions"
 import { useParams, useRouter } from "next/navigation"
 import { useCurrentUser } from "@/hooks/use-current-user"
 import { cn } from "@/lib/utils"
+import { format } from "date-fns"
+import { 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer,
+  AreaChart,
+  Area
+} from 'recharts'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 type Mode = "overview" | "lesson" | "quiz"
@@ -47,12 +58,12 @@ function getSimilarity(s1: string, s2: string): number {
 }
 
 function getQualitativeGrade(score: number) {
-  if (score === 100) return { label: "Excellent", color: "text-emerald-400", bg: "bg-emerald-500/20", message: "Mashallah! Perfect score!" }
-  if (score >= 90) return { label: "Outstanding", color: "text-emerald-400", bg: "bg-emerald-500/20", message: "Aad u wanaagsan! Close to perfection." }
-  if (score >= 80) return { label: "Very Good", color: "text-blue-400", bg: "bg-blue-500/20", message: "Aad u fiican! Great job." }
-  if (score >= 70) return { label: "Good", color: "text-indigo-400", bg: "bg-indigo-500/20", message: "Waa lagu mahadsanyahay! You passed." }
-  if (score >= 60) return { label: "Average", color: "text-amber-400", bg: "bg-amber-500/20", message: "Isku day wanaagsan! You are getting there." }
-  return { label: "Poor", color: "text-red-400", bg: "bg-red-500/20", message: "Dadaal ayaa lagaa rabaa! Don't give up." }
+  if (score === 100) return { label: "Excellent", color: "text-emerald-400", bg: "bg-emerald-500/20", message: "Mashallah! A perfect score!" }
+  if (score >= 90) return { label: "Outstanding", color: "text-emerald-400", bg: "bg-emerald-500/20", message: "Outstanding work! Very close to perfection." }
+  if (score >= 80) return { label: "Very Good", color: "text-blue-400", bg: "bg-blue-500/20", message: "Great job! Keep pushing higher." }
+  if (score >= 70) return { label: "Good", color: "text-indigo-400", bg: "bg-indigo-500/20", message: "Well done! You passed this assessment." }
+  if (score >= 60) return { label: "Average", color: "text-amber-400", bg: "bg-amber-500/20", message: "Good effort! You are getting there." }
+  return { label: "Poor", color: "text-red-400", bg: "bg-red-500/20", message: "Don't give up! Review the material and try again." }
 }
 
 function getAdvice(score: number, passed: boolean) {
@@ -194,7 +205,7 @@ export default function CoursePreviewPage() {
   const [activeLessonTab, setActiveLessonTab] = React.useState("body")
   const [activeQuiz, setActiveQuiz] = React.useState<any>(null)
   const [quizLoading, setQuizLoading] = React.useState(false)
-  const [expandedSections, setExpandedSections] = React.useState<string[]>([])
+  const [expandedSectionId, setExpandedSectionId] = React.useState<string | null>(null)
 
   // Quiz-taking state
   const [answers, setAnswers] = React.useState<Record<string, any>>({})
@@ -204,6 +215,7 @@ export default function CoursePreviewPage() {
   const [showFeedback, setShowFeedback] = React.useState(false)
   const [currentQ, setCurrentQ] = React.useState(0)
   const [timeLeft, setTimeLeft] = React.useState<number | null>(null)
+  const [quizTab, setQuizTab] = React.useState<string>("questions")
   const timerRef = React.useRef<any>(null)
 
   React.useEffect(() => {
@@ -230,7 +242,7 @@ export default function CoursePreviewPage() {
   }, [timeLeft])
 
   const toggleSection = (sid: string) =>
-    setExpandedSections(prev => prev.includes(sid) ? prev.filter(x => x !== sid) : [...prev, sid])
+    setExpandedSectionId(prev => prev === sid ? null : sid)
 
   const openLesson = (lesson: any) => {
     setActiveLesson(lesson)
@@ -343,380 +355,347 @@ export default function CoursePreviewPage() {
       <div className="fixed inset-0 z-[100] bg-white flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
           <div className="h-10 w-10 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-          <p className="text-xs text-slate-400 font-semibold uppercase tracking-widest">Loading Quiz...</p>
+          <p className="text-xs text-slate-400 font-semibold uppercase tracking-widest">Loading Quiz Suite...</p>
         </div>
       </div>
     )
 
     const questions = activeQuiz?.questions || []
-    const totalPts = questions.reduce((a: number, q: any) => a + q.points, 0)
     const passed = score >= (activeQuiz?.passingScore || 70)
-
-    if (submitted) {
-      const gradeInfo = getQualitativeGrade(score)
-      const advice = getAdvice(score, passed)
-
-      return (
-        <div className="fixed inset-0 z-[110] bg-[#0F172A] overflow-y-auto">
-          <div className="min-h-screen flex flex-col p-4 md:p-8">
-            <div className="max-w-4xl mx-auto w-full space-y-8 pb-20">
-              
-              {/* Top Summary Card */}
-              <div className="bg-gradient-to-br from-indigo-900/40 to-slate-900/40 rounded-[2.5rem] p-8 md:p-12 border border-white/5 shadow-2xl relative overflow-hidden">
-                <div className="absolute top-0 right-0 p-8 opacity-10">
-                  <Trophy className="h-40 w-40 text-white" />
-                </div>
-                
-                <div className="relative z-10 flex flex-col md:flex-row items-center gap-8 md:gap-12">
-                  <div className={cn("h-32 w-32 rounded-full flex items-center justify-center shrink-0 ring-4", gradeInfo.bg, passed ? "ring-emerald-500/30" : "ring-red-500/30")}>
-                    {passed ? <Trophy className="h-16 w-16 text-emerald-400" /> : <AlertCircle className="h-16 w-16 text-red-400" />}
-                  </div>
-
-                  <div className="text-center md:text-left space-y-2">
-                    <p className="text-indigo-300 font-bold text-xs uppercase tracking-[0.2em]">Quiz Result</p>
-                    <h2 className="text-5xl font-black text-white">{score}%</h2>
-                    <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
-                      <Badge className={cn("text-xs font-bold px-3 py-1 rounded-full", gradeInfo.bg, gradeInfo.color)}>{gradeInfo.label}</Badge>
-                      <span className="text-white/40">•</span>
-                      <span className="text-white/60 text-sm font-medium">{activeQuiz?.title}</span>
-                    </div>
-                  </div>
-
-                  <div className="flex-1 border-white/5 md:border-l md:pl-12 space-y-4">
-                    <div className="space-y-1">
-                      <p className="text-white/40 text-[10px] font-bold uppercase tracking-wider">Course</p>
-                      <p className="text-white font-bold text-lg">{course?.title}</p>
-                    </div>
-                    <div className="flex gap-6">
-                      <div className="space-y-1">
-                        <p className="text-white/40 text-[10px] font-bold uppercase tracking-wider">Pass Mark</p>
-                        <p className="text-white font-black">{activeQuiz?.passingScore}%</p>
-                      </div>
-                      <div className="space-y-1">
-                        <p className="text-white/40 text-[10px] font-bold uppercase tracking-wider">Questions</p>
-                        <p className="text-white font-black">{questions.length}</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Teacher Message */}
-              <div className="bg-indigo-600/10 border border-indigo-400/20 rounded-3xl p-6 flex flex-col md:flex-row gap-6 items-start">
-                <div className="h-12 w-12 rounded-2xl bg-indigo-500 flex items-center justify-center shrink-0 shadow-lg shadow-indigo-500/20">
-                  <User className="h-6 w-6 text-white" />
-                </div>
-                <div className="space-y-3">
-                  <h3 className="text-white font-bold text-lg">Message for {user?.firstName || "Student"}</h3>
-                  <p className="text-indigo-100/70 text-sm leading-relaxed italic">
-                    "{gradeInfo.message} {advice}"
-                  </p>
-                  <div className="flex items-center gap-2 text-[10px] font-bold text-indigo-400 uppercase tracking-widest">
-                    <Sparkles className="h-3 w-3" /> Teacher feedback generated
-                  </div>
-                </div>
-              </div>
-
-              {/* Detailed Breakdown Section */}
-              <div className="space-y-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-xl font-black text-white flex items-center gap-3">
-                    <BookOpenCheck className="h-6 w-6 text-indigo-400" /> Detailed Review 
-                  </h3>
-                  <div className="text-white/40 text-xs font-bold">Scroll down to see all questions</div>
-                </div>
-
-                <div className="grid gap-4">
-                  {results.map((res, idx) => (
-                    <div key={idx} className={cn("group rounded-[2rem] border transition-all duration-300", res.isCorrect ? "bg-emerald-500/5 border-emerald-500/20 hover:border-emerald-500/40" : "bg-red-500/5 border-red-500/20 hover:border-red-500/40")}>
-                      <div className="p-6 md:p-8 space-y-6">
-                        <div className="flex flex-wrap items-start justify-between gap-4">
-                          <div className="space-y-3 flex-1">
-                            <div className="flex items-center gap-3">
-                              <span className="h-7 w-7 rounded-full bg-white/10 flex items-center justify-center text-xs font-bold text-white">
-                                {idx + 1}
-                              </span>
-                              <Badge className={cn("text-[9px] font-black uppercase px-2 py-0.5 rounded-md", res.isCorrect ? "bg-emerald-500/20 text-emerald-400" : "bg-red-500/20 text-red-400")}>
-                                {res.isCorrect ? "Correct" : "Needs Review"}
-                              </Badge>
-                              <span className="text-[10px] text-white/30 font-bold uppercase tracking-widest">{res.earned} / {res.total} Points</span>
-                            </div>
-                            <h4 className="text-lg md:text-xl font-bold text-white leading-snug">{res.question}</h4>
-                          </div>
-                          <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center shrink-0", res.isCorrect ? "bg-emerald-500/20 text-emerald-400" : "bg-red-500/20 text-red-400")}>
-                            {res.isCorrect ? <Check className="h-5 w-5" /> : <X className="h-5 w-5" />}
-                          </div>
-                        </div>
-
-                        {res.type === "MATCHING" ? (
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            {res.matches.map((m: any, mi: number) => (
-                              <div key={mi} className="bg-black/20 p-4 rounded-2xl flex items-center justify-between gap-4 border border-white/5">
-                                <span className="text-xs font-bold text-white/50">{m.prompt}</span>
-                                <div className="flex items-center gap-2">
-                                  <ArrowRight className="h-3 w-3 text-white/20" />
-                                  <span className={cn("text-xs font-black", m.isCorrect ? "text-emerald-400" : "text-red-400")}>{m.answer}</span>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                              <p className="text-[10px] font-black text-white/20 uppercase tracking-widest">Your Response</p>
-                              <div className={cn("p-4 rounded-2xl text-sm font-bold border", res.isCorrect ? "bg-emerald-500/10 border-emerald-500/20 text-white" : "bg-red-500/10 border-red-500/20 text-red-200")}>
-                                {res.studentAnswer}
-                              </div>
-                            </div>
-                            {!res.manual && (
-                              <div className="space-y-2">
-                                <p className="text-[10px] font-black text-indigo-400/40 uppercase tracking-widest">Model Correct Answer</p>
-                                <div className="p-4 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-200 text-sm font-bold">
-                                  {res.correctAnswer}
-                                </div>
-                              </div>
-                            )}
-                            {res.type === "SHORT_ANSWER" && (
-                              <div className="col-span-full pt-1">
-                                <p className="text-[10px] text-white/40 font-bold">Auto-grading Similarity Match: {res.similarity}%</p>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                        
-                        {!res.isCorrect && (
-                          <div className="flex items-start gap-3 p-4 bg-indigo-500/5 rounded-2xl border border-indigo-500/10 text-xs text-indigo-300">
-                            <MessageSquare className="h-4 w-4 shrink-0 mt-0.5 opacity-50" />
-                            <p><strong>Review Note:</strong> Pay closer attention to this concept. You might want to re-read the relevant part of the lesson to understand why the model answer is correct.</p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Footer Actions */}
-              <div className="flex flex-col md:flex-row gap-4 pt-8">
-                <Button onClick={retakeQuiz} variant="outline" className="flex-1 h-14 rounded-2xl border-white/10 bg-white/5 text-white hover:bg-white/10 gap-3 font-bold text-lg">
-                  <RotateCcw className="h-5 w-5" /> Retake Preview
-                </Button>
-                <Button onClick={() => setMode("overview")} className="flex-1 h-14 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white gap-3 font-bold text-lg shadow-xl shadow-indigo-500/20 transition-all hover:scale-[1.02]">
-                  <BookOpen className="h-5 w-5" /> Exit Preview
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )
-    }
-
-    const q = questions[currentQ]
-    const progressPct = questions.length > 0 ? ((currentQ + 1) / questions.length) * 100 : 0
     const isLast = currentQ === questions.length - 1
+    const q = questions[currentQ]
 
     return (
-      <div className="fixed inset-0 z-[100] bg-[#F8FAFD] flex flex-col">
-        {/* Quiz Header */}
-        <header className="h-16 bg-white border-b border-slate-100 flex items-center px-6 gap-4 shrink-0">
-          <Button variant="ghost" size="icon" onClick={() => setMode("overview")} className="h-9 w-9 rounded-xl text-slate-400 hover:text-slate-700 shrink-0">
+      <div className="fixed inset-0 z-[100] bg-[#FDFDFD] flex flex-col">
+        <header className="h-20 bg-white border-b border-slate-100 flex items-center px-4 md:px-10 gap-4 shrink-0 z-[101]">
+          <Button variant="ghost" size="icon" onClick={() => setMode("overview")} className="h-11 w-11 rounded-2xl text-slate-400 hover:text-slate-700 shrink-0 bg-slate-50">
             <X className="h-5 w-5" />
           </Button>
           <div className="flex-1">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs font-bold text-slate-500">{activeQuiz?.title}</span>
-              <span className="text-xs font-bold text-slate-400">{currentQ + 1} / {questions.length}</span>
-            </div>
-            <Progress value={progressPct} className="h-1.5 rounded-full bg-slate-100" />
+            <h1 className="text-sm md:text-base font-black text-slate-900 leading-none truncate max-w-[200px] md:max-w-md">{activeQuiz?.title}</h1>
+            <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mt-1.5 leading-none">Assessment Suite (Preview)</p>
           </div>
-          {timeLeft !== null && (
-            <div className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold", timeLeft < 60 ? "bg-red-50 text-red-600" : "bg-slate-100 text-slate-600")}>
-              <Clock className="h-3.5 w-3.5" />
-              {fmtTime(timeLeft)}
-            </div>
-          )}
+          
+          <Tabs value={quizTab} onValueChange={setQuizTab} className="hidden md:flex bg-slate-100 p-1 rounded-xl">
+             <TabsList className="bg-transparent gap-1">
+                <TabsTrigger value="questions" className="rounded-lg text-[10px] font-black uppercase tracking-widest px-6 py-2.5 data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-sm transition-all">Questions</TabsTrigger>
+                <TabsTrigger value="history" className="rounded-lg text-[10px] font-black uppercase tracking-widest px-6 py-2.5 data-[state=active]:bg-white data-[state=active]:text-amber-600 data-[state=active]:shadow-sm transition-all">Attempts</TabsTrigger>
+                <TabsTrigger value="performance" className="rounded-lg text-[10px] font-black uppercase tracking-widest px-6 py-2.5 data-[state=active]:bg-white data-[state=active]:text-emerald-600 data-[state=active]:shadow-sm transition-all">Stats</TabsTrigger>
+             </TabsList>
+          </Tabs>
+
+          <div className="flex items-center gap-2">
+            {timeLeft !== null && !submitted && (
+              <div className={cn("hidden md:flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest", timeLeft < 60 ? "bg-red-50 text-red-600 animate-pulse border border-red-100" : "bg-slate-100 text-slate-600 border border-slate-200")}>
+                <Clock className="h-4 w-4" /> {fmtTime(timeLeft)}
+              </div>
+            )}
+            <Badge className="bg-slate-900 text-white border-none px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest">{currentQ + 1} / {questions.length}</Badge>
+          </div>
         </header>
 
-        {/* Question Area */}
-        {questions.length === 0 ? (
-          <div className="flex-1 flex flex-col items-center justify-center gap-4 text-slate-300">
-            <HelpCircle className="h-16 w-16" />
-            <div className="text-center">
-              <p className="text-base font-semibold text-slate-400">No questions in this quiz yet</p>
-              <p className="text-sm text-slate-300 mt-1">The instructor hasn't added questions yet.</p>
-            </div>
-            <Button onClick={() => setMode("overview")} className="mt-4 rounded-xl">Back to Course</Button>
-          </div>
-        ) : (
-          <div className="flex-1 overflow-y-auto">
-            <div className="max-w-2xl mx-auto px-6 py-10 space-y-8">
-              {/* Question Card */}
-              <div className="bg-white rounded-3xl shadow-sm border border-slate-100 p-8 space-y-8">
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-wider">Question {currentQ + 1}</span>
-                    {q.required && <Badge className="text-[9px] bg-red-50 text-red-500 border-red-100 font-bold">Required</Badge>}
-                    <Badge className="text-[9px] bg-slate-50 text-slate-500 border-slate-100 font-bold">{q.points} pt{q.points !== 1 ? "s" : ""}</Badge>
-                  </div>
-                  <h2 className="text-2xl font-black text-slate-900 leading-tight">{q.question || "No question text provided"}</h2>
-                </div>
-
-                {q.hint && (
-                  <div className="flex items-start gap-2 p-3 bg-amber-50 rounded-xl text-xs text-amber-700 border border-amber-100">
-                    <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
-                    <span><strong>Hint:</strong> {q.hint}</span>
-                  </div>
+        {/* Mobile Tabs Wrapper */}
+        <div className="md:hidden bg-white border-b border-slate-50 p-2 overflow-x-auto shrink-0 z-[101]">
+          <div className="flex gap-2 min-w-max">
+            {['questions', 'history', 'performance'].map((t) => (
+              <button
+                key={t}
+                onClick={() => setQuizTab(t)}
+                className={cn(
+                  "px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+                  quizTab === t ? "bg-slate-900 text-white shadow-lg" : "bg-slate-50 text-slate-400"
                 )}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+        </div>
 
-                {/* ── MCQ ──────────────────────────────── */}
-                {q.type === "MCQ" && (
-                  <div className="space-y-3">
-                    {q.options.map((opt: any, oi: number) => {
-                      const isSelected = answers[q.id] === opt.id
-                      return (
-                        <button
-                          key={opt.id}
-                          onClick={() => setAnswer(q.id, opt.id)}
-                          className={cn(
-                            "w-full flex items-center gap-4 p-4 rounded-2xl border-2 text-left transition-all",
-                            isSelected
-                              ? "border-indigo-500 bg-indigo-50 shadow-sm"
-                              : "border-slate-100 hover:border-indigo-200 hover:bg-slate-50"
-                          )}
-                        >
-                          <div className={cn("h-6 w-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-all", isSelected ? "border-indigo-500 bg-indigo-500" : "border-slate-200")}>
-                            {isSelected && <Check className="h-3.5 w-3.5 text-white" />}
+        <div className="flex-1 overflow-y-auto bg-[#FDFDFD]">
+          <div className="max-w-5xl mx-auto p-4 md:p-10 pb-32">
+            <Tabs value={quizTab} className="w-full">
+              <TabsContent value="questions" className="mt-0 outline-none">
+                {submitted ? (
+                  <div className="space-y-8 animate-in fade-in slide-in-from-bottom-5 duration-700">
+                    <div className="bg-slate-950 rounded-[2.5rem] p-6 md:p-12 text-white relative overflow-hidden shadow-2xl border border-white/5">
+                      <div className="absolute top-0 right-0 w-1/3 h-full bg-gradient-to-l from-indigo-500/10 to-transparent pointer-events-none" />
+                      <div className="absolute -bottom-24 -left-24 w-72 h-72 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
+                      
+                      <div className="relative z-10 flex flex-col md:flex-row items-center gap-8 md:gap-12">
+                         <div className={cn("h-32 w-32 md:h-40 md:w-40 rounded-[2.5rem] flex items-center justify-center shrink-0 shadow-2xl transition-all", passed ? "bg-emerald-500 shadow-emerald-500/20 rotate-3" : "bg-red-500 shadow-red-500/20 -rotate-3")}>
+                            {passed ? <Trophy className="h-16 w-16 md:h-20 md:w-20 text-white" /> : <AlertCircle className="h-16 w-16 md:h-20 md:w-20 text-white" />}
+                         </div>
+                         <div className="text-center md:text-left space-y-4">
+                            <div>
+                               <p className="text-indigo-400 font-black text-[10px] uppercase tracking-[.3em] mb-2 px-1 border-l-2 border-indigo-500/50">Performance Summary</p>
+                               <h2 className="text-5xl md:text-7xl font-black tracking-tighter leading-none">{score}<span className="text-indigo-400/50">%</span></h2>
+                            </div>
+                            <div className="flex flex-wrap items-center justify-center md:justify-start gap-3">
+                               <Badge className={cn("text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-xl", passed ? "bg-emerald-500 text-white" : "bg-red-50 text-red-600 border border-red-100")}>
+                                {passed ? "Passed" : "Needs Review"}
+                               </Badge>
+                               <Badge variant="outline" className="border-white/20 text-white/60 text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-xl">
+                                  {getQualitativeGrade(score).label}
+                               </Badge>
+                             </div>
+                             <p className="text-white/40 text-[11px] font-medium max-w-md leading-relaxed">
+                                {score >= 90 ? "Outstanding performance! You've mastered this topic perfectly." : 
+                                 score >= 70 ? "Well done! You have a solid grasp of the material." : 
+                                 "Don't discourage yourself. Learning is a journey, try reviewing the lesson and attempt again."}
+                             </p>
+                             <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 mt-4">
+                                <Button variant="ghost" className="text-white/40 hover:text-white hover:bg-white/5 h-10 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest gap-2" onClick={retakeQuiz}>
+                                  <RotateCcw className="h-4 w-4" /> Retake
+                               </Button>
+                            </div>
+                         </div>
+                         <div className="hidden lg:flex flex-1 justify-end">
+                            <div className="bg-white/5 backdrop-blur-md rounded-3xl p-6 border border-white/10 space-y-4 min-w-[200px]">
+                               <p className="text-[10px] font-black text-white/40 uppercase tracking-widest">Mastery Level</p>
+                               <Progress value={score} className="h-3 rounded-full bg-white/5" />
+                               <p className="text-[11px] font-bold text-white/70 italic leading-relaxed">"{getAdvice(score, passed)}"</p>
+                            </div>
+                         </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-6">
+                      <div className="flex items-center justify-between">
+                         <h3 className="text-xl font-black text-slate-900 flex items-center gap-3">
+                            <div className="h-10 w-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600"><BookOpenCheck className="h-5 w-5" /></div>
+                            Insight Review
+                         </h3>
+                         <Badge variant="outline" className="rounded-full px-4 text-[10px] font-bold text-slate-400 border-slate-100">Feedback Breakdown</Badge>
+                      </div>
+
+                      <div className="grid gap-4">
+                        {results.map((res, idx) => (
+                          <div key={idx} className={cn("group rounded-[2rem] border-2 transition-all p-6 md:p-10", res.isCorrect ? "bg-white border-emerald-50 hover:border-emerald-100" : "bg-white border-red-50 hover:border-red-100")}>
+                             <div className="flex flex-col md:flex-row gap-6 md:gap-10">
+                                <div className="space-y-6 flex-1">
+                                   <div className="flex items-center gap-4">
+                                      <span className="h-10 w-10 rounded-xl bg-slate-100 flex items-center justify-center text-xs font-black text-slate-900">{idx + 1}</span>
+                                      <Badge className={cn("text-[9px] font-black uppercase px-3 py-1.5 rounded-lg", res.isCorrect ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-600")}>
+                                        {res.isCorrect ? "Precision Matched" : "Review Needed"}
+                                      </Badge>
+                                      <span className="ml-auto text-[10px] font-black text-slate-300 uppercase tracking-widest">{res.earned} / {res.total} PTS</span>
+                                   </div>
+                                   <h4 className="text-xl md:text-2xl font-black text-slate-900 leading-[1.2]">{res.question}</h4>
+                                   
+                                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
+                                      <div className="p-5 rounded-2xl bg-slate-50 border border-slate-100 space-y-2">
+                                         <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest">Your Answer</p>
+                                         <p className={cn("text-sm font-bold", res.isCorrect ? "text-slate-900" : "text-red-600")}>{typeof res.studentAnswer === 'string' ? res.studentAnswer || "No Response" : "Matched Item"}</p>
+                                      </div>
+                                      {!res.isCorrect && !res.manual && (
+                                        <div className="p-5 rounded-2xl bg-indigo-50 border border-indigo-100 space-y-2">
+                                           <p className="text-[9px] font-black uppercase text-indigo-400 tracking-widest">Valid Solution</p>
+                                           <p className="text-sm font-bold text-indigo-700">{res.correctAnswer}</p>
+                                        </div>
+                                      )}
+                                   </div>
+                                </div>
+                                <div className={cn("h-16 w-16 md:h-20 md:w-20 rounded-3xl flex items-center justify-center shrink-0 motion-safe:animate-in motion-safe:zoom-in duration-1000", res.isCorrect ? "bg-emerald-500 text-white" : "bg-red-500 text-white")}>
+                                   {res.isCorrect ? <Check className="h-8 w-8" /> : <X className="h-8 w-8" />}
+                                </div>
+                             </div>
                           </div>
-                          <span className="text-[10px] font-bold text-slate-400 w-4">{String.fromCharCode(65 + oi)}.</span>
-                          <span className={cn("text-sm font-medium flex-1", isSelected ? "text-indigo-700" : "text-slate-700")}>{opt.text}</span>
-                        </button>
-                      )
-                    })}
+                        ))}
+                      </div>
+                    </div>
                   </div>
-                )}
+                ) : (
+                  <div className="max-w-3xl mx-auto space-y-8 py-4 md:py-10">
+                    <div className="bg-white rounded-[3rem] shadow-[0_20px_50px_-20px_rgba(0,0,0,0.05)] border-2 border-slate-50 p-6 md:p-12 space-y-10">
+                      <div className="space-y-6 leading-none">
+                        <div className="flex items-center gap-3">
+                          <span className="h-10 w-10 flex items-center justify-center bg-indigo-600 rounded-xl text-white text-xs font-black shadow-lg shadow-indigo-200">{currentQ + 1}</span>
+                          <span className="h-1.5 w-1.5 rounded-full bg-slate-200" />
+                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-[.2em]">Intellectual Challenge</span>
+                        </div>
+                        <h2 className="text-2xl md:text-5xl font-black text-slate-900 tracking-tight leading-[1.1]">{q?.question || "No question text defined."}</h2>
+                      </div>
 
-                {/* ── TRUE/FALSE ────────────────────────── */}
-                {q.type === "TRUE_FALSE" && (
-                  <div className="flex gap-4">
-                    {["True", "False"].map(val => {
-                      const isSelected = answers[q.id] === val
-                      return (
-                        <button
-                          key={val}
-                          onClick={() => setAnswer(q.id, val)}
+
+
+                      <div className="space-y-4">
+                        {q?.type === "MCQ" && (
+                          <div className="grid gap-3">
+                            {q.options.map((opt: any, oi: number) => {
+                              const isSelected = answers[q.id] === opt.id
+                              return (
+                                <button key={opt.id} onClick={() => setAnswer(q.id, opt.id)} className={cn("w-full group flex items-center gap-5 p-5 md:p-7 rounded-[2rem] border-2 text-left transition-all duration-300", isSelected ? "border-indigo-600 bg-indigo-50/50 shadow-xl shadow-indigo-100/50 translate-x-2" : "border-slate-100 hover:border-indigo-200 hover:bg-slate-50")}>
+                                  <div className={cn("h-8 w-8 rounded-xl border-2 flex items-center justify-center shrink-0 transition-all duration-500", isSelected ? "bg-indigo-600 border-indigo-600 rotate-12" : "border-slate-200 group-hover:border-indigo-300")}>
+                                    {isSelected ? <Check className="h-4 w-4 text-white" /> : <span className="text-[10px] font-black text-slate-200 group-hover:text-indigo-400">{String.fromCharCode(65 + oi)}</span>}
+                                  </div>
+                                  <span className={cn("text-lg font-bold transition-colors", isSelected ? "text-indigo-900" : "text-slate-700")}>{opt.text}</span>
+                                </button>
+                              )
+                            })}
+                          </div>
+                        )}
+
+                        {q?.type === "TRUE_FALSE" && (
+                          <div className="grid grid-cols-2 gap-6 h-32 md:h-48">
+                            {["True", "False"].map(val => {
+                              const isSelected = answers[q.id] === val
+                              const isTrue = val === "True"
+                              return (
+                                <button
+                                  key={val}
+                                  onClick={() => setAnswer(q.id, val)}
+                                  className={cn(
+                                    "rounded-[2.5rem] border-2 flex flex-col items-center justify-center gap-4 transition-all duration-500 hover:scale-[1.02]",
+                                    isSelected 
+                                      ? (isTrue ? "bg-emerald-600 border-emerald-600 text-white shadow-2xl shadow-emerald-200" : "bg-red-600 border-red-600 text-white shadow-2xl shadow-red-200")
+                                      : "bg-white border-slate-100 text-slate-400"
+                                  )}
+                                >
+                                  {isTrue ? <Check className="h-8 w-8" /> : <X className="h-8 w-8" />}
+                                  <span className="text-xl font-black uppercase tracking-widest">{val}</span>
+                                </button>
+                              )
+                            })}
+                          </div>
+                        )}
+
+                        {q?.type === "MATCHING" && (
+                           <div className="py-4">
+                              <MatchingQuestion options={q.options} value={(answers[q.id] as Record<string, string>) || {}} onChange={v => setAnswer(q.id, v)} />
+                           </div>
+                        )}
+
+                        {(q?.type === "FILL_BLANK" || q?.type === "SHORT_ANSWER" || q?.type === "ESSAY") && (
+                          <div className="space-y-4">
+                             <div className="relative group">
+                                <textarea
+                                  value={(answers[q.id] as string) || ""}
+                                  onChange={e => setAnswer(q.id, e.target.value)}
+                                  placeholder="Formulate your intellectual response..."
+                                  className="w-full min-h-[200px] p-8 rounded-[2.5rem] border-2 border-slate-100 bg-slate-50 focus:bg-white focus:border-indigo-500 focus:shadow-2xl focus:shadow-indigo-100/50 outline-none text-xl font-medium transition-all duration-500 resize-none"
+                                />
+                             </div>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex gap-4 pt-6">
+                        {currentQ > 0 && (
+                          <Button variant="ghost" className="h-16 px-10 rounded-[20px] text-slate-400 font-bold hover:bg-slate-50 gap-3" onClick={() => setCurrentQ(q => q - 1)}>
+                            <ArrowRight className="h-4 w-4 rotate-180" /> Back
+                          </Button>
+                        )}
+                        <Button
+                          onClick={isLast ? handleSubmitQuiz : () => setCurrentQ(q => q + 1)}
                           className={cn(
-                            "flex-1 h-16 rounded-2xl border-2 font-bold text-base transition-all",
-                            isSelected
-                              ? val === "True"
-                                ? "border-emerald-500 bg-emerald-50 text-emerald-700 shadow-sm"
-                                : "border-red-400 bg-red-50 text-red-700 shadow-sm"
-                              : "border-slate-200 text-slate-400 hover:border-slate-300 hover:bg-slate-50"
+                            "flex-1 h-16 px-12 rounded-[20px] font-black uppercase tracking-[.2em] text-xs gap-4 shadow-2xl transition-all hover:scale-[1.01] active:scale-[0.99]",
+                            isLast ? "bg-emerald-600 shadow-emerald-100" : "bg-indigo-600 shadow-indigo-100"
                           )}
                         >
-                          {val}
-                        </button>
-                      )
-                    })}
+                          {isLast ? "Finalize Intellect" : "Continue Journey"} <ArrowRight className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
                   </div>
                 )}
+              </TabsContent>
 
-                {/* ── MATCHING ─────────────────────────── */}
-                {q.type === "MATCHING" && (
-                  <MatchingQuestion
-                    options={q.options}
-                    value={answers[q.id] || {}}
-                    onChange={v => setAnswer(q.id, v)}
-                  />
-                )}
+              <TabsContent value="history" className="mt-0 outline-none space-y-6">
+                 <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                    <h2 className="text-2xl font-black text-slate-900">Your Journey Path (Preview)</h2>
+                    <Badge className="bg-amber-100 text-amber-700 border-none px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest">3 Attempts Recorded (Mock)</Badge>
+                 </div>
 
-                {/* ── FILL_BLANK ────────────────────────── */}
-                {q.type === "FILL_BLANK" && (
-                  <div className="space-y-2">
-                    <p className="text-xs text-slate-400 font-medium">Fill in the blank:</p>
-                    <input
-                      type="text"
-                      value={answers[q.id] || ""}
-                      onChange={e => setAnswer(q.id, e.target.value)}
-                      placeholder="Type your answer here..."
-                      className="w-full h-12 px-4 rounded-2xl border-2 border-slate-200 focus:border-indigo-400 outline-none text-sm transition-colors"
-                    />
-                  </div>
-                )}
+                 <div className="grid gap-4">
+                    {[
+                      { id: '1', score: 92, passed: true, date: '2024-03-15T10:00:00Z', earned: 46, total: 50, time: 420 },
+                      { id: '2', score: 78, passed: true, date: '2024-03-14T14:30:00Z', earned: 39, total: 50, time: 580 },
+                      { id: '3', score: 45, passed: false, date: '2024-03-13T09:15:00Z', earned: 22, total: 50, time: 310 }
+                    ].map((attempt) => (
+                      <div
+                        key={attempt.id}
+                        className="group bg-white rounded-3xl border-2 border-slate-50 p-6 flex flex-col md:flex-row items-center justify-between gap-6 hover:border-indigo-100 hover:shadow-xl hover:shadow-indigo-50/50 transition-all cursor-pointer"
+                      >
+                         <div className="flex items-center gap-6 w-full md:w-auto">
+                            <div className={cn("h-16 w-16 rounded-2xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-110 duration-500", attempt.passed ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-600")}>
+                               {attempt.passed ? <Trophy className="h-8 w-8" /> : <AlertCircle className="h-8 w-8" />}
+                            </div>
+                            <div>
+                               <h4 className="text-2xl font-black text-slate-900">{attempt.score}%</h4>
+                               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-0.5">{format(new Date(attempt.date), 'PPP @ p')}</p>
+                            </div>
+                         </div>
+                         <div className="flex items-center gap-8 w-full md:w-auto border-t md:border-t-0 md:border-l border-slate-100 pt-6 md:pt-0 md:pl-10">
+                            <div className="space-y-1">
+                               <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest">Points</p>
+                               <p className="text-xs font-black text-slate-600">{attempt.earned} / {attempt.total}</p>
+                            </div>
+                            <div className="space-y-1">
+                               <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest">Time</p>
+                               <p className="text-xs font-black text-slate-600">{Math.floor(attempt.time / 60)}m {attempt.time % 60}s</p>
+                            </div>
+                            <Button variant="ghost" className="h-10 w-10 md:h-12 md:w-12 rounded-2xl bg-slate-50 group-hover:bg-indigo-600 group-hover:text-white transition-all ml-auto">
+                               <Eye className="h-5 w-5" />
+                            </Button>
+                         </div>
+                      </div>
+                    ))}
+                    <div className="p-6 text-center text-slate-400 font-bold text-[10px] uppercase tracking-widest bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                      Historical tracking mockup for preview mode
+                    </div>
+                 </div>
+              </TabsContent>
 
-                {/* ── SHORT_ANSWER ─────────────────────── */}
-                {q.type === "SHORT_ANSWER" && (
-                  <div className="space-y-2">
-                    <p className="text-xs text-slate-400 font-medium">Write a brief answer:</p>
-                    <textarea
-                      value={answers[q.id] || ""}
-                      onChange={e => setAnswer(q.id, e.target.value)}
-                      placeholder="Write your answer here..."
-                      rows={4}
-                      className="w-full px-4 py-3 rounded-2xl border-2 border-slate-200 focus:border-indigo-400 outline-none text-sm resize-none transition-colors"
-                    />
-                  </div>
-                )}
+              <TabsContent value="performance" className="mt-0 outline-none space-y-10">
+                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {[
+                      { label: "Best Score", val: "92%", icon: Trophy, color: "text-amber-600", bg: "bg-amber-50" },
+                      { label: "Average Score", val: "84%", icon: GraduationCap, color: "text-indigo-600", bg: "bg-indigo-50" },
+                      { label: "Success Rate", val: "100%", icon: CheckCircle2, color: "text-emerald-600", bg: "bg-emerald-50" },
+                      { label: "Total Sessions", val: 3, icon: RotateCcw, color: "text-slate-600", bg: "bg-slate-50" },
+                    ].map((stat, i) => (
+                      <div key={i} className="bg-white p-8 rounded-[2.5rem] border-2 border-slate-50 shadow-sm relative overflow-hidden group">
+                         <div className={cn("absolute top-0 right-0 p-6 opacity-10 group-hover:scale-125 transition-transform duration-700", stat.color)}><stat.icon className="h-24 w-24" /></div>
+                         <div className="relative z-10 space-y-4">
+                            <div className={cn("h-12 w-12 rounded-2xl flex items-center justify-center", stat.bg, stat.color)}><stat.icon className="h-6 w-6" /></div>
+                            <div>
+                               <p className="text-[10px] font-black uppercase text-slate-400 tracking-[.2em]">{stat.label}</p>
+                               <h4 className="text-3xl font-black text-slate-900 mt-1">{stat.val}</h4>
+                            </div>
+                         </div>
+                      </div>
+                    ))}
+                 </div>
 
-                {/* ── ESSAY ────────────────────────────── */}
-                {q.type === "ESSAY" && (
-                  <div className="space-y-2">
-                    <p className="text-xs text-slate-400 font-medium">Write your essay response:</p>
-                    <textarea
-                      value={answers[q.id] || ""}
-                      onChange={e => setAnswer(q.id, e.target.value)}
-                      placeholder="Write your essay here..."
-                      rows={8}
-                      className="w-full px-4 py-3 rounded-2xl border-2 border-slate-200 focus:border-indigo-400 outline-none text-sm resize-none transition-colors"
-                    />
-                  </div>
-                )}
-              </div>
-
-              {/* Navigation */}
-              <div className="flex items-center gap-3">
-                <Button
-                  variant="outline"
-                  onClick={() => setCurrentQ(q => Math.max(0, q - 1))}
-                  disabled={currentQ === 0}
-                  className="h-11 px-6 rounded-2xl border-slate-200 text-slate-600 font-semibold disabled:opacity-40"
-                >
-                  ← Previous
-                </Button>
-                <div className="flex-1 flex justify-center gap-1.5 flex-wrap">
-                  {questions.map((_: any, i: number) => (
-                    <button
-                      key={i}
-                      onClick={() => setCurrentQ(i)}
-                      className={cn(
-                        "h-8 w-8 rounded-lg text-xs font-bold transition-all",
-                        i === currentQ ? "bg-indigo-600 text-white shadow-sm" :
-                        answers[questions[i].id] !== undefined ? "bg-emerald-100 text-emerald-700" :
-                        "bg-slate-100 text-slate-400 hover:bg-slate-200"
-                      )}
-                    >
-                      {i + 1}
-                    </button>
-                  ))}
-                </div>
-                {isLast ? (
-                  <Button
-                    onClick={handleSubmitQuiz}
-                    className="h-11 px-6 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-sm"
-                  >
-                    Submit Quiz ✓
-                  </Button>
-                ) : (
-                  <Button
-                    onClick={() => setCurrentQ(q => Math.min(questions.length - 1, q + 1))}
-                    className="h-11 px-6 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold"
-                  >
-                    Next →
-                  </Button>
-                )}
-              </div>
-            </div>
+                 <div className="bg-white p-8 md:p-12 rounded-[3rem] border-2 border-slate-50 shadow-sm space-y-10">
+                    <div className="flex items-center justify-between">
+                       <h3 className="text-xl font-black text-slate-900 leading-none">Progression Analytics (Preview)</h3>
+                       <div className="flex items-center gap-4">
+                          <div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-indigo-500" /><span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Mock Data</span></div>
+                       </div>
+                    </div>
+                    <div className="h-[300px] w-full mt-10">
+                       <ResponsiveContainer width="100%" height="100%">
+                          <AreaChart data={[{v:70}, {v:85}, {v:92}]} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                            <defs>
+                              <linearGradient id="colorScore" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.1}/>
+                                <stop offset="95%" stopColor="#4f46e5" stopOpacity={0}/>
+                              </linearGradient>
+                            </defs>
+                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                             <XAxis dataKey="name" hide />
+                             <YAxis domain={[0, 100]} axisLine={false} tickLine={false} tick={{ fontSize: 9, fontWeight: 900, fill: '#94a3b8' }} />
+                             <Area type="monotone" dataKey="v" stroke="#4f46e5" strokeWidth={4} fillOpacity={1} fill="url(#colorScore)" />
+                          </AreaChart>
+                       </ResponsiveContainer>
+                    </div>
+                 </div>
+              </TabsContent>
+            </Tabs>
           </div>
-        )}
+        </div>
       </div>
     )
   }
@@ -768,6 +747,7 @@ export default function CoursePreviewPage() {
                   { key: "body", label: "Lesson Body", icon: BookOpen },
                   { key: "materials", label: "Materials", icon: FileText },
                   { key: "video", label: "Video", icon: Video },
+                  { key: "qa", label: "Discussions", icon: MessageSquare },
                 ].map(tab => (
                   <button
                     key={tab.key}
@@ -837,9 +817,82 @@ export default function CoursePreviewPage() {
                     )}
                   </div>
                 )}
+                {activeLessonTab === "qa" && (
+                   <div className="flex flex-col items-center justify-center py-20 text-center space-y-6">
+                      <div className="h-20 w-20 rounded-[2.5rem] bg-indigo-50 flex items-center justify-center text-indigo-200 border-2 border-dashed border-indigo-100">
+                        <MessageSquare className="h-10 w-10" />
+                      </div>
+                      <div className="space-y-2">
+                         <h3 className="text-xl font-black text-slate-900">Module Discussions</h3>
+                         <p className="text-xs text-slate-400 max-w-xs mx-auto leading-relaxed">In the live environment, students can engage in deep intellectual discourse here. This is a preview of the interface.</p>
+                      </div>
+                      <Button variant="outline" className="h-11 px-8 rounded-xl font-black text-[10px] uppercase tracking-widest border-2 hover:bg-slate-50 transition-all">Preview Conversation</Button>
+                   </div>
+                )}
               </div>
             </div>
           </div>
+        </div>
+
+        {/* ── Lesson Navigation Footer ── */}
+        <div className="h-20 bg-white border-t border-slate-100 flex items-center justify-between px-6 md:px-10 shrink-0 z-50">
+           {(() => {
+             const courseItems = course?.sections?.flatMap((s: any) => {
+                const lessons = (s.lessons || []).map((l: any) => ({ ...l, type: "lesson" as const, sectionId: s.id }));
+                const quizzes = (s.quizzes || []).map((q: any) => ({ ...q, type: "quiz" as const, sectionId: s.id }));
+                return [...lessons, ...quizzes].sort((a, b) => (a.order || 0) - (b.order || 0));
+             }) || []
+
+             const currentIndex = courseItems.findIndex((ci: any) => ci.id === activeLesson?.id)
+             const prevItem = currentIndex > 0 ? courseItems[currentIndex - 1] : null
+             const nextItem = currentIndex < courseItems.length - 1 ? courseItems[currentIndex + 1] : null
+
+             return (
+               <>
+                 <Button
+                   variant="outline"
+                   disabled={!prevItem}
+                   onClick={() => {
+                     if (prevItem) {
+                       if (prevItem.type === "lesson") { openLesson(prevItem) }
+                       else { openQuiz(prevItem) }
+                     }
+                   }}
+                   className="rounded-xl h-11 px-6 font-black text-[10px] uppercase tracking-widest gap-2 border-slate-200 text-slate-600 disabled:opacity-30"
+                 >
+                   <ChevronLeft className="h-4 w-4" /> Previous
+                 </Button>
+
+                 <div className="hidden md:flex flex-col items-center">
+                    <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Lesson Progress</p>
+                    <div className="flex items-center gap-1 mt-1">
+                       {courseItems.map((item: any, idx: number) => (
+                         <div
+                           key={idx}
+                           className={cn(
+                             "h-1.5 w-6 rounded-full transition-all",
+                             idx === currentIndex ? "bg-indigo-600" : "bg-slate-100"
+                           )}
+                         />
+                       ))}
+                    </div>
+                 </div>
+
+                 <Button
+                   disabled={!nextItem}
+                   onClick={() => {
+                     if (nextItem) {
+                       if (nextItem.type === "lesson") { openLesson(nextItem) }
+                       else { openQuiz(nextItem) }
+                     }
+                   }}
+                   className="rounded-xl h-11 px-8 font-black text-[10px] uppercase tracking-widest gap-2 shadow-lg transition-all bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-100"
+                 >
+                   Next {nextItem?.type === "quiz" ? "Quiz" : "Lesson"} <ChevronRight className="h-4 w-4" />
+                 </Button>
+               </>
+             )
+           })()}
         </div>
       </div>
     )
@@ -849,185 +902,261 @@ export default function CoursePreviewPage() {
      COURSE OVERVIEW PAGE
      ══════════════════════════════════════════════ */
   return (
-    <div className="min-h-screen bg-[#FDFDFD]">
-      {/* Premium Hero */}
-      <div className="bg-[#0F172A] py-6 px-6 md:px-10 text-white relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-1/3 h-full bg-indigo-500/5 pointer-events-none" />
-        <div className="absolute inset-0 opacity-[0.02]" style={{ backgroundImage: 'radial-gradient(#fff 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
-        
-        <div className="max-w-5xl mx-auto relative z-10">
-          <div className="flex items-center justify-between mb-4">
-            <Button 
-              variant="ghost" 
-              className="text-white/40 hover:text-white hover:bg-white/5 gap-2 p-0 h-auto text-[10px] font-black uppercase tracking-widest transition-colors" 
+    <div className="min-h-screen bg-[#F8FAFC]">
+      {/* Premium Hero Section */}
+      <div className="relative pt-4 pb-12 px-6 md:px-10 overflow-hidden">
+        {/* Background Layer: Deep modern gradient with mesh-like texture */}
+        <div className="absolute inset-0 bg-[#0F172A]">
+          <div className="absolute top-0 right-0 w-full h-full bg-[radial-gradient(circle_at_70%_0%,#4f46e520,transparent_50%)]" />
+          <div className="absolute bottom-0 left-0 w-full h-full bg-[radial-gradient(circle_at_20%_100%,#6366f110,transparent_50%)]" />
+          <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(#fff 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
+        </div>
+
+        <div className="max-w-6xl mx-auto relative z-10">
+          <div className="flex items-center justify-between mb-8">
+            <Button
+              variant="ghost"
+              className="text-white/30 hover:text-white hover:bg-white/5 gap-2 p-0 h-auto text-[10px] font-black uppercase tracking-[0.2em] transition-all group/back"
               onClick={() => router.back()}
             >
-              <ChevronLeft className="h-4 w-4" /> Back to Builder
+              <ChevronLeft className="h-4 w-4 group-hover/back:-translate-x-1 transition-transform" /> Return to Builder
             </Button>
-            <Badge className="bg-amber-500 text-white border-none px-3 py-1 text-[10px] font-bold uppercase tracking-widest animate-pulse">
-              Admin Preview
+            <Badge className="bg-amber-400 text-slate-950 border-none px-3 py-1.5 text-[9px] font-black uppercase tracking-widest animate-pulse shadow-xl shadow-amber-400/10">
+              Admin Preview Mode
             </Badge>
           </div>
-          
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-end">
-            <div className="space-y-6">
-              <div className="flex items-center gap-3">
-                <Badge className="bg-indigo-500 text-white border-none px-3 py-1 text-[10px] font-bold uppercase tracking-widest">
-                  {course?.category || "Course"}
-                </Badge>
-                <div className="h-1 w-1 rounded-full bg-white/20" />
-                <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Level {course?.level || 1}</span>
-              </div>
-              
-              <h1 className="text-2xl md:text-3xl font-black tracking-tight leading-tight text-white focus:outline-none">
-                {course?.name}
-              </h1>
-              
-              <p className="text-sm text-white/40 max-w-xl leading-relaxed font-medium">
-                {course?.description || "Master the concepts through our structured curriculum and interactive assessments."}
-              </p>
-            </div>
-
-            <div className="flex flex-wrap gap-4 lg:justify-end">
-              {[
-                { Icon: Layers, val: course?.sections?.length || 0, sub: "Chapters" },
-                { Icon: Video,  val: totalLessons, sub: "Lessons" },
-                { Icon: Zap,    val: totalQuizzes, sub: "Quizzes" },
-              ].map(s => (
-                <div key={s.sub} className="bg-white/5 border border-white/10 rounded-2xl p-4 min-w-[120px] flex flex-col gap-1 transition-all hover:bg-white/10">
-                  <s.Icon className="h-4 w-4 text-indigo-400 mb-1" />
-                  <p className="text-xl font-black text-white">{s.val}</p>
-                  <p className="text-[9px] text-white/40 font-bold uppercase tracking-widest leading-none">{s.sub}</p>
+ 
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+            {/* Left Column: Course Info */}
+            <div className="lg:col-span-8 space-y-6 animate-in fade-in slide-in-from-left-6 duration-700">
+              <div className="flex flex-wrap items-center gap-4">
+                <div className="flex -space-x-2">
+                   {[1,2,3].map(i => (
+                     <div key={i} className="h-8 w-8 rounded-full border-2 border-[#0F172A] bg-slate-800 flex items-center justify-center overflow-hidden">
+                       <User className="h-4 w-4 text-slate-500" />
+                     </div>
+                   ))}
                 </div>
-              ))}
+                <span className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em]">+124 students enrolled</span>
+                <Separator orientation="vertical" className="h-4 bg-white/10" />
+                <Badge className="bg-amber-400 text-slate-950 border-none px-3 py-1.5 text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 shadow-xl shadow-amber-400/10">
+                  <Star className="h-3 w-3 fill-slate-950" /> 0 XP
+                </Badge>
+                <Badge className="bg-white/5 text-white/40 border border-white/10 backdrop-blur-md px-3 py-1.5 text-[9px] font-black uppercase tracking-widest">
+                  {course?.category || "Core Module"}
+                </Badge>
+              </div>
+ 
+              <div className="space-y-3">
+                <h1 className="text-3xl md:text-5xl font-black tracking-tight text-white leading-tight">
+                  {course?.name}
+                </h1>
+                <p className="text-sm text-slate-400 max-w-2xl leading-relaxed font-medium">
+                  {course?.description || "Master the concepts through our structured curriculum and interactive assessments."}
+                </p>
+              </div>
+            </div>
+ 
+            {/* Right Column: Progress & Stats Widget (Mocked for Admin) */}
+            <div className="lg:col-span-4 space-y-6 animate-in fade-in slide-in-from-right-6 duration-700">
+               <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-8 space-y-6 shadow-2xl relative overflow-hidden group">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl -mr-12 -mt-12" />
+ 
+                  <div className="flex items-center justify-between relative z-10">
+                     <div className="space-y-1">
+                       <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em] leading-none mb-3">Course Completion</p>
+                       <h3 className="text-5xl font-black text-white">0<span className="text-indigo-400 text-3xl">%</span></h3>
+                     </div>
+                     <div className="h-14 w-14 bg-gradient-to-br from-indigo-500 to-indigo-700 rounded-2xl flex items-center justify-center shadow-2xl shadow-indigo-500/20 group-hover:scale-105 transition-transform duration-500">
+                        <Trophy className="h-7 w-7 text-white" />
+                     </div>
+                  </div>
+ 
+                   <div className="space-y-3 relative z-10">
+                    <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden p-[2px] border border-white/5">
+                       <div className="h-full bg-indigo-500 rounded-full w-0 transition-all duration-1000" />
+                    </div>
+                    <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-[0.2em] text-white/20">
+                      <span>0 Modules Done</span>
+                      <span>{totalLessons} Lessons total</span>
+                    </div>
+                  </div>
+               </div>
+ 
+               <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-white/5 border border-white/10 rounded-2xl p-4 flex flex-col gap-1 hover:bg-white/10 transition-all cursor-default group/stat">
+                    <Layers className="h-4 w-4 text-indigo-400 mb-1 group-hover/stat:scale-110 transition-transform" />
+                    <p className="text-xl font-black text-white">{course?.sections?.length || 0}</p>
+                    <p className="text-[9px] text-white/30 font-black uppercase tracking-widest">Chapters</p>
+                  </div>
+                  <div className="bg-white/5 border border-white/10 rounded-2xl p-4 flex flex-col gap-1 hover:bg-white/10 transition-all cursor-default group/stat">
+                    <Zap className="h-4 w-4 text-amber-400 mb-1 group-hover/stat:scale-110 transition-transform" />
+                    <p className="text-xl font-black text-white">{totalQuizzes}</p>
+                    <p className="text-[9px] text-white/30 font-black uppercase tracking-widest">Quizzes</p>
+                  </div>
+               </div>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-6 md:px-10 mt-16 pb-24">
-        <div className="grid grid-cols-12 gap-8">
-          <div className="col-span-12 lg:col-span-8 space-y-6">
-            <div className="flex items-center gap-3 mb-2">
-              <BookOpenCheck className="h-5 w-5 text-indigo-600" />
-              <h2 className="text-lg font-black text-slate-900 leading-none">Curriculum Journey</h2>
-            </div>
+      <div className="max-w-6xl mx-auto px-6 md:px-10 mt-16 relative z-20 pb-40">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+          <div className="lg:col-span-8 space-y-12">
+            {/* ── Curriculum Section ── */}
+            <div className="bg-white rounded-[3rem] p-8 md:p-12 shadow-[0_8px_40px_-12px_rgba(0,0,0,0.03)] border border-slate-100 flex flex-col">
+                <div className="flex items-center justify-between mb-12">
+                   <h2 className="text-2xl font-black text-slate-900 flex items-center gap-4">
+                      <div className="h-12 w-12 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-xl shadow-indigo-200"><BookOpen className="h-6 w-6" /></div>
+                      Academic Path
+                   </h2>
+                   <div className="hidden sm:flex items-center gap-3">
+                      <Badge variant="outline" className="rounded-full px-4 py-1.5 text-[10px] font-black text-slate-400 border-slate-100 uppercase tracking-widest">Digital Learning Environment</Badge>
+                   </div>
+                </div>
 
-            <div className="space-y-3">
-              {course?.sections?.map((section: any, idx: number) => {
-                const isExpanded = expandedSections.includes(section.id)
-                return (
-                  <div key={section.id} className="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden">
-                    <button
-                      onClick={() => toggleSection(section.id)}
-                      className="w-full flex items-center justify-between p-6 hover:bg-slate-50/50 transition-colors text-left"
-                    >
-                      <div className="flex items-center gap-5">
-                        <div className="h-11 w-11 rounded-[14px] bg-slate-900 flex items-center justify-center text-white font-black text-xs shrink-0 shadow-lg">
-                          {idx + 1}
+               <div className="space-y-6">
+                {course?.sections?.map((section: any, idx: number) => {
+                  const isExpanded = expandedSectionId === section.id
+                  const sectionTotalItems = (section.lessons?.length || 0) + (section.quizzes?.length || 0)
+
+                  return (
+                    <div key={section.id} className={cn("group bg-white rounded-[2.5rem] border transition-all duration-500 overflow-hidden", isExpanded ? "border-indigo-100 shadow-[0_12px_40px_-12px_rgba(79,70,229,0.1)]" : "border-slate-100 hover:border-slate-200 shadow-sm")}>
+                      <button 
+                        onClick={() => toggleSection(section.id)} 
+                        className="w-full flex items-center justify-between p-6 md:p-8 hover:bg-slate-50/30 transition-colors text-left relative"
+                      >
+                        {/* Section highlight for expanded state */}
+                        {isExpanded && <div className="absolute top-0 left-0 w-1.5 h-full bg-indigo-600" />}
+
+                        <div className="flex items-center gap-8">
+                          <div className={cn("h-14 w-14 rounded-2xl flex flex-col items-center justify-center shrink-0 border transition-all duration-500", isExpanded ? "bg-indigo-600 border-indigo-500 text-white shadow-xl shadow-indigo-200" : "bg-slate-50 border-slate-100 text-slate-400")}>
+                             <span className="text-[7px] font-black uppercase opacity-60">Module</span>
+                             <span className="text-lg font-black leading-none">{idx + 1}</span>
+                          </div>
+                          <div>
+                            <h3 className="text-base font-black text-slate-900 group-hover:text-indigo-600 transition-colors uppercase tracking-tight">{section.title}</h3>
+                            <div className="flex items-center gap-2.5 mt-2">
+                               <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none">{sectionTotalItems} items</span>
+                               <span className="h-1 w-1 rounded-full bg-slate-200" />
+                               <span className="text-[9px] font-bold text-indigo-500/60 uppercase tracking-widest leading-none">0% complete</span>
+                            </div>
+                          </div>
                         </div>
-                        <div>
-                          <h3 className="text-base font-black text-slate-900 leading-none">{section.title}</h3>
-                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-2 border-l-2 border-slate-100 pl-2">
-                            {section.lessons?.length || 0} units • {section.quizzes?.length || 0} assessments
-                          </p>
+                        <div className="flex items-center gap-4">
+                           <div className={cn("h-8 w-8 rounded-lg border border-slate-100 flex items-center justify-center transition-all duration-500", isExpanded ? "bg-indigo-50 text-indigo-600 rotate-180" : "bg-white text-slate-300")}>
+                             <ChevronDown className="h-4 w-4" />
+                           </div>
                         </div>
-                      </div>
-                      <ChevronDown className={cn("h-5 w-5 text-slate-300 transition-transform duration-500 shrink-0", isExpanded && "rotate-180")} />
-                    </button>
+                      </button>
 
-                    <div className={cn("transition-all duration-500 ease-in-out overflow-hidden", isExpanded ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0")}>
-                      <div className="border-t border-slate-50 px-6 pb-6 pt-3 space-y-1">
-                        {(() => {
-                          const items = [
-                            ...(section.lessons || []).map((l: any) => ({ ...l, type: "lesson" })),
-                            ...(section.quizzes || []).map((q: any) => ({ ...q, type: "quiz" }))
-                          ].sort((a, b) => (a.order || 0) - (b.order || 0))
+                      <div className={cn("transition-all duration-700 ease-in-out overflow-hidden bg-slate-50/30", isExpanded ? "max-h-[5000px] opacity-100" : "max-h-0 opacity-0")}>
+                        <div className="p-4 md:p-8 space-y-3">
+                          {(() => {
+                            const items = [
+                              ...(section.lessons || []).map((l: any) => ({ ...l, type: "lesson" as const })),
+                              ...(section.quizzes || []).map((q: any) => ({ ...q, type: "quiz" as const }))
+                            ].sort((a, b) => (a.order || 0) - (b.order || 0))
 
-                          return items.map((item: any, iIdx: number) => (
-                            item.type === "lesson" ? (
-                              <div
-                                key={item.id}
-                                onClick={() => openLesson(item)}
-                                className="group flex items-center gap-4 p-4 rounded-2xl hover:bg-indigo-50/40 border-2 border-transparent hover:border-indigo-100 cursor-pointer transition-all"
-                              >
-                                <div className="h-9 w-9 rounded-xl bg-white border border-slate-100 group-hover:bg-white group-hover:border-indigo-200 group-hover:shadow-sm flex items-center justify-center text-slate-300 group-hover:text-indigo-600 transition-all text-[11px] font-black shrink-0">
-                                  {iIdx + 1}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-bold text-slate-700 group-hover:text-indigo-700 transition-colors truncate">{item.title}</p>
-                                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{item.duration || 0} min unit</p>
-                                </div>
-                                <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                  {item.videoUrl && <Video className="h-4 w-4 text-indigo-400" />}
-                                  {item.attachmentUrl && <FileText className="h-4 w-4 text-amber-400" />}
-                                  <ChevronRightCircle className="h-5 w-5 text-indigo-500" />
-                                </div>
-                              </div>
-                            ) : (
-                              <div
-                                key={item.id}
-                                onClick={() => openQuiz(item)}
-                                className="group flex items-center gap-4 p-4 rounded-2xl hover:bg-amber-50/40 border-2 border-transparent hover:border-amber-100 cursor-pointer transition-all"
-                              >
-                                <div className="h-9 w-9 rounded-xl bg-amber-50 group-hover:bg-amber-100 flex items-center justify-center text-amber-500 shrink-0 transition-all">
-                                  <Zap className="h-4 w-4" />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-bold text-slate-700 group-hover:text-amber-800 transition-colors truncate">{item.title}</p>
-                                  <p className="text-[10px] text-amber-600/60 font-black uppercase tracking-widest">Assessment • {item.passingScore}% threshold</p>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <Badge className="bg-amber-100/50 text-amber-600 border-none text-[9px] font-black uppercase tracking-[0.2em] px-3 py-1.5 rounded-lg">Launch</Badge>
-                                  <ChevronRightCircle className="h-5 w-5 text-amber-500" />
-                                </div>
-                              </div>
-                            )
-                          ))
-                        })()}
+                            return items.map((item: any, iIdx: number) => {
+                              if (item.type === "lesson") {
+                                return (
+                                  <div key={item.id} onClick={() => openLesson(item)} className="group flex items-center gap-4 p-4 rounded-2xl bg-white border border-slate-100 hover:border-indigo-400 hover:shadow-xl hover:shadow-indigo-50/50 cursor-pointer shadow-sm transition-all duration-300">
+                                    <div className="h-9 w-9 rounded-xl bg-indigo-50 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white flex items-center justify-center text-[10px] font-black shrink-0 transition-all duration-500">
+                                      {iIdx + 1}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-sm font-bold truncate text-slate-700 transition-colors duration-300">{item.title}</p>
+                                      <p className="text-[9px] font-black uppercase tracking-widest mt-1 opacity-40 text-indigo-400">Module Content</p>
+                                    </div>
+                                    <ArrowRight className="h-4 w-4 text-indigo-200 group-hover:text-indigo-600 group-hover:translate-x-1 transition-all" />
+                                  </div>
+                                )
+                              } else {
+                                return (
+                                  <div key={item.id} onClick={() => openQuiz(item)} className="group flex items-center gap-4 p-4 rounded-2xl bg-white border border-slate-100 hover:border-amber-400 hover:shadow-xl hover:shadow-amber-50/50 cursor-pointer shadow-sm transition-all duration-300">
+                                    <div className="h-9 w-9 rounded-xl bg-amber-50 text-amber-600 group-hover:bg-amber-500 group-hover:text-white flex items-center justify-center shrink-0 transition-all duration-500">
+                                      <Zap className="h-4 w-4" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-sm font-bold truncate text-slate-700 transition-colors duration-300">{item.title}</p>
+                                      <p className="text-[9px] font-black uppercase tracking-widest mt-1 opacity-40 text-amber-500">Assessment</p>
+                                    </div>
+                                    <ChevronRight className="h-4 w-4 text-amber-200 group-hover:text-amber-500 group-hover:translate-x-1 transition-all" />
+                                  </div>
+                                )
+                              }
+                            })
+                          })()}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                )
-              })}
+                  )
+                })}
+              </div>
             </div>
           </div>
 
-          {/* Right Sidebar */}
-          <div className="col-span-12 lg:col-span-4 space-y-6">
-            <Card className="border-none shadow-md rounded-3xl overflow-hidden bg-white">
-              <CardContent className="p-8 space-y-6">
-                <div className="space-y-4">
-                  <h3 className="text-base font-bold text-slate-900">Course Progress</h3>
-                  <Progress value={0} className="h-3 rounded-full bg-slate-100" />
-                  <div className="flex justify-between text-[10px] font-bold uppercase text-slate-400 tracking-wider">
-                    <span>0% Complete</span>
-                    <span>0/{totalLessons + totalQuizzes}</span>
+          <div className="lg:col-span-4 space-y-8">
+            <Card className="border-none shadow-[0_40px_120px_-30px_rgba(79,70,229,0.15)] rounded-[4rem] overflow-hidden bg-white group/cta">
+              <CardContent className="p-10 md:p-14 space-y-10">
+                <div className="space-y-8">
+                  <div className="flex flex-col gap-3">
+                    <div className="flex items-center gap-2">
+                       <div className="h-2 w-2 rounded-full bg-indigo-500 animate-pulse" />
+                       <p className="text-[11px] font-black uppercase tracking-[0.3em] text-indigo-500/60">Launch Full Preview</p>
+                    </div>
+                    <h4 className="text-2xl font-black text-slate-900 line-clamp-2 leading-tight tracking-tight">Experience Student Path</h4>
                   </div>
+                  <Button 
+                    onClick={() => {
+                      const first = course?.sections?.[0]?.lessons?.[0]
+                      if (first) openLesson(first)
+                    }} 
+                    className="w-full h-16 rounded-[2rem] bg-indigo-600 text-white font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-indigo-100/50 hover:bg-slate-900 transition-all duration-300 group/btn relative overflow-hidden"
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover/btn:animate-shimmer" />
+                    <span className="relative z-10 flex items-center justify-center gap-3 w-full">
+                       Start Learn Preview <ArrowRight className="h-4 w-4 group-hover/btn:translate-x-2 transition-transform duration-500" />
+                    </span>
+                  </Button>
                 </div>
-                <Separator />
-                <Button
-                  onClick={() => {
-                    const first = course?.sections?.[0]?.lessons?.[0]
-                    if (first) openLesson(first)
-                  }}
-                  className="w-full h-12 rounded-2xl bg-indigo-600 text-white font-bold text-xs uppercase tracking-wider shadow-lg shadow-indigo-100 hover:bg-indigo-700 gap-2"
-                >
-                  Start Learning <ArrowRight className="h-4 w-4" />
-                </Button>
               </CardContent>
             </Card>
 
+            {course?.teacher && (
+              <Card className="border-none shadow-xl shadow-slate-100/50 rounded-[3rem] bg-white border border-slate-100 p-10 flex flex-col gap-6 group hover:translate-y-[-4px] transition-all duration-500 relative overflow-hidden">
+                  <div className="absolute top-0 left-0 w-1 h-full bg-indigo-600/10 group-hover:bg-indigo-600 transition-colors" />
+                  <div className="flex items-center gap-6">
+                    <div className="h-20 w-20 rounded-[28px] bg-indigo-50 flex items-center justify-center text-indigo-600 shadow-inner group-hover:scale-110 group-hover:bg-indigo-600 group-hover:text-white transition-all duration-700">
+                      <User className="h-10 w-10" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-500/60 mb-2">Lead Instructor</p>
+                      <h4 className="text-2xl font-black text-slate-900 leading-none">{course.teacher.firstName} {course.teacher.lastName}</h4>
+                      <div className="flex items-center gap-2 mt-3">
+                         <div className="h-1 w-1 rounded-full bg-emerald-500" />
+                         <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.1em]">Certified Master Expert</p>
+                      </div>
+                    </div>
+                  </div>
+                  <Separator className="bg-slate-50" />
+                  <p className="text-xs text-slate-500 font-medium leading-relaxed opacity-80">
+                    Dedicated to providing the highest quality education and mentoring for future excellence.
+                  </p>
+              </Card>
+            )}
+
             <Card className="border-none shadow-sm rounded-3xl bg-white border border-slate-100">
               <CardContent className="p-8 space-y-4">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">Course Includes</h4>
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">Preview Includes</h4>
                 <div className="space-y-3">
                   {[
                     { Icon: Video,        text: `${totalLessons} video lessons`,       color: "text-indigo-500" },
                     { Icon: Zap,          text: `${totalQuizzes} assessments`,          color: "text-amber-500"  },
                     { Icon: Clock,        text: `${totalDuration} min total`,           color: "text-emerald-500"},
-                    { Icon: FileText,     text: "Downloadable resources",              color: "text-purple-500" },
-                    { Icon: CheckCircle2, text: "Certificate of completion",           color: "text-teal-500"   },
+                    { Icon: FileDown,     text: "Material Downloads",                  color: "text-purple-500" },
+                    { Icon: CheckCircle2, text: "Certificate (Preview)",               color: "text-teal-500"   },
                   ].map(item => (
                     <div key={item.text} className="flex items-center gap-3 text-sm">
                       <item.Icon className={cn("h-4 w-4", item.color)} />
