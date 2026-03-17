@@ -470,7 +470,9 @@ export default function AdminCoursesPage() {
                               Builder
                            </Button>
                         </Link>
-                        <Button variant="outline" className="flex-1 h-11 rounded-xl text-[10px] font-black uppercase tracking-widest border-slate-100 font-bold text-slate-600 hover:bg-slate-50 transition-all">Details</Button>
+                        <Link href={`/dashboard/admin/courses/${course.id}`} className="flex-1">
+                           <Button variant="outline" className="w-full h-11 rounded-xl text-[10px] font-black uppercase tracking-widest border-slate-100 font-bold text-slate-600 hover:bg-slate-50 transition-all">Details</Button>
+                        </Link>
                      </div>
                   </CardContent>
                 </Card>
