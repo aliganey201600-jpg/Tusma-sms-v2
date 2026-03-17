@@ -129,6 +129,8 @@ function SortableItem({ id, item, activeId, onClick, type }: any) {
 
 // ─── Sortable Section Component ──────────────────────────────────────────────
 function SortableSection({ section, sIdx, sensors, handleItemDragEnd, handleAddLesson, handleAddQuiz, deleteSection, loadCourse, activeItem, handleSelectItem, courseId }: any) {
+  const [isExpanded, setIsExpanded] = React.useState(true); // Default to expanded for better initial UX
+
   const {
     attributes,
     listeners,
@@ -153,83 +155,128 @@ function SortableSection({ section, sIdx, sensors, handleItemDragEnd, handleAddL
 
   return (
     <div ref={setNodeRef} style={style}>
-      <Card className={cn("border-none shadow-sm rounded-3xl overflow-hidden bg-white mb-8", isDragging && "opacity-50 ring-2 ring-indigo-500")}>
+      <Card className={cn("border-none shadow-sm rounded-3xl overflow-hidden bg-white mb-8 transition-all duration-300", isDragging && "opacity-50 ring-2 ring-indigo-500", !isExpanded && "hover:shadow-md")}>
         <CardContent className="p-0">
-          <div className="p-5 flex items-center justify-between bg-slate-50/50 border-b border-slate-100">
+          <div 
+            className="p-5 flex items-center justify-between bg-slate-50/50 border-b border-slate-100 cursor-pointer group/header hover:bg-slate-100/50 transition-colors"
+            onClick={() => setIsExpanded(!isExpanded)}
+          >
             <div className="flex items-center gap-3">
-              <div {...attributes} {...listeners} className="h-8 w-6 flex items-center justify-center text-slate-300 hover:text-slate-500 cursor-grab active:cursor-grabbing">
+              <div 
+                {...attributes} 
+                {...listeners} 
+                className="h-8 w-6 flex items-center justify-center text-slate-300 hover:text-slate-500 cursor-grab active:cursor-grabbing"
+                onClick={e => e.stopPropagation()}
+              >
                 <GripVertical className="h-4 w-4" />
               </div>
-              <div className="h-8 w-8 rounded-lg bg-white shadow-sm flex items-center justify-center text-[10px] font-black text-slate-400">
+              <div className={cn(
+                "h-8 w-8 rounded-lg shadow-sm flex items-center justify-center text-[10px] font-black transition-all duration-300",
+                isExpanded ? "bg-indigo-600 text-white" : "bg-white text-slate-400"
+              )}>
                 {sIdx + 1}
               </div>
-              <h3 className="font-black text-slate-900">{section.title}</h3>
+              <div>
+                <h3 className="font-black text-slate-900 group-hover/header:text-indigo-600 transition-colors uppercase tracking-tight text-sm">
+                  {section.title}
+                </h3>
+                {!isExpanded && (
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+                    {interleavedItems.length} Content Nodes
+                  </p>
+                )}
+              </div>
             </div>
-            <div className="flex items-center gap-1">
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-red-600" onClick={() => deleteSection(section.id).then(loadCourse)}>
+            <div className="flex items-center gap-2">
+              <div className={cn(
+                "h-8 w-8 rounded-xl border border-slate-200 bg-white flex items-center justify-center transition-all duration-500",
+                isExpanded ? "rotate-180 bg-indigo-50 border-indigo-100 text-indigo-600" : "text-slate-300"
+              )}>
+                <ChevronDown className="h-4 w-4" />
+              </div>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-8 w-8 text-slate-300 hover:text-red-600 hover:bg-red-50 rounded-xl" 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  deleteSection(section.id).then(loadCourse);
+                }}
+              >
                 <Trash2 className="h-4 w-4" />
               </Button>
             </div>
           </div>
 
-          <div className="p-4">
-            <DndContext 
-              sensors={sensors} 
-              collisionDetection={closestCenter} 
-              onDragEnd={(e) => handleItemDragEnd(section.id, e)} 
-              modifiers={[restrictToVerticalAxis]}
-            >
-              <SortableContext 
-                items={interleavedItems.map(i => i.id)} 
-                strategy={verticalListSortingStrategy}
+          <div className={cn(
+            "transition-all duration-500 ease-in-out overflow-hidden",
+            isExpanded ? "max-h-[3000px] opacity-100" : "max-h-0 opacity-0"
+          )}>
+            <div className="p-4">
+              <DndContext 
+                sensors={sensors} 
+                collisionDetection={closestCenter} 
+                onDragEnd={(e) => handleItemDragEnd(section.id, e)} 
+                modifiers={[restrictToVerticalAxis]}
               >
-                <div className="space-y-1">
-                  {interleavedItems.map((item) => (
-                    <div key={item.id}>
-                      <SortableItem 
-                        id={item.id} 
-                        item={item} 
-                        type={item.type}
-                        activeId={activeItem?.data?.id}
-                        onClick={() => handleSelectItem({ type: item.type, data: item })}
-                      />
-                      {item.type === 'quiz' && activeItem?.data?.id === item.id && (
-                        <div className="ml-10 mb-6 flex flex-col gap-2">
-                           <Link
-                            href={`/dashboard/admin/courses/${courseId}/quiz/${item.id}`}
-                            className="flex items-center gap-2 px-5 py-2.5 text-[10px] font-black uppercase tracking-widest text-amber-600 hover:text-white bg-amber-50 hover:bg-amber-600 rounded-xl transition-all w-fit shadow-sm"
-                            onClick={e => e.stopPropagation()}
-                          >
-                            <ExternalLink className="h-3.5 w-3.5" /> Build Quiz Questions →
-                          </Link>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                  {interleavedItems.length === 0 && (
-                    <div className="py-8 text-center border-2 border-dashed border-slate-100 rounded-2xl text-slate-300 text-xs font-bold">
-                      Empty Section
-                    </div>
-                  )}
-                </div>
-              </SortableContext>
-            </DndContext>
+                <SortableContext 
+                  items={interleavedItems.map(i => i.id)} 
+                  strategy={verticalListSortingStrategy}
+                >
+                  <div className="space-y-1">
+                    {interleavedItems.map((item) => (
+                      <div key={item.id}>
+                        <SortableItem 
+                          id={item.id} 
+                          item={item} 
+                          type={item.type}
+                          activeId={activeItem?.data?.id}
+                          onClick={() => handleSelectItem({ type: item.type, data: item })}
+                        />
+                        {item.type === 'quiz' && activeItem?.data?.id === item.id && (
+                          <div className="ml-10 mb-6 flex flex-col gap-2">
+                             <Link
+                              href={`/dashboard/admin/courses/${courseId}/quiz/${item.id}`}
+                              className="flex items-center gap-2 px-5 py-2.5 text-[10px] font-black uppercase tracking-widest text-amber-600 hover:text-white bg-amber-50 hover:bg-amber-600 rounded-xl transition-all w-fit shadow-sm"
+                              onClick={e => e.stopPropagation()}
+                            >
+                              <ExternalLink className="h-3.5 w-3.5" /> Build Quiz Questions →
+                            </Link>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                    {interleavedItems.length === 0 && (
+                      <div className="py-8 text-center border-2 border-dashed border-slate-100 rounded-3xl text-slate-300 text-xs font-bold">
+                        Empty Section
+                      </div>
+                    )}
+                  </div>
+                </SortableContext>
+              </DndContext>
 
-            <div className="grid grid-cols-2 gap-3 mt-6">
-              <Button 
-                variant="ghost" 
-                className="h-11 rounded-2xl border-dashed border-2 border-slate-100 text-slate-400 text-[10px] font-black uppercase tracking-widest hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 transition-all"
-                onClick={() => handleAddLesson(section.id)}
-              >
-                <Plus className="h-3.5 w-3.5 mr-2" /> Add Lesson
-              </Button>
-              <Button 
-                variant="ghost" 
-                className="h-11 rounded-2xl border-dashed border-2 border-slate-100 text-slate-400 text-[10px] font-black uppercase tracking-widest hover:bg-amber-50 hover:text-amber-600 hover:border-amber-200 transition-all"
-                onClick={() => handleAddQuiz(section.id)}
-              >
-                <Plus className="h-3.5 w-3.5 mr-2" /> Add Quiz
-              </Button>
+              <div className="grid grid-cols-2 gap-3 mt-6">
+                <Button 
+                  variant="ghost" 
+                  className="h-11 rounded-2xl border-dashed border-2 border-slate-100 text-slate-400 text-[10px] font-black uppercase tracking-widest hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 transition-all"
+                  onClick={() => {
+                    setIsExpanded(true);
+                    handleAddLesson(section.id);
+                  }}
+                >
+                  <Plus className="h-3.5 w-3.5 mr-2" /> Add Lesson
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  className="h-11 rounded-2xl border-dashed border-2 border-slate-100 text-slate-400 text-[10px] font-black uppercase tracking-widest hover:bg-amber-50 hover:text-amber-600 hover:border-amber-200 transition-all"
+                  onClick={() => {
+                    setIsExpanded(true);
+                    handleAddQuiz(section.id);
+                  }}
+                >
+                  <Plus className="h-3.5 w-3.5 mr-2" /> Add Quiz
+                </Button>
+              </div>
             </div>
           </div>
         </CardContent>
