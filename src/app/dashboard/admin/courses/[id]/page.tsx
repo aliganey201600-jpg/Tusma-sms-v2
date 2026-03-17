@@ -48,7 +48,7 @@ export default function AdminCourseDetailsPage() {
       if (!id) return
       const data = await getCourseStructure(id as string)
       setCourse(data)
-      if (data?.sections?.length > 0) {
+      if (data?.sections && data.sections.length > 0) {
         setExpandedSections([data.sections[0].id])
       }
       setIsLoading(false)

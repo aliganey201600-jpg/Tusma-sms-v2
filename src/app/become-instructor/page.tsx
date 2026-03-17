@@ -29,7 +29,7 @@ export const metadata = {
 export default function BecomeInstructorPage() {
   return (
     <div className="min-h-screen bg-white">
-      {/* ── Header ── */}
+      {/* ── He ader ── */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-white/70 backdrop-blur-xl border-b border-slate-100 px-6 h-16 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2 group">
           <div className="h-8 w-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white font-black group-hover:scale-110 transition-transform">
