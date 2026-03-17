@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
+import { cn } from "@/lib/utils";
 
 export const metadata = {
   title: "Join Our Faculty | Tusmo SMS",
