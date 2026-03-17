@@ -851,15 +851,15 @@ export default function CoursePreviewPage() {
   return (
     <div className="min-h-screen bg-[#FDFDFD]">
       {/* Premium Hero */}
-      <div className="bg-gradient-to-br from-[#101828] via-[#1a2333] to-[#101828] py-10 px-6 md:px-10 text-white relative overflow-hidden">
+      <div className="bg-[#0F172A] py-6 px-6 md:px-10 text-white relative overflow-hidden">
         <div className="absolute top-0 right-0 w-1/3 h-full bg-indigo-500/5 pointer-events-none" />
-        <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(#fff 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
+        <div className="absolute inset-0 opacity-[0.02]" style={{ backgroundImage: 'radial-gradient(#fff 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
         
         <div className="max-w-5xl mx-auto relative z-10">
-          <div className="flex items-center justify-between mb-10">
+          <div className="flex items-center justify-between mb-4">
             <Button 
               variant="ghost" 
-              className="text-white/40 hover:text-white hover:bg-white/5 gap-2 p-0 h-auto text-[11px] font-bold uppercase tracking-widest transition-colors" 
+              className="text-white/40 hover:text-white hover:bg-white/5 gap-2 p-0 h-auto text-[10px] font-black uppercase tracking-widest transition-colors" 
               onClick={() => router.back()}
             >
               <ChevronLeft className="h-4 w-4" /> Back to Builder
@@ -879,11 +879,11 @@ export default function CoursePreviewPage() {
                 <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Level {course?.level || 1}</span>
               </div>
               
-              <h1 className="text-3xl md:text-4xl font-bold tracking-tight leading-tight text-white focus:outline-none">
+              <h1 className="text-2xl md:text-3xl font-black tracking-tight leading-tight text-white focus:outline-none">
                 {course?.name}
               </h1>
               
-              <p className="text-base text-white/60 max-w-xl leading-relaxed font-normal">
+              <p className="text-sm text-white/40 max-w-xl leading-relaxed font-medium">
                 {course?.description || "Master the concepts through our structured curriculum and interactive assessments."}
               </p>
             </div>
@@ -894,10 +894,10 @@ export default function CoursePreviewPage() {
                 { Icon: Video,  val: totalLessons, sub: "Lessons" },
                 { Icon: Zap,    val: totalQuizzes, sub: "Quizzes" },
               ].map(s => (
-                <div key={s.sub} className="bg-white/5 border border-white/10 rounded-[2rem] p-5 min-w-[140px] flex flex-col gap-1 transition-all hover:bg-white/10 hover:border-white/20">
-                  <s.Icon className="h-5 w-5 text-indigo-400 mb-2" />
-                  <p className="text-2xl font-black text-white">{s.val}</p>
-                  <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest leading-none">{s.sub}</p>
+                <div key={s.sub} className="bg-white/5 border border-white/10 rounded-2xl p-4 min-w-[120px] flex flex-col gap-1 transition-all hover:bg-white/10">
+                  <s.Icon className="h-4 w-4 text-indigo-400 mb-1" />
+                  <p className="text-xl font-black text-white">{s.val}</p>
+                  <p className="text-[9px] text-white/40 font-bold uppercase tracking-widest leading-none">{s.sub}</p>
                 </div>
               ))}
             </div>

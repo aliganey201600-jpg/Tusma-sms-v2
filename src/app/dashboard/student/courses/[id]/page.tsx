@@ -1309,24 +1309,24 @@ export default function StudentCourseViewerPage() {
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
       {/* ── Premium Dynamic Header ── */}
-      <div className="relative pt-10 pb-10 px-6 md:px-10 overflow-hidden">
+      <div className="relative pt-6 pb-6 px-6 md:px-10 overflow-hidden">
         {/* Background Layer: Professional deep gradient */}
-        <div className="absolute inset-0 bg-gradient-to-br from-[#101828] via-[#1a2333] to-[#101828]">
+        <div className="absolute inset-0 bg-[#0F172A]">
           <div className="absolute top-0 right-0 w-[50%] h-full bg-indigo-500/5" />
-          <div className="absolute inset-0 opacity-[0.05]" style={{ backgroundImage: 'radial-gradient(#fff 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
+          <div className="absolute inset-0 opacity-[0.02]" style={{ backgroundImage: 'radial-gradient(#fff 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
         </div>
 
         <div className="max-w-6xl mx-auto relative z-10">
           <Button
             variant="ghost"
-            className="text-white/40 hover:text-white hover:bg-white/5 mb-16 gap-2 p-0 h-auto text-[10px] font-black uppercase tracking-[0.2em] transition-all"
+            className="text-white/40 hover:text-white hover:bg-white/5 mb-6 gap-2 p-0 h-auto text-[10px] font-black uppercase tracking-[0.2em] transition-all"
             onClick={() => router.back()}
           >
             <ChevronLeft className="h-4 w-4" /> Return to Dashboard
           </Button>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 items-end">
-            <div className="lg:col-span-8 space-y-10 animate-in fade-in slide-in-from-left-6 duration-700">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-end">
+            <div className="lg:col-span-8 space-y-4 animate-in fade-in slide-in-from-left-6 duration-700">
               <div className="flex flex-wrap items-center gap-4">
                 <div className="flex -space-x-2">
                    {[1,2,3].map(i => (
@@ -1345,19 +1345,19 @@ export default function StudentCourseViewerPage() {
                 </Badge>
               </div>
 
-              <div className="space-y-3">
-                <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-white leading-tight">
+              <div className="space-y-2">
+                <h1 className="text-2xl md:text-3xl font-black tracking-tight text-white leading-tight">
                   {course?.name}
                 </h1>
-                <p className="text-base text-slate-300 max-w-2xl leading-relaxed font-normal">
+                <p className="text-sm text-slate-400 max-w-2xl leading-relaxed font-medium">
                   {course?.description || "Master the concepts through our structured curriculum and interactive assessments."}
                 </p>
               </div>
             </div>
 
             <div className="lg:col-span-4 flex flex-col gap-8 animate-in fade-in slide-in-from-right-6 duration-700">
-               <div className="bg-white/5 backdrop-blur-3xl border border-white/10 rounded-[3rem] p-10 space-y-8 shadow-2xl relative overflow-hidden group">
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl -mr-10 -mt-10" />
+               <div className="bg-white/5 backdrop-blur-3xl border border-white/10 rounded-3xl p-6 space-y-4 shadow-2xl relative overflow-hidden group">
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/10 rounded-full blur-3xl -mr-8 -mt-8" />
 
                   <div className="flex items-center justify-between relative z-10">
                      <div className="space-y-1">
@@ -1368,27 +1368,27 @@ export default function StudentCourseViewerPage() {
                         <Trophy className="h-8 w-8 text-white" />
                      </div>
                   </div>
-                  <div className="space-y-4 relative z-10">
-                    <div className="h-4 w-full bg-white/10 rounded-full overflow-hidden p-1 border border-white/5">
-                       <div className="h-full bg-gradient-to-r from-indigo-500 via-violet-500 to-indigo-500 bg-[length:200%_100%] animate-shimmer rounded-full transition-all duration-1000 shadow-[0_0_15px_rgba(99,102,241,0.5)]" style={{ width: `${courseProgress}%` }} />
+                   <div className="space-y-2 relative z-10">
+                    <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden p-0.5 border border-white/5">
+                       <div className="h-full bg-indigo-500 rounded-full transition-all duration-1000" style={{ width: `${courseProgress}%` }} />
                     </div>
-                    <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-[0.2em] text-white/30">
-                      <span>{completedLessons.length} Completed</span>
+                    <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-[0.2em] text-white/30">
+                      <span>{completedLessons.length} Done</span>
                       <span>{totalLessons} Lessons</span>
                     </div>
                   </div>
                </div>
-
-               <div className="flex gap-6">
-                  <div className="flex-1 bg-white/5 border border-white/10 rounded-[2.5rem] p-6 flex flex-col gap-2 hover:bg-white/10 transition-all cursor-default border-b-4 border-b-transparent hover:border-b-indigo-500/50">
-                    <Layers className="h-5 w-5 text-indigo-400 mb-2" />
-                    <p className="text-3xl font-black text-white">{course?.sections?.length || 0}</p>
-                    <p className="text-[10px] text-white/30 font-black uppercase tracking-widest">Chapters</p>
+ Broadway
+               <div className="flex gap-4">
+                  <div className="flex-1 bg-white/5 border border-white/10 rounded-2xl p-4 flex flex-col gap-1 hover:bg-white/10 transition-all cursor-default">
+                    <Layers className="h-4 w-4 text-indigo-400 mb-1" />
+                    <p className="text-xl font-black text-white">{course?.sections?.length || 0}</p>
+                    <p className="text-[9px] text-white/30 font-black uppercase tracking-widest">Chapters</p>
                   </div>
-                  <div className="flex-1 bg-white/5 border border-white/10 rounded-[2.5rem] p-6 flex flex-col gap-2 hover:bg-white/10 transition-all cursor-default border-b-4 border-b-transparent hover:border-b-amber-500/50">
-                    <Zap className="h-5 w-5 text-amber-400 mb-2" />
-                    <p className="text-3xl font-black text-white">{totalQuizzes}</p>
-                    <p className="text-[10px] text-white/30 font-black uppercase tracking-widest">Quizzes</p>
+                  <div className="flex-1 bg-white/5 border border-white/10 rounded-2xl p-4 flex flex-col gap-1 hover:bg-white/10 transition-all cursor-default">
+                    <Zap className="h-4 w-4 text-amber-400 mb-1" />
+                    <p className="text-xl font-black text-white">{totalQuizzes}</p>
+                    <p className="text-[9px] text-white/30 font-black uppercase tracking-widest">Quizzes</p>
                   </div>
                </div>
             </div>
