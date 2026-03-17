@@ -2,32 +2,29 @@
 
 import prisma from "@/lib/prisma"
 
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-
 async function callOpenAI(prompt: string, context: string) {
-  if (!OPENAI_API_KEY) {
-    console.warn("AI Action: OPENAI_API_KEY is missing. Falling back to simulation.");
+  const key = process.env.OPENAI_API_KEY;
+  if (!key) {
+    console.error("AI Action: OPENAI_API_KEY IS UNDEFINED IN ENVIRONMENT.");
     return null;
   }
 
+  console.log("AI Action: Initiating OpenAI Request...");
   try {
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${OPENAI_API_KEY}`,
+        "Authorization": `Bearer ${key}`,
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini", // Efficient and cost-effective
+        model: "gpt-4o-mini",
         messages: [
           {
             role: "system",
-            content: `You are an expert academic tutor for the Tusmo SMS platform. Your goal is to help students understand complex concepts. 
-            Context of the current lesson:
-            ---
-            ${context}
-            ---
-            Provide clear, concise, and highly educational responses. Use Markdown for formatting. If the question is in Somali, respond in Somali.`
+            content: `You are an expert academic tutor for the Tusmo SMS platform. 
+            Context: ${context}
+            If the question is in Somali, respond in Somali.`
           },
           {
             role: "user",
@@ -38,10 +35,17 @@ async function callOpenAI(prompt: string, context: string) {
       }),
     });
 
+    if (!response.ok) {
+        const errorData = await response.json();
+        console.error("AI Action: OpenAI API Error Response:", response.status, errorData);
+        return null;
+    }
+
     const data = await response.json();
+    console.log("AI Action: OpenAI Request Successful.");
     return data.choices[0].message.content;
   } catch (error) {
-    console.error("OpenAI API Error:", error);
+    console.error("AI Action: Network or Internal Error:", error);
     return null;
   }
 }
