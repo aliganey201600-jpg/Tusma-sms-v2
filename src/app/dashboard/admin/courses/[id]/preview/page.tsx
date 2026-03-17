@@ -851,9 +851,9 @@ export default function CoursePreviewPage() {
   return (
     <div className="min-h-screen bg-[#FDFDFD]">
       {/* Premium Hero */}
-      <div className="bg-slate-950 py-20 px-6 md:px-10 text-white relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-1/3 h-full bg-gradient-to-l from-indigo-500/10 to-transparent pointer-events-none" />
-        <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
+      <div className="bg-gradient-to-br from-[#101828] via-[#1a2333] to-[#101828] py-10 px-6 md:px-10 text-white relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-1/3 h-full bg-indigo-500/5 pointer-events-none" />
+        <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(#fff 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
         
         <div className="max-w-5xl mx-auto relative z-10">
           <div className="flex items-center justify-between mb-10">
@@ -879,11 +879,11 @@ export default function CoursePreviewPage() {
                 <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Level {course?.level || 1}</span>
               </div>
               
-              <h1 className="text-4xl md:text-6xl font-black tracking-tight leading-[1.1] text-white">
+              <h1 className="text-3xl md:text-4xl font-bold tracking-tight leading-tight text-white focus:outline-none">
                 {course?.name}
               </h1>
               
-              <p className="text-lg text-white/50 max-w-xl leading-relaxed font-medium">
+              <p className="text-base text-white/60 max-w-xl leading-relaxed font-normal">
                 {course?.description || "Master the concepts through our structured curriculum and interactive assessments."}
               </p>
             </div>
@@ -905,7 +905,7 @@ export default function CoursePreviewPage() {
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-6 md:px-10 mt-12 pb-24">
+      <div className="max-w-5xl mx-auto px-6 md:px-10 mt-16 pb-24">
         <div className="grid grid-cols-12 gap-8">
           <div className="col-span-12 lg:col-span-8 space-y-6">
             <div className="flex items-center gap-3 mb-2">
