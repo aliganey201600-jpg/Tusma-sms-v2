@@ -2,6 +2,50 @@
 
 import prisma from "@/lib/prisma"
 
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+
+async function callOpenAI(prompt: string, context: string) {
+  if (!OPENAI_API_KEY) {
+    console.warn("AI Action: OPENAI_API_KEY is missing. Falling back to simulation.");
+    return null;
+  }
+
+  try {
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${OPENAI_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini", // Efficient and cost-effective
+        messages: [
+          {
+            role: "system",
+            content: `You are an expert academic tutor for the Tusmo SMS platform. Your goal is to help students understand complex concepts. 
+            Context of the current lesson:
+            ---
+            ${context}
+            ---
+            Provide clear, concise, and highly educational responses. Use Markdown for formatting. If the question is in Somali, respond in Somali.`
+          },
+          {
+            role: "user",
+            content: prompt
+          }
+        ],
+        temperature: 0.7,
+      }),
+    });
+
+    const data = await response.json();
+    return data.choices[0].message.content;
+  } catch (error) {
+    console.error("OpenAI API Error:", error);
+    return null;
+  }
+}
+
 export async function generateLessonSummary(lessonId: string) {
   console.log("AI Action: Generating summary for", lessonId)
   try {
@@ -11,45 +55,34 @@ export async function generateLessonSummary(lessonId: string) {
     })
 
     if (!lesson || !lesson.content) {
-      console.warn("AI Action: Lesson not found in DB, using fallback simulation data")
-      await new Promise(resolve => setTimeout(resolve, 1500))
       return { 
-        summary: `### 🎯 Quick Summary (Simulation Mode)\n\nThis is a high-density summary of the current module. \n\n#### 🗝️ Key Takeaways:\n* **Structural Efficiency:** Understanding the core framework of the subject.\n* **Strategic Application:** How to apply these concepts in real-world scenarios.\n* **Optimized Learning:** Focus on the primary objectives defined in the curriculum.\n\n*Note: To see a personalized summary, ensure the lesson has content saved in the database.*` 
+        summary: `### 🎯 Quick Summary (Simulation Mode)\n\nThis module focuses on the core foundations of the subject. \n\n#### 🗝️ Key Takeaways:\n* **Core Methodology:** Understanding the primary frameworks.\n* **Integration:** How these concepts apply broadly.\n* **Mastery:** Focus on the objectives defined in the curriculum.` 
       }
     }
 
-    // AI Simulation Logic
-    await new Promise(resolve => setTimeout(resolve, 2000))
+    // Try OpenAI
+    const prompt = `Generate a high-density executive summary for the lesson titled "${lesson.title}". Focus on key takeaways and conceptual synthesis.`;
+    const aiSummary = await callOpenAI(prompt, lesson.content);
 
-    const content = lesson.content
-    const paragraphs = content.split('\n').filter((p: string) => p.trim().length > 20)
-    
+    if (aiSummary) {
+      return { summary: aiSummary };
+    }
+
+    // Fallback Simulation Logic
+    await new Promise(resolve => setTimeout(resolve, 1500))
+    const paragraphs = lesson.content.split('\n').filter((p: string) => p.trim().length > 20)
     let summary = `### 🎯 Executive Summary: ${lesson.title}\n\n`
-    summary += `This lesson focuses on the core principles of **${lesson.title}**. `
-    
-    if (lesson.objectives) {
-       summary += `By the end of this module, we aim to master: ${lesson.objectives}\n\n`
-    }
-
     summary += `#### 🗝️ Key Takeaways:\n`
-    
     if (paragraphs.length > 0) {
-      const keyPoints = paragraphs.slice(0, 3).map(p => {
-         const firstSentence = p.split(/[.!?]/)[0]
-         return `* **${firstSentence.trim()}.**`
-      })
+      const keyPoints = paragraphs.slice(0, 3).map(p => `* **${p.split(/[.!?]/)[0].trim()}.**`)
       summary += keyPoints.join('\n') + '\n\n'
-    } else {
-      summary += `* **Core Focus:** Deep dive into the methodology of ${lesson.title}.\n* **Implementation:** Practicing the concepts through hands-on exercises.\n\n`
     }
-    
-    summary += `#### 💡 Conceptual Synthesis:\n`
-    summary += `Essentially, this module bridges the gap between theoretical understanding and practical application. It emphasizes the importance of consistency and deep semantic analysis in mastering the subject matter.`
+    summary += `#### 💡 Conceptual Synthesis:\nEssentially, this module bridges the gap between theoretical understanding and practical application.`
 
     return { summary }
   } catch (error: any) {
     console.error("AI Summary Error:", error)
-    return { error: `AI System Error: ${error.message || "Failed to generate AI summary."}` }
+    return { error: `AI System Error: ${error.message}` }
   }
 }
 
@@ -61,25 +94,28 @@ export async function askAIQuestion(lessonId: string, question: string) {
       select: { title: true, content: true }
     })
 
-    await new Promise(resolve => setTimeout(resolve, 1500))
+    const context = lesson?.content || "No detailed content available yet.";
+    const aiAnswer = await callOpenAI(question, context);
 
+    if (aiAnswer) {
+      return { answer: aiAnswer };
+    }
+
+    // Fallback
+    await new Promise(resolve => setTimeout(resolve, 1500))
     const q = question.toLowerCase()
     let answer = ""
     const title = lesson?.title || "this lesson"
 
     if (q.includes("example") || q.includes("tusaale")) {
-       answer = `Certainly! Regarding **${title}**, a practical example would be applying these principles to a real-world project. For instance, if you're building a system, you would use these concepts to ensure structural integrity and efficiency.`
-    } else if (q.includes("why") || q.includes("maxaa")) {
-       answer = `The reason this is important is because it forms the foundational logic for the entire module. Without understanding this core concept, subsequent advanced topics might feel disconnected.`
-    } else if (q.includes("how") || q.includes("sidee")) {
-       answer = `To implement this, you should start by breaking down the module into smaller, manageable chunks. Focus on the first paragraph where the core methodology is defined.`
+       answer = `Certainly! Regarding **${title}**, a practical example would be applying these principles to a real-world project.`
     } else {
-       answer = `That's a great question about **${title}**. Based on the lesson content, the most important thing to remember is that this concept is designed to simplify complex workflows. I recommend reviewing the "Key Takeaways" section in the summary for a clearer picture.`
+       answer = `That's a great question about **${title}**. Based on the lesson, the most important thing to remember is that this concept simplifies complex workflows.`
     }
 
-    return { answer: `### 🤖 AI Tutor Response\n\n${answer}\n\n*Is there anything else specifically about ${title} you'd like me to clarify?*` }
+    return { answer: `### 🤖 AI Tutor Response (Simulation)\n\n${answer}\n\n*Note: Connect OpenAI API for real-time intelligence.*` }
   } catch (error: any) {
     console.error("AI Question Error:", error)
-    return { error: `AI Assistant Error: ${error.message || "Unavailable."}` }
+    return { error: `AI Assistant Error: ${error.message}` }
   }
 }
