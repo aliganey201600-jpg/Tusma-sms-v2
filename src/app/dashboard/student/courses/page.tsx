@@ -24,6 +24,10 @@ import {
   Users,
   ArrowUpRight,
   Filter,
+  Sparkles,
+  Zap,
+  CheckCircle2,
+  GraduationCap
 } from "lucide-react"
 import { useCurrentUser } from "@/hooks/use-current-user"
 import { fetchStudentCourses } from "./actions"
@@ -64,83 +68,101 @@ export default function StudentCoursesPage() {
 
   if (loading || userLoading) {
     return (
-      <div className="p-4 space-y-8 max-w-[1400px] mx-auto animate-pulse">
-        <div className="h-20 w-1/3 bg-slate-100 rounded-2xl" />
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {[1, 2, 3].map(i => <div key={i} className="h-64 bg-slate-50 rounded-[32px]" />)}
+      <div className="min-h-screen bg-[#F8FAFD] p-10 space-y-8 max-w-[1400px] mx-auto">
+        <div className="h-40 w-full bg-slate-200/50 rounded-[3rem] animate-pulse" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {[1, 2, 3].map(i => <div key={i} className="h-80 bg-white rounded-[3rem] animate-pulse border border-slate-100" />)}
         </div>
       </div>
     )
   }
 
+  const avgProgress = courses.length > 0 ? Math.round(courses.reduce((acc, c) => acc + (c.progress || 0), 0) / courses.length) : 0
+
   return (
-    <div className="p-2 md:p-4 space-y-8 max-w-[1400px] mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700">
-
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
-        <div className="space-y-2">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-50 border border-violet-100 text-violet-600">
-            <BookOpen className="h-3 w-3" />
-            <span className="text-[10px] font-black uppercase tracking-widest">Enrolled Courses</span>
-          </div>
-          <h1 className="text-4xl font-black tracking-tighter text-slate-900">
-            My <span className="text-violet-600">Courses.</span>
-          </h1>
-          <p className="text-slate-500 font-medium">You are enrolled in {courses.length} courses this semester.</p>
+    <div className="min-h-screen bg-[#F8FAFD] pb-40">
+      {/* ── Premium Hero ── */}
+      <section className="relative pt-12 pb-24 px-6 md:px-10 overflow-hidden">
+        <div className="absolute inset-0 z-0 bg-slate-950">
+           <div className="absolute top-0 right-0 w-full h-full bg-[radial-gradient(circle_at_80%_20%,#4f46e510,transparent_50%)]" />
+           <div className="absolute bottom-0 left-0 w-full h-full bg-[radial-gradient(circle_at_20%_80%,#6366f108,transparent_50%)]" />
+           <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(#fff 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
         </div>
 
-        <div className="flex items-center gap-3 w-full sm:w-auto">
-          <div className="relative flex-1 sm:w-72">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <Input
-              placeholder="Search courses..."
-              className="pl-10 h-11 rounded-2xl border-slate-200 bg-white shadow-sm"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
-          <Button variant="outline" className="h-11 rounded-2xl gap-2 shrink-0">
-            <Filter className="h-4 w-4" />
-            Filter
-          </Button>
-        </div>
-      </div>
-
-      {/* Overall progress */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {[
-          { label: "Total Courses", value: courses.length.toString(), color: "violet" },
-          { label: "Completed Lessons", value: courses.reduce((acc, c) => acc + (c.completedLessons || 0), 0).toString(), color: "emerald" },
-          { label: "Avg. Progress", value: `${courses.length > 0 ? Math.round(courses.reduce((acc, c) => acc + (c.progress || 0), 0) / courses.length) : 0}%`, color: "blue" },
-          { label: "Current GPA", value: "A-", color: "amber" },
-        ].map((s, i) => {
-          const colors: any = {
-            violet: "from-violet-500 to-purple-600",
-            emerald: "from-emerald-500 to-teal-600",
-            blue: "from-blue-500 to-indigo-600",
-            amber: "from-amber-500 to-orange-600",
-          }
-          return (
-            <div key={i} className={cn("rounded-[24px] p-5 text-white bg-gradient-to-br shadow-xl", colors[s.color])}>
-              <p className="text-[10px] font-black uppercase tracking-widest text-white/70 mb-1">{s.label}</p>
-              <p className="text-4xl font-black tracking-tighter">{s.value}</p>
+        <div className="max-w-[1400px] mx-auto relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-10">
+          <div className="space-y-6">
+            <Badge className="bg-indigo-500 text-white border-none py-1.5 px-4 rounded-full text-[10px] font-black uppercase tracking-[0.2em]">
+               <Sparkles className="h-3 w-3 mr-2" /> Semester Spring 2026
+            </Badge>
+            <div className="space-y-2">
+              <h1 className="text-4xl md:text-6xl font-black text-white tracking-tight leading-tight">
+                My <span className="text-indigo-400">Learning</span> Journey.
+              </h1>
+              <p className="text-slate-400 font-medium text-lg max-w-xl">
+                 You have <span className="text-white font-bold">{courses.length} active courses</span> this term. 
+                 Keep pushing to reach your goal of 100% completion!
+              </p>
             </div>
-          )
-        })}
-      </div>
-
-      {/* Course Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-        {filtered.map((course) => (
-          <CourseCard key={course.id} course={course} />
-        ))}
-        {filtered.length === 0 && (
-          <div className="col-span-full flex flex-col items-center justify-center py-20 text-slate-400">
-            <BookOpen className="h-12 w-12 mb-4 opacity-30" />
-            <p className="font-bold text-lg">No courses found</p>
-            <p className="text-sm">Try a different search term.</p>
           </div>
-        )}
+
+          <div className="w-full md:w-auto flex flex-col sm:flex-row gap-4">
+             <div className="relative group">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 group-focus-within:text-indigo-400 transition-colors" />
+                <Input
+                  placeholder="Find a course..."
+                  className="pl-11 h-16 w-full md:w-80 rounded-2xl bg-white/5 border-white/10 text-white placeholder:text-slate-500 focus:bg-white/10 transition-all font-bold border-2"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+             </div>
+             <Button variant="outline" className="h-16 px-8 rounded-2xl border-white/10 bg-white/5 text-white hover:bg-white/10 font-black text-[10px] uppercase tracking-widest gap-3 transition-all">
+                <Filter className="h-4 w-4" /> Filter
+             </Button>
+          </div>
+        </div>
+      </section>
+
+      <div className="max-w-[1400px] mx-auto px-6 md:px-10 -mt-12 relative z-20 space-y-12">
+        {/* ── Stats Matrix ── */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+          {[
+            { label: "Enrolled Courses", value: courses.length.toString(), icon: BookOpen, color: "text-indigo-500" },
+            { label: "Completed Items", value: courses.reduce((acc, c) => acc + (c.completedLessons || 0), 0).toString(), icon: CheckCircle2, color: "text-emerald-500" },
+            { label: "Overall Progress", value: `${avgProgress}%`, icon: Zap, color: "text-amber-500" },
+            { label: "Current GPA", value: "3.85", icon: GraduationCap, color: "text-rose-500" },
+          ].map((s, i) => (
+            <Card key={i} className="border-none shadow-2xl shadow-slate-200/50 rounded-[2.5rem] bg-white p-6 group hover:scale-[1.02] transition-all">
+               <div className="flex items-center gap-5">
+                  <div className={cn("h-14 w-14 rounded-2xl bg-slate-50 flex items-center justify-center transition-all group-hover:scale-110", s.color)}>
+                     <s.icon className="h-7 w-7" />
+                  </div>
+                  <div className="space-y-1">
+                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{s.label}</p>
+                     <p className="text-3xl font-black text-slate-900 tracking-tight">{s.value}</p>
+                  </div>
+               </div>
+            </Card>
+          ))}
+        </div>
+
+        {/* ── Course Grid ── */}
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+          {filtered.map((course) => (
+            <CourseCard key={course.id} course={course} />
+          ))}
+          {filtered.length === 0 && (
+            <div className="col-span-full bg-white rounded-[3rem] border-2 border-dashed border-slate-100 py-32 flex flex-col items-center justify-center text-slate-400 space-y-6">
+              <div className="h-24 w-24 bg-slate-50 rounded-full flex items-center justify-center">
+                 <BookOpen className="h-10 w-10 opacity-30" />
+              </div>
+              <div className="text-center">
+                <p className="font-black text-2xl text-slate-900 tracking-tight">No courses match your search</p>
+                <p className="text-slate-400 font-medium">Try refining your search terms or filters.</p>
+              </div>
+              <Button onClick={() => setSearch("")} variant="outline" className="rounded-xl h-12 uppercase tracking-widest text-[10px] font-black border-2">Clear Search</Button>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
@@ -148,46 +170,46 @@ export default function StudentCoursesPage() {
 
 function CourseCard({ course }: { course: any }) {
   const colorMap: any = {
-    violet: { bar: "bg-violet-500", badge: "bg-violet-50 text-violet-700", icon: "bg-violet-100 text-violet-600", ring: "ring-violet-200" },
-    blue: { bar: "bg-blue-500", badge: "bg-blue-50 text-blue-700", icon: "bg-blue-100 text-blue-600", ring: "ring-blue-200" },
-    emerald: { bar: "bg-emerald-500", badge: "bg-emerald-50 text-emerald-700", icon: "bg-emerald-100 text-emerald-600", ring: "ring-emerald-200" },
-    amber: { bar: "bg-amber-500", badge: "bg-amber-50 text-amber-700", icon: "bg-amber-100 text-amber-600", ring: "ring-amber-200" },
-    rose: { bar: "bg-rose-500", badge: "bg-rose-50 text-rose-700", icon: "bg-rose-100 text-rose-600", ring: "ring-rose-200" },
-    lime: { bar: "bg-lime-500", badge: "bg-lime-50 text-lime-700", icon: "bg-lime-100 text-lime-600", ring: "ring-lime-200" },
+    violet: { bar: "bg-indigo-500", shadow: "shadow-indigo-500/10", accent: "bg-indigo-50 text-indigo-600", mesh: "from-indigo-500/5 to-transparent" },
+    blue: { bar: "bg-blue-500", shadow: "shadow-blue-500/10", accent: "bg-blue-50 text-blue-600", mesh: "from-blue-500/5 to-transparent" },
+    emerald: { bar: "bg-emerald-500", shadow: "shadow-emerald-500/10", accent: "bg-emerald-50 text-emerald-600", mesh: "from-emerald-500/5 to-transparent" },
+    amber: { bar: "bg-amber-500", shadow: "shadow-amber-500/10", accent: "bg-amber-50 text-amber-600", mesh: "from-amber-500/5 to-transparent" },
+    rose: { bar: "bg-rose-500", shadow: "shadow-rose-500/10", accent: "bg-rose-50 text-rose-600", mesh: "from-rose-500/5 to-transparent" },
   }
   const c = colorMap[course.color] || colorMap.violet
 
   return (
-    <Card className="border-none shadow-xl shadow-slate-100 rounded-[28px] overflow-hidden bg-white group hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
-      {/* Top accent */}
-      <div className={cn("h-1.5 w-full", c.bar)} />
-
-      <CardContent className="p-6 space-y-5">
+    <Card className="border-none shadow-2xl shadow-slate-100 rounded-[3rem] overflow-hidden bg-white group hover:shadow-[0_40px_80px_-16px_rgba(0,0,0,0.1)] transition-all duration-500 hover:-translate-y-2 relative cursor-default">
+      <div className={cn("absolute inset-0 bg-gradient-to-br opacity-50 z-0", c.mesh)} />
+      
+      <div className="p-10 space-y-8 relative z-10">
         {/* Title row */}
-        <div className="flex items-start justify-between gap-3">
-          <div className={cn("h-12 w-12 rounded-2xl flex items-center justify-center shrink-0", c.icon)}>
-            <BookOpen className="h-5 w-5" />
+        <div className="flex items-start justify-between">
+          <div className={cn("h-14 w-14 rounded-2xl flex items-center justify-center shrink-0 shadow-lg transition-transform duration-500 group-hover:scale-110", c.bar, "text-white")}>
+            <BookOpen className="h-7 w-7" />
           </div>
-          <Badge variant="outline" className={cn("rounded-full text-[10px] font-black border-0 py-1", c.badge)}>
-            {course.grade}
+          <Badge className={cn("rounded-xl text-[10px] font-black uppercase tracking-widest px-4 py-2 border-none shadow-sm", c.accent)}>
+            Grade {course.grade}
           </Badge>
         </div>
 
-        <div>
-          <h3 className="text-lg font-black text-slate-900 leading-tight mb-1">{course.name}</h3>
-          <div className="flex items-center gap-1.5 text-xs text-slate-400 font-semibold">
-            <Users className="h-3 w-3" />
-            {course.teacher}
-          </div>
+        <div className="space-y-2">
+           <h3 className="text-2xl font-black text-slate-900 leading-[1.15] tracking-tight group-hover:text-indigo-600 transition-colors uppercase">{course.name}</h3>
+           <div className="flex items-center gap-2 text-xs text-slate-400 font-black uppercase tracking-widest">
+             <Users className="h-3.5 w-3.5" /> {course.teacher}
+           </div>
         </div>
 
-        {/* Progress */}
-        <div className="space-y-2">
-          <div className="flex justify-between text-[11px] font-black text-slate-400 uppercase">
-            <span>Progress</span>
-            <span>{course.completedLessons}/{course.lessons} lessons · {course.progress}%</span>
+        {/* Progress Matrix */}
+        <div className="space-y-4">
+          <div className="flex justify-between items-end">
+             <div className="space-y-1">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Progress</p>
+                <p className="text-lg font-black text-slate-900">{course.progress}%</p>
+             </div>
+             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{course.completedLessons} / {course.lessons} Units</p>
           </div>
-          <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+          <div className="h-2.5 bg-slate-50 rounded-full overflow-hidden border border-slate-100">
             <div
               className={cn("h-full rounded-full transition-all duration-1000", c.bar)}
               style={{ width: `${course.progress}%` }}
@@ -195,35 +217,32 @@ function CourseCard({ course }: { course: any }) {
           </div>
         </div>
 
-        {/* Next lesson */}
-        <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 border border-dashed border-slate-100">
-          <div className="h-8 w-8 rounded-lg bg-white flex items-center justify-center shadow-sm shrink-0">
-            <Play className="h-3 w-3 text-slate-500 fill-slate-500" />
+        {/* Next Lesson Pulse */}
+        <div className="flex items-center gap-4 p-5 rounded-3xl bg-slate-50 border border-slate-100 group/item transition-all hover:bg-white hover:border-indigo-100">
+          <div className="h-10 w-10 rounded-xl bg-white flex items-center justify-center shadow-sm shrink-0">
+            <Play className="h-4 w-4 text-slate-500 fill-slate-500 group-hover/item:text-indigo-600 group-hover/item:fill-indigo-600 transition-colors" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-[10px] font-black uppercase text-slate-400">Up next</p>
-            <p className="text-xs font-bold text-slate-700 truncate">{course.nextLesson}</p>
+            <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Next Action</p>
+            <p className="text-xs font-black text-slate-700 truncate">{course.nextLesson}</p>
           </div>
         </div>
 
-        {/* Schedule */}
-        <div className="flex items-center justify-between pt-1 border-t border-slate-50">
-          <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-400">
-            <Clock className="h-3 w-3" />
-            {course.schedule} · {course.time}
+        {/* Footer */}
+        <div className="flex items-center justify-between pt-4 border-t border-slate-50">
+          <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
+            <Clock className="h-4 w-4" />
+            {course.time}
           </div>
-          <Button
-            size="sm"
-            variant="ghost"
-            className="h-8 px-3 rounded-xl text-xs font-black text-violet-600 hover:bg-violet-50 gap-1"
-            asChild
-          >
-            <Link href={`/dashboard/student/courses/${course.id}`}>
-              Open <ChevronRight className="h-3 w-3" />
-            </Link>
-          </Button>
+          <Link href={`/dashboard/student/courses/${course.id}`}>
+            <Button
+              className="h-12 px-8 rounded-2xl bg-slate-950 text-white font-black text-[10px] uppercase tracking-widest hover:bg-slate-800 shadow-xl shadow-slate-200 border-b-4 border-slate-800 active:border-b-0 active:translate-y-1 transition-all flex items-center gap-2"
+            >
+              Continue <ArrowUpRight className="h-3.5 w-3.5" />
+            </Button>
+          </Link>
         </div>
-      </CardContent>
+      </div>
     </Card>
   )
 }
