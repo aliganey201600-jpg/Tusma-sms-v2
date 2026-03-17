@@ -4,7 +4,7 @@ import * as React from "react"
 import {
   BookOpen, ChevronLeft, ChevronDown, ChevronRight,
   Clock, FileText, CheckCircle2, Video, Zap, ArrowRight,
-  X, FileDown, BookOpenCheck, GraduationCap,
+  X, FileDown, BookOpenCheck, GraduationCap, HelpCircle,
   Layers, AlertCircle, Trophy, RotateCcw, Check, Eye,
   Sparkles, MessageSquare, User, Shuffle, Star, Type, Target,
   Printer
@@ -1190,7 +1190,8 @@ export default function StudentCourseViewerPage() {
                   { key: "body", label: "Lesson Body", icon: BookOpen },
                   { key: "materials", label: "Materials", icon: FileText },
                   { key: "video", label: "Video", icon: Video },
-                  { key: "qa", label: "Q&A Discussion", icon: MessageSquare },
+                  { key: "qa", label: "Q&A", icon: MessageSquare },
+                  { key: "ai", label: "AI Tutor", icon: Sparkles },
                 ].map(tab => (
                   <button key={tab.key} onClick={() => setActiveLessonTab(tab.key)} className={cn("flex-1 flex items-center justify-center gap-2 py-4 px-3 text-xs font-bold uppercase tracking-wider transition-all border-b-2", activeLessonTab === tab.key ? "border-indigo-600 text-indigo-600 bg-indigo-50/40" : "border-transparent text-slate-400 hover:text-slate-600 hover:bg-slate-50")}><tab.icon className="h-4 w-4" /><span className="hidden sm:inline">{tab.label}</span></button>
                 ))}
@@ -1217,6 +1218,58 @@ export default function StudentCourseViewerPage() {
                 )}
                 {activeLessonTab === "qa" && activeLesson && (
                   <LessonDiscussions lessonId={activeLesson.id} user={user} />
+                )}
+                {activeLessonTab === "ai" && (
+                   <div className="space-y-8 animate-in fade-in duration-500">
+                      <div className="flex items-center justify-between">
+                         <div>
+                            <h3 className="text-xl font-black text-slate-900 flex items-center gap-2">
+                               <Sparkles className="h-5 w-5 text-indigo-500" /> AI Lesson Assistant
+                            </h3>
+                            <p className="text-xs text-slate-400 font-medium mt-1">Personalized guidance and semantic summaries</p>
+                         </div>
+                         <Badge className="bg-indigo-50 text-indigo-600 border-indigo-100 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest">Active Intelligence</Badge>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
+                         <Card className="border-none shadow-sm bg-slate-50/50 hover:bg-white hover:shadow-xl hover:shadow-indigo-50/50 transition-all p-8 rounded-3xl group cursor-pointer border-2 border-transparent hover:border-indigo-100" 
+                               onClick={() => {
+                                  // Mock logic: Trigger a simulated summary
+                                  const btn = document.getElementById("ai-summary-btn");
+                                  if (btn) btn.click();
+                               }}>
+                            <div className="h-12 w-12 rounded-2xl bg-indigo-100 text-indigo-600 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform"><FileText className="h-6 w-6" /></div>
+                            <h4 className="text-sm font-black text-slate-900 uppercase tracking-tight mb-2">Lesson Executive Summary</h4>
+                            <p className="text-xs text-slate-500 leading-relaxed font-medium">Extract the most critical insights and core concepts from this lesson into a high-density summary.</p>
+                            <Button id="ai-summary-btn" variant="ghost" className="mt-6 p-0 h-auto text-[10px] font-black uppercase tracking-widest text-indigo-600 hover:bg-transparent flex items-center gap-2 group/btn">
+                               Generate Now <ArrowRight className="h-3.5 w-3.5 group-hover/btn:translate-x-1 transition-transform" />
+                            </Button>
+                         </Card>
+
+                         <Card className="border-none shadow-sm bg-slate-50/50 hover:bg-white hover:shadow-xl hover:shadow-indigo-50/50 transition-all p-8 rounded-3xl group border-2 border-transparent hover:border-amber-100">
+                            <div className="h-12 w-12 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform"><HelpCircle className="h-6 w-6" /></div>
+                            <h4 className="text-sm font-black text-slate-900 uppercase tracking-tight mb-2">Semantic Concept Explainer</h4>
+                            <p className="text-xs text-slate-500 leading-relaxed font-medium">Struggling with a specific concept? Describe what you don&apos;t understand and get a personalized explanation.</p>
+                            <div className="mt-6 flex gap-2">
+                               <input type="text" placeholder="Explain the..." className="flex-1 bg-white border border-slate-100 rounded-xl px-4 py-2 text-xs outline-none focus:border-amber-400 transition-all" />
+                               <Button size="icon" className="h-8 w-8 rounded-xl bg-amber-500 hover:bg-amber-600 text-white shadow-lg shadow-amber-200"><ArrowRight className="h-4 w-4" /></Button>
+                            </div>
+                         </Card>
+                      </div>
+
+                      <div className="bg-indigo-950 rounded-[2.5rem] p-8 md:p-12 text-white relative overflow-hidden group">
+                         <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl -mr-32 -mt-32" />
+                         <div className="relative z-10 flex flex-col md:flex-row items-center gap-8">
+                            <div className="h-20 w-20 rounded-3xl bg-white/10 flex items-center justify-center shrink-0 border border-white/10 group-hover:rotate-6 transition-transform">
+                               <Sparkles className="h-10 w-10 text-indigo-300" />
+                            </div>
+                            <div className="space-y-4">
+                               <h4 className="text-xl font-black tracking-tight">AI Status: Waiting for Inquiry</h4>
+                               <p className="text-sm text-white/50 leading-relaxed font-medium">Your personal AI tutor is ready to assist. Select an option above to generate a summary or ask for an explanation of complex topics.</p>
+                            </div>
+                         </div>
+                      </div>
+                   </div>
                 )}
               </div>
             </div>
