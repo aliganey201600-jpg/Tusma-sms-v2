@@ -148,7 +148,6 @@ export default function AdminCoursesPage() {
       return matchesSearch && matchesGrade && matchesCategory;
     })
   }, [courses, searchTerm, selectedGrades, selectedCategories])
- Broadway
 
   const handleDelete = async (id: string) => {
     if (confirm("Are you sure you want to delete this course curriculum?")) {
