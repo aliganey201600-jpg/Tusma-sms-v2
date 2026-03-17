@@ -158,6 +158,7 @@ export async function getQuizWithQuestions(quizId: string, studentId?: string) {
           include: { options: { orderBy: { order: 'asc' } } }
         },
         section: { select: { courseId: true } },
+        lesson: { select: { id: true, title: true } }, 
         attempts: studentId ? {
           where: { studentId },
           orderBy: { createdAt: 'desc' },
@@ -165,7 +166,7 @@ export async function getQuizWithQuestions(quizId: string, studentId?: string) {
         } : false
       }
     })
-    return quiz
+    return quiz as any
   } catch (error) {
     return null
   }

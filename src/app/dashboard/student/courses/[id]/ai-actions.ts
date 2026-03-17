@@ -11,8 +11,8 @@ async function callGemini(prompt: string, context: string) {
 
   console.log("AI Action: Initiating Gemini Request to Google...");
   try {
-    // Model updated to gemini-2.5-flash-lite as per available models in 2026
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${key}`, {
+    // Model updated to gemini-2.5-flash to bypass lite quota limits
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -125,5 +125,87 @@ export async function askAIQuestion(lessonId: string, question: string) {
   } catch (error: any) {
     console.error("AI Question Error:", error)
     return { error: `AI Assistant Error: ${error.message}` }
+  }
+}
+
+export async function generateQuizQuestions(quizId: string, questionCount: number = 5) {
+  console.log(`AI Action: Generating ${questionCount} quiz questions for quiz`, quizId)
+  try {
+    const quiz = await prisma.quiz.findUnique({
+      where: { id: quizId },
+      include: {
+        lesson: { select: { title: true, content: true } },
+        section: { 
+          include: { 
+            lessons: { select: { title: true, content: true }, orderBy: { order: 'asc' } } 
+          } 
+        }
+      }
+    })
+
+    if (!quiz) return { error: "Quiz context not found." }
+
+    let contentToAnalyze = "";
+
+    if (quiz.lesson?.content) {
+      contentToAnalyze = quiz.lesson.content;
+    } else if (quiz.section?.lessons?.length) {
+      contentToAnalyze = quiz.section.lessons
+        .filter((l: any) => l.content)
+        .map((l: any) => l.content)
+        .join("\n\n");
+    }
+
+    if (!contentToAnalyze.trim()) {
+      return { error: "We couldn't find any text content in this section's lectures to generate questions from. Please add some written content to your lessons first." }
+    }
+
+    // Limit content length to prevent token overflow
+    const truncatedContent = contentToAnalyze.slice(0, 50000);
+
+    const prompt = `Based on the following lesson content, generate exactly ${questionCount} highly educational multiple-choice questions. 
+    Output the result EXCLUSIVELY as a JSON array of objects. Do not include any other text or markdown formatting.
+    
+    Each object must have exactly this structure:
+    {
+      "question": "The question text",
+      "options": ["Option 1", "Option 2", "Option 3", "Option 4"],
+      "correctIndex": 0,
+      "hint": "A short hint for the student"
+    }
+    
+    Make the questions challenging but fair. Use the same language as the lesson (Somali or English).`;
+
+    const aiResult = await callGemini(prompt, truncatedContent);
+
+    if (!aiResult) {
+      return { error: "AI failed to generate quiz questions." }
+    }
+
+    // Clean up response in case Gemini included markdown blocks
+    const cleanedResult = aiResult.replace(/```json/g, "").replace(/```/g, "").trim();
+    const questions = JSON.parse(cleanedResult);
+
+    // Map AI result to our Data Format
+    const formattedQuestions = questions.map((q: any) => ({
+      id: crypto.randomUUID(),
+      type: "MCQ",
+      question: q.question,
+      points: 1,
+      required: true,
+      shuffleOptions: true,
+      hint: q.hint,
+      options: q.options.map((opt: string, idx: number) => ({
+        id: crypto.randomUUID(),
+        text: opt,
+        isCorrect: idx === q.correctIndex,
+        matchKey: ""
+      }))
+    }));
+
+    return { success: true, questions: formattedQuestions };
+  } catch (error: any) {
+    console.error("AI Generate Quiz Error:", error)
+    return { error: `AI Quiz Error: ${error.message}` }
   }
 }

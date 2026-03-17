@@ -5,7 +5,7 @@ import {
   Plus, Trash2, ChevronLeft, Save, Upload, Download,
   HelpCircle, CheckSquare, ArrowLeftRight, PenLine,
   AlignLeft, FileText, ChevronDown, GripVertical,
-  Star, Shuffle, Eye, EyeOff, AlertCircle, Check, X
+  Star, Shuffle, Eye, EyeOff, AlertCircle, Check, X, Sparkles
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -17,6 +17,7 @@ import { useParams, useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { getQuizWithQuestions, saveQuizQuestions, updateQuiz } from "../../../builder-actions"
+import { generateQuizQuestions } from "../../../../../student/courses/[id]/ai-actions"
 
 // ─── Question Types ────────────────────────────────────────────────────────
 const QUESTION_TYPES = [
@@ -119,6 +120,9 @@ export default function QuizBuilderPage() {
   const [showTypeMenu, setShowTypeMenu] = React.useState(false)
   const [expandedQ, setExpandedQ] = React.useState<string | null>(null)
   const fileRef = React.useRef<HTMLInputElement>(null)
+  const [isGeneratingAI, setIsGeneratingAI] = React.useState(false)
+  const [aiQuestionCount, setAiQuestionCount] = React.useState(5)
+  const [showAIConfig, setShowAIConfig] = React.useState(false)
 
   // Quiz settings state
   const [quizTitle, setQuizTitle] = React.useState("")
@@ -155,6 +159,25 @@ export default function QuizBuilderPage() {
     setQuestions(prev => [...prev, q])
     setExpandedQ(q.id)
     setShowTypeMenu(false)
+  }
+
+  const handleAIGenerate = async () => {
+    setIsGeneratingAI(true)
+    try {
+      // Pass the quiz ID directly instead of lessonId. The backend handles finding the right content.
+      const res = await generateQuizQuestions(quiz.id, aiQuestionCount)
+      if (res.success && res.questions) {
+        setQuestions(prev => [...prev, ...res.questions])
+        toast.success(`Neural Network Sync: ${res.questions.length} New Challenges Deployed`)
+        if (res.questions.length > 0) setExpandedQ(res.questions[0].id)
+      } else {
+        toast.error(res.error || "AI Synthesis Failed")
+      }
+    } catch (err) {
+      toast.error("Strategic Link Failure")
+    } finally {
+      setIsGeneratingAI(false)
+    }
   }
 
   const removeQuestion = (qid: string) => {
@@ -287,32 +310,81 @@ export default function QuizBuilderPage() {
         {/* ─ Left: Questions ─────────────────────────────────── */}
         <div className="col-span-12 lg:col-span-8 space-y-4">
           {/* Add Question Button */}
-          <div className="relative">
-            <Button
-              onClick={() => setShowTypeMenu(v => !v)}
-              className="w-full h-12 rounded-2xl border-2 border-dashed border-indigo-200 bg-indigo-50/50 text-indigo-600 hover:bg-indigo-50 hover:border-indigo-300 font-semibold text-sm gap-2 transition-all"
-              variant="ghost"
-            >
-              <Plus className="h-4 w-4" /> Add Question
-              <ChevronDown className={cn("h-4 w-4 transition-transform ml-auto", showTypeMenu && "rotate-180")} />
-            </Button>
+          <div className="flex gap-4 relative">
+            <div className="flex-1 relative">
+              <Button
+                onClick={() => setShowTypeMenu(v => !v)}
+                className="w-full h-12 rounded-2xl border-2 border-dashed border-indigo-200 bg-indigo-50/50 text-indigo-600 hover:bg-indigo-50 hover:border-indigo-300 font-semibold text-sm gap-2 transition-all"
+                variant="ghost"
+              >
+                <Plus className="h-4 w-4" /> Add Question
+                <ChevronDown className={cn("h-4 w-4 transition-transform ml-auto", showTypeMenu && "rotate-180")} />
+              </Button>
 
-            {showTypeMenu && (
-              <div className="absolute top-14 left-0 right-0 z-20 bg-white border border-slate-100 rounded-2xl shadow-xl p-3 grid grid-cols-3 gap-2">
-                {QUESTION_TYPES.map(t => (
-                  <button
-                    key={t.value}
-                    onClick={() => addQuestion(t.value)}
-                    className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-slate-50 transition-all group"
-                  >
-                    <div className={`h-10 w-10 rounded-xl flex items-center justify-center bg-${t.color}-50 text-${t.color}-600 group-hover:scale-110 transition-transform`}>
-                      <t.icon className="h-5 w-5" />
+              {showTypeMenu && (
+                <div className="absolute top-14 left-0 right-0 z-20 bg-white border border-slate-100 rounded-2xl shadow-xl p-3 grid grid-cols-3 gap-2">
+                  {QUESTION_TYPES.map(t => (
+                    <button
+                      key={t.value}
+                      onClick={() => addQuestion(t.value)}
+                      className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-slate-50 transition-all group"
+                    >
+                      <div className={`h-10 w-10 rounded-xl flex items-center justify-center bg-${t.color}-50 text-${t.color}-600 group-hover:scale-110 transition-transform`}>
+                        <t.icon className="h-5 w-5" />
+                      </div>
+                      <span className="text-[10px] font-semibold text-slate-600 text-center leading-tight">{t.label}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="relative">
+              <Button
+                onClick={() => setShowAIConfig(!showAIConfig)}
+                disabled={isGeneratingAI}
+                className="h-12 rounded-2xl bg-slate-950 hover:bg-slate-900 text-white font-semibold text-sm gap-2 px-8 shadow-md border-b-4 border-slate-800 active:border-b-0 hover:scale-[1.02] active:scale-[0.98] transition-all"
+              >
+                {isGeneratingAI ? (
+                  <div className="h-5 w-5 border-2 border-slate-400 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <Sparkles className="h-4 w-4 text-amber-400" />
+                )}
+                {isGeneratingAI ? "Generating..." : "Generate with AI"}
+              </Button>
+
+              {showAIConfig && !isGeneratingAI && (
+                <div className="absolute top-14 right-0 z-20 bg-white border border-slate-100 rounded-2xl shadow-xl w-72 p-4 animate-in slide-in-from-top-2">
+                  <div className="flex items-center gap-2 mb-3 px-1">
+                    <Sparkles className="h-4 w-4 text-indigo-500" />
+                    <h4 className="text-xs font-bold text-slate-800 uppercase tracking-widest">AI Assessment Config</h4>
+                  </div>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label className="text-[10px] uppercase text-slate-400 tracking-wider">Target Node Count</Label>
+                      <div className="flex items-center gap-3">
+                        <Input 
+                          type="number" 
+                          min={1} max={50}
+                          value={aiQuestionCount}
+                          onChange={e => setAiQuestionCount(Number(e.target.value) || 1)}
+                          className="h-10 border-slate-200 bg-slate-50 text-center font-bold"
+                        />
+                        <span className="text-xs font-semibold text-slate-400 whitespace-nowrap">Questions</span>
+                      </div>
                     </div>
-                    <span className="text-[10px] font-semibold text-slate-600 text-center leading-tight">{t.label}</span>
-                  </button>
-                ))}
-              </div>
-            )}
+                    <Button 
+                      onClick={() => {
+                        setShowAIConfig(false);
+                        handleAIGenerate();
+                      }}
+                      className="w-full h-10 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs uppercase tracking-widest rounded-xl"
+                    >
+                      Execute Synthesis
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           {questions.length === 0 && (
