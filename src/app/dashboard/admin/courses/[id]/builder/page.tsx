@@ -25,7 +25,14 @@ import {
   Type,
   Bold,
   Italic,
-  Underline
+  Underline,
+  PenLine,
+  Library,
+  GraduationCap,
+  Sparkles,
+  ArrowRight,
+  Clock,
+  Link as LinkIcon
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -116,21 +123,33 @@ function SortableItem({ id, item, activeId, onClick, type }: any) {
           {isQuiz ? <Zap className="h-4 w-4" /> : <Video className="h-4 w-4" />}
         </div>
         <div>
-          <p className="text-sm font-bold text-slate-900">{item.title}</p>
-          <p className="text-[10px] font-medium text-slate-400">
-            {isQuiz ? `Knowledge Check • ${item.passingScore || 70}% Pass` : `Video Lesson • ${item.duration || 0}m`}
+          <p className="text-sm font-bold text-slate-900 leading-tight uppercase tracking-tight">{item.title}</p>
+          <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest mt-0.5">
+            {isQuiz ? `Assessment Hub • ${item.passingScore || 70}% Threshold` : `Learning Node • ${item.duration || 0}m Session`}
           </p>
         </div>
       </div>
-      <ChevronRight className="h-4 w-4 text-slate-200 group-hover:text-slate-400" />
+      <ChevronRight className={cn("h-4 w-4 transition-all", isActive ? "text-indigo-400 translate-x-1" : "text-slate-200 group-hover:text-slate-400")} />
     </div>
   );
 }
 
 // ─── Sortable Section Component ──────────────────────────────────────────────
-function SortableSection({ section, sIdx, sensors, handleItemDragEnd, handleAddLesson, handleAddQuiz, deleteSection, loadCourse, activeItem, handleSelectItem, courseId }: any) {
-  const [isExpanded, setIsExpanded] = React.useState(true); // Default to expanded for better initial UX
-
+function SortableSection({ 
+  section, 
+  sIdx, 
+  sensors, 
+  handleItemDragEnd, 
+  handleAddLesson, 
+  handleAddQuiz, 
+  deleteSection, 
+  loadCourse, 
+  activeItem, 
+  handleSelectItem, 
+  courseId,
+  isExpanded,
+  onToggle
+}: any) {
   const {
     attributes,
     listeners,
@@ -155,64 +174,84 @@ function SortableSection({ section, sIdx, sensors, handleItemDragEnd, handleAddL
 
   return (
     <div ref={setNodeRef} style={style}>
-      <Card className={cn("border-none shadow-sm rounded-3xl overflow-hidden bg-white mb-8 transition-all duration-300", isDragging && "opacity-50 ring-2 ring-indigo-500", !isExpanded && "hover:shadow-md")}>
+      <Card className={cn(
+        "border-none shadow-sm rounded-3xl overflow-hidden bg-white mb-4 transition-all duration-500", 
+        isDragging && "opacity-50 ring-2 ring-indigo-500", 
+        isExpanded ? "shadow-2xl shadow-indigo-100 ring-1 ring-indigo-50 border-b-4 border-indigo-600" : "hover:shadow-md hover:bg-slate-50/30"
+      )}>
         <CardContent className="p-0">
           <div 
-            className="p-5 flex items-center justify-between bg-slate-50/50 border-b border-slate-100 cursor-pointer group/header hover:bg-slate-100/50 transition-colors"
-            onClick={() => setIsExpanded(!isExpanded)}
+            className={cn(
+               "p-6 flex items-center justify-between transition-all cursor-pointer group/header",
+               isExpanded ? "bg-white" : "bg-white hover:bg-slate-50/50"
+            )}
+            onClick={onToggle}
           >
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-5">
               <div 
                 {...attributes} 
                 {...listeners} 
-                className="h-8 w-6 flex items-center justify-center text-slate-300 hover:text-slate-500 cursor-grab active:cursor-grabbing"
+                className="h-8 w-6 flex items-center justify-center text-slate-300 hover:text-indigo-500 cursor-grab active:cursor-grabbing transition-colors"
                 onClick={e => e.stopPropagation()}
               >
-                <GripVertical className="h-4 w-4" />
+                <GripVertical className="h-5 w-5" />
               </div>
               <div className={cn(
-                "h-8 w-8 rounded-lg shadow-sm flex items-center justify-center text-[10px] font-black transition-all duration-300",
-                isExpanded ? "bg-indigo-600 text-white" : "bg-white text-slate-400"
+                "h-12 w-12 rounded-[18px] shadow-sm flex items-center justify-center text-xs font-black transition-all duration-500",
+                isExpanded ? "bg-indigo-600 text-white scale-110 shadow-indigo-200" : "bg-slate-50 text-slate-400"
               )}>
                 {sIdx + 1}
               </div>
               <div>
-                <h3 className="font-black text-slate-900 group-hover/header:text-indigo-600 transition-colors uppercase tracking-tight text-sm">
+                <h3 className={cn(
+                  "font-black tracking-tight transition-colors uppercase text-[13px]",
+                  isExpanded ? "text-indigo-600" : "text-slate-900 group-hover/header:text-indigo-500"
+                )}>
                   {section.title}
                 </h3>
-                {!isExpanded && (
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
-                    {interleavedItems.length} Content Nodes
-                  </p>
-                )}
+                <div className="flex items-center gap-3 mt-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <Library className="h-3 w-3 text-slate-300" />
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">
+                      {interleavedItems.length} Nodes Published
+                    </p>
+                  </div>
+                  {isExpanded && <span className="h-1 w-1 rounded-full bg-indigo-200" />}
+                  {isExpanded && (
+                    <div className="flex items-center gap-1.5 animate-pulse">
+                      <Sparkles className="h-3 w-3 text-indigo-400" />
+                      <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest leading-none">Design Phase Active</p>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <div className={cn(
-                "h-8 w-8 rounded-xl border border-slate-200 bg-white flex items-center justify-center transition-all duration-500",
-                isExpanded ? "rotate-180 bg-indigo-50 border-indigo-100 text-indigo-600" : "text-slate-300"
+                "h-10 w-10 rounded-[14px] border border-slate-100 bg-white flex items-center justify-center transition-all duration-500",
+                isExpanded ? "rotate-180 bg-indigo-50 border-indigo-200 text-indigo-600 shadow-sm" : "text-slate-200 group-hover/header:text-indigo-400 group-hover/header:border-indigo-100"
               )}>
-                <ChevronDown className="h-4 w-4" />
+                <ChevronDown className="h-5 w-5" />
               </div>
               <Button 
                 variant="ghost" 
                 size="icon" 
-                className="h-8 w-8 text-slate-300 hover:text-red-600 hover:bg-red-50 rounded-xl" 
+                className="h-10 w-10 text-slate-200 hover:text-red-500 hover:bg-red-50 rounded-[14px] transition-all opacity-0 group-hover/header:opacity-100" 
                 onClick={(e) => {
                   e.stopPropagation();
                   deleteSection(section.id).then(loadCourse);
                 }}
               >
-                <Trash2 className="h-4 w-4" />
+                <Trash2 className="h-5 w-5" />
               </Button>
             </div>
           </div>
 
           <div className={cn(
-            "transition-all duration-500 ease-in-out overflow-hidden",
+            "transition-all duration-700 ease-[cubic-bezier(0.4,0,0.2,1)] overflow-hidden bg-slate-50/30",
             isExpanded ? "max-h-[3000px] opacity-100" : "max-h-0 opacity-0"
           )}>
-            <div className="p-4">
+            <div className="p-6 pt-2">
               <DndContext 
                 sensors={sensors} 
                 collisionDetection={closestCenter} 
@@ -223,7 +262,7 @@ function SortableSection({ section, sIdx, sensors, handleItemDragEnd, handleAddL
                   items={interleavedItems.map(i => i.id)} 
                   strategy={verticalListSortingStrategy}
                 >
-                  <div className="space-y-1">
+                  <div className="space-y-1.5">
                     {interleavedItems.map((item) => (
                       <div key={item.id}>
                         <SortableItem 
@@ -234,47 +273,57 @@ function SortableSection({ section, sIdx, sensors, handleItemDragEnd, handleAddL
                           onClick={() => handleSelectItem({ type: item.type, data: item })}
                         />
                         {item.type === 'quiz' && activeItem?.data?.id === item.id && (
-                          <div className="ml-10 mb-6 flex flex-col gap-2">
+                          <div className="ml-14 mb-6 mt-2 flex flex-col gap-2 animate-in fade-in slide-in-from-left-4 duration-500">
                              <Link
                               href={`/dashboard/admin/courses/${courseId}/quiz/${item.id}`}
-                              className="flex items-center gap-2 px-5 py-2.5 text-[10px] font-black uppercase tracking-widest text-amber-600 hover:text-white bg-amber-50 hover:bg-amber-600 rounded-xl transition-all w-fit shadow-sm"
+                              className="flex items-center gap-3 px-6 py-3.5 text-[10px] font-black uppercase tracking-widest text-amber-600 hover:text-white bg-amber-50 hover:bg-amber-600 rounded-2xl transition-all w-fit shadow-xl shadow-amber-100/20 border border-amber-100/50 group/quiz-btn"
                               onClick={e => e.stopPropagation()}
                             >
-                              <ExternalLink className="h-3.5 w-3.5" /> Build Quiz Questions →
+                              <Zap className="h-4 w-4 transition-transform group-hover/quiz-btn:scale-125" /> 
+                              Launch Question Architect
                             </Link>
                           </div>
                         )}
                       </div>
                     ))}
                     {interleavedItems.length === 0 && (
-                      <div className="py-8 text-center border-2 border-dashed border-slate-100 rounded-3xl text-slate-300 text-xs font-bold">
-                        Empty Section
+                      <div className="py-16 text-center border-2 border-dashed border-slate-100 rounded-[32px] bg-white/50">
+                        <div className="h-12 w-12 rounded-2xl bg-slate-50 flex items-center justify-center mx-auto mb-4 text-slate-200">
+                           <LayoutGrid className="h-6 w-6" />
+                        </div>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-300">Section Empty • Deploy Nodes Below</p>
                       </div>
                     )}
                   </div>
                 </SortableContext>
               </DndContext>
 
-              <div className="grid grid-cols-2 gap-3 mt-6">
+              <div className="grid grid-cols-2 gap-4 mt-8">
                 <Button 
                   variant="ghost" 
-                  className="h-11 rounded-2xl border-dashed border-2 border-slate-100 text-slate-400 text-[10px] font-black uppercase tracking-widest hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 transition-all"
-                  onClick={() => {
-                    setIsExpanded(true);
+                  className="h-16 rounded-[24px] border-dashed border-2 border-slate-100 text-slate-400 text-[10px] font-black uppercase tracking-widest hover:bg-slate-900 hover:text-white hover:border-slate-900 transition-all gap-3 group/node"
+                  onClick={(e) => {
+                    e.stopPropagation();
                     handleAddLesson(section.id);
                   }}
                 >
-                  <Plus className="h-3.5 w-3.5 mr-2" /> Add Lesson
+                  <div className="h-8 w-8 rounded-xl bg-slate-50 flex items-center justify-center group-hover/node:bg-white/10 text-slate-300 group-hover/node:text-white transition-colors">
+                    <Plus className="h-4 w-4" />
+                  </div>
+                  New Lecture Node
                 </Button>
                 <Button 
                   variant="ghost" 
-                  className="h-11 rounded-2xl border-dashed border-2 border-slate-100 text-slate-400 text-[10px] font-black uppercase tracking-widest hover:bg-amber-50 hover:text-amber-600 hover:border-amber-200 transition-all"
-                  onClick={() => {
-                    setIsExpanded(true);
+                  className="h-16 rounded-[24px] border-dashed border-2 border-slate-100 text-slate-400 text-[10px] font-black uppercase tracking-widest hover:bg-amber-500 hover:text-white hover:border-amber-500 transition-all gap-3 group/assess"
+                  onClick={(e) => {
+                    e.stopPropagation();
                     handleAddQuiz(section.id);
                   }}
                 >
-                  <Plus className="h-3.5 w-3.5 mr-2" /> Add Quiz
+                  <div className="h-8 w-8 rounded-xl bg-slate-50 flex items-center justify-center group-hover/assess:bg-white/10 text-slate-300 group-hover/assess:text-white transition-colors">
+                    <Plus className="h-4 w-4" />
+                  </div>
+                  New Assessment Hub
                 </Button>
               </div>
             </div>
@@ -295,7 +344,7 @@ export default function CourseBuilderPage() {
   const [activeItem, setActiveItem] = React.useState<any>(null)
   const [editData, setEditData] = React.useState<any>(null)
   const [isSaving, setIsSaving] = React.useState(false)
-  const [quizQuestions, setQuizQuestions] = React.useState<any[]>([])
+  const [expandedSectionId, setExpandedSectionId] = React.useState<string | null>(null)
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -323,30 +372,34 @@ export default function CourseBuilderPage() {
       if (res.success) {
         setNewSectionTitle("")
         loadCourse()
-        toast.success("Section added successfully")
+        toast.success("Structural Chapter Integrated")
       } else {
-        toast.error(res.error || "Failed to add section")
+        toast.error(res.error || "Integration Failure")
       }
     } catch (err) {
-      toast.error("Network error")
+      toast.error("Network Architecture Error")
     } finally {
       setIsAddingSection(false)
     }
   }
 
   const handleAddLesson = async (sectionId: string) => {
+    // Ensure section is expanded when adding
+    setExpandedSectionId(sectionId)
     const res = await addLesson(sectionId, "New Lesson")
     if (res.success) {
       loadCourse()
-      toast.success("Lesson added")
+      toast.success("Lecture Node Deployed")
     }
   }
 
   const handleAddQuiz = async (sectionId: string) => {
+    // Ensure section is expanded when adding
+    setExpandedSectionId(sectionId)
     const res = await addQuiz(sectionId, "New Quiz Challenge")
     if (res.success) {
       loadCourse()
-      toast.success("Quiz added")
+      toast.success("Assessment Hub Active")
     }
   }
 
@@ -397,7 +450,7 @@ export default function CourseBuilderPage() {
 
     const res = await reorderItems(id as string, updates);
     if (!res.success) {
-      toast.error("Failed to reorder items");
+      toast.error("Hierarchy Synchronization Failed");
       loadCourse();
     }
   }
@@ -430,63 +483,75 @@ export default function CourseBuilderPage() {
       }
 
       if (res.success) {
-        toast.success("Updated successfully")
+        toast.success("Repository Updated")
         loadCourse()
         setActiveItem({ ...activeItem, data: { ...activeItem.data, ...editData } })
       } else {
-        toast.error("Failed to save")
+        toast.error("Update Sequence Aborted")
       }
     } catch (err) {
-      toast.error("Error saving")
+      toast.error("Integrity Verification Error")
     } finally {
       setIsSaving(false)
     }
   }
 
   if (loading && !course) return (
-     <div className="flex items-center justify-center min-h-screen bg-slate-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+     <div className="flex items-center justify-center min-h-screen bg-[#FDFDFD]">
+        <div className="flex flex-col items-center gap-6">
+           <div className="h-16 w-16 bg-slate-900 rounded-[24px] flex items-center justify-center animate-bounce shadow-2xl">
+              <Layout className="h-8 w-8 text-white" />
+           </div>
+           <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Synchronizing Builder Workspace...</p>
+        </div>
      </div>
   )
 
   return (
     <div className="min-h-screen bg-[#FDFDFD]">
       {/* Premium Header */}
-      <header className="h-20 bg-white border-b border-slate-100 px-10 flex items-center justify-between sticky top-0 z-50">
-        <div className="flex items-center gap-4">
-          <div className="h-11 w-11 rounded-[14px] bg-slate-900 flex items-center justify-center shadow-lg">
-            <Layout className="h-5 w-5 text-white" />
+      <header className="h-20 bg-white border-b border-slate-100 px-10 flex items-center justify-between sticky top-0 z-50 backdrop-blur-xl bg-white/80">
+        <div className="flex items-center gap-5">
+          <div className="h-12 w-12 rounded-[16px] bg-slate-950 flex items-center justify-center shadow-2xl shadow-slate-200">
+            <Layout className="h-6 w-6 text-white" />
           </div>
           <div>
-            <h1 className="text-xl font-black text-slate-900 leading-none tracking-tight">{course?.name}</h1>
-            <p className="text-[10px] font-black text-indigo-500 uppercase mt-1.5 tracking-widest">Master Architect</p>
+            <h1 className="text-xl font-black text-slate-900 leading-none tracking-tight uppercase">{course?.name}</h1>
+            <div className="flex items-center gap-2 mt-2">
+               <Badge className="bg-indigo-50 text-indigo-500 border-none px-2 rounded-md text-[8px] font-black uppercase tracking-widest">Architect v2.4</Badge>
+               <span className="h-1 w-1 rounded-full bg-slate-200" />
+               <p className="text-[11px] font-bold text-slate-400">Institutional Curriculum Lab</p>
+            </div>
           </div>
         </div>
         <div className="flex items-center gap-4">
-          <Button variant="ghost" className="h-11 rounded-2xl text-slate-400 font-bold px-6 hover:bg-slate-50" onClick={() => router.back()}>
-            Exit Builder
+          <Button variant="ghost" className="h-12 rounded-2xl text-slate-400 font-black text-[10px] uppercase tracking-widest px-8 hover:bg-slate-50 transition-all" onClick={() => router.push(`/dashboard/admin/courses/${id}`)}>
+            Governance Dashboard
           </Button>
           <Link href={`/dashboard/admin/courses/${id}/preview`}>
-            <Button className="h-11 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white border-none px-8 font-black uppercase tracking-widest text-[10px] shadow-xl shadow-indigo-100 transition-all">
-              Preview Workspace
+            <Button className="h-12 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white border-none px-10 font-black uppercase tracking-widest text-[10px] shadow-xl shadow-indigo-100 transition-all hover:scale-[1.02] active:scale-[0.98]">
+               Entry Preview
             </Button>
           </Link>
         </div>
       </header>
 
-      <main className="max-w-[1600px] mx-auto p-10 grid grid-cols-12 gap-10">
+      <main className="max-w-[1700px] mx-auto p-12 grid grid-cols-12 gap-12">
         {/* Left: Hierarchy */}
-        <div className="col-span-12 lg:col-span-5 space-y-8">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xs font-black uppercase tracking-[0.3em] text-slate-400">Curriculum Hierarchy</h2>
-            <Badge className="bg-slate-100 text-slate-500 font-black border-none px-4 py-1.5 rounded-full">
-              {course?.sections?.length || 0} Chapters
-            </Badge>
+        <div className="col-span-12 lg:col-span-5 space-y-10">
+          <div className="flex items-center justify-between bg-white p-6 rounded-[32px] shadow-sm border border-slate-50">
+            <div className="space-y-1">
+              <h2 className="text-xs font-black uppercase tracking-[0.3em] text-slate-400 leading-none mb-1">Curriculum Structural Mapping</h2>
+              <p className="text-2xl font-black text-slate-900 tracking-tight uppercase">{course?.sections?.length || 0} Core Chapters</p>
+            </div>
+            <div className="h-14 w-14 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-300">
+               <Library className="h-7 w-7" />
+            </div>
           </div>
 
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleSectionDragEnd} modifiers={[restrictToVerticalAxis]}>
             <SortableContext items={course?.sections?.map((s:any) => s.id) || []} strategy={verticalListSortingStrategy}>
-              <div className="space-y-2">
+              <div className="space-y-4">
                 {course?.sections?.map((section: any, sIdx: number) => (
                   <SortableSection 
                     key={section.id}
@@ -501,180 +566,223 @@ export default function CourseBuilderPage() {
                     activeItem={activeItem}
                     handleSelectItem={handleSelectItem}
                     courseId={id}
+                    isExpanded={expandedSectionId === section.id}
+                    onToggle={() => setExpandedSectionId(expandedSectionId === section.id ? null : section.id)}
                   />
                 ))}
               </div>
             </SortableContext>
           </DndContext>
 
-          <div className="bg-slate-50 p-6 rounded-[32px] border-2 border-dashed border-slate-200">
-            <div className="flex gap-3">
-              <Input 
-                 placeholder="New Chapter Title..." 
-                 value={newSectionTitle}
-                 onChange={(e) => setNewSectionTitle(e.target.value)}
-                 className="h-14 rounded-2xl bg-white border-none shadow-sm font-bold text-sm px-6"
-              />
-              <Button 
-                onClick={handleAddSection}
-                disabled={isAddingSection || !newSectionTitle}
-                className="h-14 w-14 rounded-2xl bg-slate-900 text-white shadow-xl shadow-slate-200 disabled:opacity-50 transition-all"
-              >
-                {isAddingSection ? <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : <Plus className="h-6 w-6" />}
-              </Button>
+          <Card className="bg-slate-50 p-8 rounded-[40px] border-2 border-dashed border-slate-200 shadow-inner group">
+            <div className="space-y-6">
+              <div className="flex items-center gap-3">
+                 <div className="h-10 w-10 rounded-xl bg-white shadow-sm flex items-center justify-center text-slate-400 group-hover:text-indigo-500 transition-colors">
+                    <Plus className="h-5 w-5" />
+                 </div>
+                 <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Initialize Strategic Chapter</h4>
+              </div>
+              <div className="flex gap-4">
+                <Input 
+                   placeholder="Strategic Designation Name..." 
+                   value={newSectionTitle}
+                   onChange={(e) => setNewSectionTitle(e.target.value)}
+                   className="h-16 rounded-[24px] bg-white border-none shadow-sm font-black text-xs px-8 uppercase tracking-widest placeholder:text-slate-200"
+                />
+                <Button 
+                  onClick={handleAddSection}
+                  disabled={isAddingSection || !newSectionTitle}
+                  className="h-16 w-16 rounded-[24px] bg-slate-950 text-white shadow-2xl shadow-slate-200 disabled:opacity-50 transition-all hover:scale-105 active:scale-95 shrink-0"
+                >
+                  {isAddingSection ? <div className="h-6 w-6 border-3 border-white/30 border-t-white rounded-full animate-spin"></div> : <ArrowRight className="h-7 w-7" />}
+                </Button>
+              </div>
             </div>
-          </div>
+          </Card>
         </div>
 
         {/* Right: Workspace */}
         <div className="col-span-12 lg:col-span-7">
           {activeItem ? (
-            <div className="sticky top-28 animate-in fade-in slide-in-from-right-8 duration-700">
-               <Card className="border-none shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] rounded-[48px] overflow-hidden bg-white">
-                  <header className="p-10 border-b border-slate-50 flex items-center justify-between">
-                     <div className="flex items-center gap-5">
+            <div className="sticky top-32 animate-in fade-in slide-in-from-right-12 duration-1000">
+               <Card className="border-none shadow-[0_40px_100px_-20px_rgba(0,0,0,0.06)] rounded-[60px] overflow-hidden bg-white ring-1 ring-slate-100">
+                  <header className="p-12 border-b border-slate-50 flex items-center justify-between bg-white relative">
+                     <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-amber-500" />
+                     <div className="flex items-center gap-6">
                         <div className={cn(
-                          "h-14 w-14 rounded-2xl flex items-center justify-center shadow-xl",
-                          activeItem.type === 'lesson' ? "bg-indigo-600 text-white" : "bg-amber-500 text-white shadow-amber-100"
+                          "h-16 w-16 rounded-[24px] flex items-center justify-center shadow-2xl transition-transform duration-500 hover:rotate-6",
+                          activeItem.type === 'lesson' ? "bg-indigo-600 text-white shadow-indigo-200" : "bg-amber-500 text-white shadow-amber-200"
                         )}>
-                           {activeItem.type === 'lesson' ? <Video className="h-7 w-7" /> : <Zap className="h-7 w-7" />}
+                           {activeItem.type === 'lesson' ? <Video className="h-8 w-8" /> : <Zap className="h-8 w-8" />}
                         </div>
                         <div>
-                           <h3 className="text-2xl font-black text-slate-900 leading-none">{activeItem.data.title}</h3>
-                           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2 px-1 border-l-2 border-slate-100">Workspace Editor</p>
+                           <h3 className="text-3xl font-black text-slate-900 leading-none uppercase tracking-tight">{activeItem.data.title}</h3>
+                           <div className="flex items-center gap-2 mt-3">
+                              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2.5 py-1 bg-slate-50 rounded-lg">Content Workspace Editor</p>
+                              <span className="h-1 w-1 rounded-full bg-slate-200" />
+                              <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest animate-pulse">Live Syncing</p>
+                           </div>
                         </div>
                       </div>
                       <Button 
                         disabled={isSaving}
                         onClick={handleSaveChanges}
-                        className="h-14 px-10 rounded-[20px] bg-slate-950 text-white font-black uppercase tracking-widest text-[11px] gap-3 shadow-2xl shadow-slate-200 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                        className="h-16 px-12 rounded-[24px] bg-slate-950 text-white font-black uppercase tracking-widest text-[11px] gap-4 shadow-2xl shadow-slate-200 hover:scale-[1.05] active:scale-[0.95] transition-all border-b-4 border-slate-800 active:border-b-0"
                       >
-                        {isSaving ? <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : <Save className="h-4 w-4" />}
-                        Commit Changes
+                        {isSaving ? <div className="h-5 w-5 border-3 border-white/30 border-t-white rounded-full animate-spin"></div> : <Save className="h-5 w-5" />}
+                        Commit Strategy
                       </Button>
                    </header>
 
-                  <CardContent className="p-10">
+                  <CardContent className="p-12">
                      {activeItem.type === 'lesson' ? (
-                        <div className="space-y-10">
-                          <div className="grid grid-cols-2 gap-8">
-                            <div className="space-y-3">
-                              <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Lesson Title</Label>
+                        <div className="space-y-12">
+                          <div className="grid grid-cols-2 gap-10">
+                            <div className="space-y-4">
+                              <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 ml-2">Lecture Designation</Label>
                               <Input 
                                 value={editData?.title || ""} 
                                 onChange={e => setEditData({...editData, title: e.target.value})}
-                                className="h-14 rounded-2xl border-slate-100 bg-slate-50 focus:bg-white transition-all font-bold px-6" 
+                                className="h-16 rounded-[24px] border-slate-100 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-100 transition-all font-black text-sm px-8 uppercase tracking-widest shadow-sm" 
                               />
                             </div>
-                            <div className="space-y-3">
-                              <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Est. Duration (Min)</Label>
-                              <Input 
-                                type="number"
-                                value={editData?.duration || ""} 
-                                onChange={e => setEditData({...editData, duration: e.target.value})}
-                                className="h-14 rounded-2xl border-slate-100 bg-slate-50 focus:bg-white transition-all font-bold px-6" 
-                              />
+                            <div className="space-y-4">
+                              <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 ml-2">Instructional Window (Min)</Label>
+                              <div className="relative">
+                                <Input 
+                                  type="number"
+                                  value={editData?.duration || ""} 
+                                  onChange={e => setEditData({...editData, duration: e.target.value})}
+                                  className="h-16 rounded-[24px] border-slate-100 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-100 transition-all font-black text-sm px-8 uppercase tracking-widest shadow-sm" 
+                                />
+                                <Clock className="absolute right-6 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-300" />
+                              </div>
                             </div>
                           </div>
 
-                          <div className="space-y-3">
-                            <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Main Narrative Content</Label>
+                          <div className="space-y-4">
+                            <div className="flex items-center justify-between ml-2">
+                               <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Scholastic Narrative Engine</Label>
+                               <div className="flex gap-2">
+                                  <Badge className="bg-emerald-50 text-emerald-500 border-none font-black text-[9px] uppercase tracking-widest">AutoSave Enabled</Badge>
+                               </div>
+                            </div>
                             <div className="relative group">
-                              <div className="absolute top-4 right-4 flex items-center gap-1 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <Button variant="secondary" size="icon" className="h-8 w-8 rounded-lg bg-white shadow-sm"><Bold className="h-3.5 w-3.5" /></Button>
-                                <Button variant="secondary" size="icon" className="h-8 w-8 rounded-lg bg-white shadow-sm"><Italic className="h-3.5 w-3.5" /></Button>
+                              <div className="absolute top-6 right-8 flex items-center gap-2 z-10 opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0">
+                                <Button variant="secondary" size="icon" className="h-10 w-10 rounded-xl bg-white shadow-xl hover:bg-slate-50"><Bold className="h-4 w-4" /></Button>
+                                <Button variant="secondary" size="icon" className="h-10 w-10 rounded-xl bg-white shadow-xl hover:bg-slate-50"><Italic className="h-4 w-4" /></Button>
+                                <Button variant="secondary" size="icon" className="h-10 w-10 rounded-xl bg-white shadow-xl hover:bg-slate-50"><LinkIcon className="h-4 w-4" /></Button>
                               </div>
                               <textarea 
-                                className="w-full min-h-[400px] p-8 rounded-[32px] border border-slate-100 bg-slate-50 focus:bg-white focus:border-indigo-100 outline-none text-slate-600 font-medium leading-relaxed transition-all" 
-                                placeholder="Architect your lesson narrative here..."
+                                className="w-full min-h-[500px] p-10 rounded-[40px] border border-slate-100 bg-slate-50 focus:bg-white focus:border-indigo-200 focus:ring-4 focus:ring-indigo-50/50 outline-none text-slate-600 font-medium text-lg leading-relaxed transition-all shadow-inner" 
+                                placeholder="Architect your instructional narrative..."
                                 value={editData?.content || ""}
                                 onChange={e => setEditData({...editData, content: e.target.value})}
                               />
                             </div>
                           </div>
 
-                          <div className="grid grid-cols-2 gap-8">
-                             <div className="space-y-3">
-                               <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Video Source URL</Label>
-                               <Input 
-                                 value={editData?.videoUrl || ""} 
-                                 onChange={e => setEditData({...editData, videoUrl: e.target.value})}
-                                 placeholder="YouTube / Vimeo link" 
-                                 className="h-14 rounded-2xl border-slate-100 bg-slate-50 font-bold px-6" 
-                               />
+                          <div className="grid grid-cols-2 gap-10">
+                             <div className="space-y-4">
+                               <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 ml-2">Optical Resource Vector (URL)</Label>
+                               <div className="relative">
+                                  <Input 
+                                    value={editData?.videoUrl || ""} 
+                                    onChange={e => setEditData({...editData, videoUrl: e.target.value})}
+                                    placeholder="Source: YouTube / Vimeo / CDN" 
+                                    className="h-16 rounded-[24px] border-slate-100 bg-slate-50 focus:bg-white font-bold px-8 shadow-sm" 
+                                  />
+                                  <Video className="absolute right-6 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-300" />
+                               </div>
                              </div>
-                             <div className="space-y-3">
-                               <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Resource / PDF Link</Label>
-                               <Input 
-                                 value={editData?.attachmentUrl || ""} 
-                                 onChange={e => setEditData({...editData, attachmentUrl: e.target.value})}
-                                 placeholder="Google Drive / Dropbox" 
-                                 className="h-14 rounded-2xl border-slate-100 bg-slate-50 font-bold px-6" 
-                               />
+                             <div className="space-y-4">
+                               <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 ml-2">Supplemental Datasheet (URL)</Label>
+                               <div className="relative">
+                                  <Input 
+                                    value={editData?.attachmentUrl || ""} 
+                                    onChange={e => setEditData({...editData, attachmentUrl: e.target.value})}
+                                    placeholder="Storage: Drive / S3 / Dropbox" 
+                                    className="h-16 rounded-[24px] border-slate-100 bg-slate-50 focus:bg-white font-bold px-8 shadow-sm" 
+                                  />
+                                  <FileText className="absolute right-6 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-300" />
+                               </div>
                              </div>
                           </div>
                         </div>
                       ) : (
-                        <div className="space-y-10">
-                           <div className="bg-amber-50/50 rounded-[32px] p-10 border border-amber-100/50">
-                              <div className="grid grid-cols-2 gap-8">
-                                 <div className="space-y-3">
-                                    <Label className="text-[10px] font-black uppercase text-amber-700 tracking-widest ml-1">Passing Threshold (%)</Label>
-                                    <Input 
-                                      type="number" 
-                                      value={editData?.passingScore || ""} 
-                                      onChange={e => setEditData({...editData, passingScore: e.target.value})}
-                                      className="bg-white border-white h-14 rounded-2xl text-lg font-black text-amber-900 px-6 shadow-sm shadow-amber-200/20" 
-                                    />
+                        <div className="space-y-12">
+                           <div className="bg-amber-50/70 rounded-[48px] p-12 border border-amber-100 shadow-inner group">
+                              <div className="grid grid-cols-2 gap-10">
+                                 <div className="space-y-4">
+                                    <Label className="text-[10px] font-black uppercase text-amber-700 tracking-[0.3em] ml-2">Mastery Benchmark (%)</Label>
+                                    <div className="relative">
+                                      <Input 
+                                        type="number" 
+                                        value={editData?.passingScore || ""} 
+                                        onChange={e => setEditData({...editData, passingScore: e.target.value})}
+                                        className="bg-white border-white h-18 rounded-[28px] text-3xl font-black text-amber-900 px-10 shadow-2xl shadow-amber-200/50" 
+                                      />
+                                      <div className="absolute right-8 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-600 font-black text-xl">%</div>
+                                    </div>
                                  </div>
-                                 <div className="space-y-3">
-                                    <Label className="text-[10px] font-black uppercase text-amber-700 tracking-widest ml-1">Time Constraint (Min)</Label>
-                                    <Input 
-                                      type="number" 
-                                      value={editData?.timeLimit || ""} 
-                                      onChange={e => setEditData({...editData, timeLimit: e.target.value})}
-                                      placeholder="Unlimited" 
-                                      className="bg-white border-white h-14 rounded-2xl text-lg font-black text-amber-900 px-6 shadow-sm shadow-amber-200/20" 
-                                   />
+                                 <div className="space-y-4">
+                                    <Label className="text-[10px] font-black uppercase text-amber-700 tracking-[0.3em] ml-2">Tempo Constraint (Min)</Label>
+                                    <div className="relative">
+                                      <Input 
+                                        type="number" 
+                                        value={editData?.timeLimit || ""} 
+                                        onChange={e => setEditData({...editData, timeLimit: e.target.value})}
+                                        placeholder="Infinity" 
+                                        className="bg-white border-white h-18 rounded-[28px] text-3xl font-black text-amber-900 px-10 shadow-2xl shadow-amber-200/50" 
+                                      />
+                                      <Clock className="absolute right-8 top-1/2 -translate-y-1/2 h-8 w-8 text-amber-400 opacity-30" />
+                                    </div>
                                  </div>
                               </div>
                            </div>
 
-                           <div className="p-12 border-2 border-dashed border-slate-100 rounded-[40px] text-center space-y-6">
-                              <div className="h-20 w-20 rounded-[24px] bg-slate-50 flex items-center justify-center mx-auto text-slate-300">
-                                <Settings2 className="h-10 w-10" />
+                           <div className="p-16 border-2 border-dashed border-slate-100 rounded-[60px] text-center space-y-10 bg-slate-50/20 group">
+                              <div className="relative mx-auto w-32 h-32">
+                                <div className="absolute inset-0 bg-indigo-500/10 rounded-[40px] blur-2xl group-hover:blur-3xl transition-all" />
+                                <div className="relative h-32 w-32 rounded-[40px] bg-white shadow-2xl flex items-center justify-center mx-auto text-indigo-500 transition-all group-hover:scale-110 group-hover:-rotate-3">
+                                  <Settings2 className="h-14 w-14" />
+                                </div>
                               </div>
-                              <div className="space-y-2">
-                                <h4 className="text-xl font-black text-slate-900">Complex Question Builder</h4>
-                                <p className="text-xs text-slate-400 max-w-sm mx-auto leading-relaxed">Questions for this quiz are managed in the specialized builder workspace for maximum control over marking and logic.</p>
+                              <div className="space-y-4">
+                                <h4 className="text-2xl font-black text-slate-900 tracking-tight uppercase">Proprietary logic builder</h4>
+                                <p className="text-sm text-slate-400 max-w-sm mx-auto leading-relaxed font-medium">Complex question routing, automated grading schemas, and response logic are finalized in the specialized Question Lab.</p>
                               </div>
-                              <Link href={`/dashboard/admin/courses/${id}/quiz/${activeItem.data.id}`}>
-                                <Button className="h-14 px-10 rounded-[20px] bg-amber-500 hover:bg-amber-600 text-white font-black uppercase tracking-widest text-[11px] gap-3 shadow-xl shadow-amber-100">
-                                  <ExternalLink className="h-4 w-4" /> Open Question Workspace
+                              <Link href={`/dashboard/admin/courses/${id}/quiz/${activeItem.data.id}`} className="block">
+                                <Button className="h-16 px-12 rounded-[24px] bg-indigo-600 hover:bg-slate-950 text-white font-black uppercase tracking-[0.2em] text-[11px] gap-4 shadow-2xl shadow-indigo-100 transition-all group/lab">
+                                  <ExternalLink className="h-5 w-5 group-hover:rotate-45 transition-transform" /> 
+                                  Enter Strategic Question Lab
                                 </Button>
                               </Link>
                            </div>
                         </div>
-                     )}
+                      )}
                   </CardContent>
                </Card>
             </div>
           ) : (
-            <div className="h-full flex flex-col items-center justify-center p-20 text-center space-y-8 bg-white rounded-[60px] shadow-[0_30px_100px_-20px_rgba(0,0,0,0.03)] border-2 border-slate-50 border-dashed min-h-[700px]">
-               <div className="h-32 w-32 rounded-[40px] bg-slate-50 flex items-center justify-center text-slate-200 relative">
-                  <LayoutGrid className="h-14 w-14" />
-                  <div className="absolute -top-4 -right-4 h-12 w-12 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-400 shadow-lg animate-bounce">
-                    <Plus className="h-6 w-6" />
+            <div className="h-full flex flex-col items-center justify-center p-20 text-center space-y-10 bg-white rounded-[70px] shadow-[0_40px_120px_-30px_rgba(0,0,0,0.03)] border border-slate-50 min-h-[850px] relative overflow-hidden group">
+               <div className="absolute -top-20 -right-20 w-80 h-80 bg-indigo-50/50 rounded-full blur-[100px] group-hover:bg-indigo-100 transition-all duration-1000" />
+               <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-amber-50/50 rounded-full blur-[100px] group-hover:bg-amber-100 transition-all duration-1000" />
+               
+               <div className="h-40 w-40 rounded-[50px] bg-slate-50 flex items-center justify-center text-slate-100 relative shadow-inner group-hover:scale-110 transition-transform duration-700">
+                  <LayoutGrid className="h-20 w-20" />
+                  <div className="absolute -top-6 -right-6 h-16 w-16 rounded-[24px] bg-slate-950 flex items-center justify-center text-white shadow-2xl animate-bounce">
+                    <Plus className="h-8 w-8" />
                   </div>
                </div>
-               <div className="space-y-3">
-                  <h3 className="text-3xl font-black text-slate-900 tracking-tight">Workspace Is Idle</h3>
-                  <p className="text-slate-400 max-w-sm mx-auto leading-relaxed font-medium">Select a structural element from your curriculum to begin architecting its contents and properties.</p>
+               <div className="space-y-4 relative z-10">
+                  <h3 className="text-4xl font-black text-slate-900 tracking-tighter uppercase">Workspace Initialized</h3>
+                  <p className="text-slate-400 max-w-sm mx-auto leading-relaxed font-bold text-lg">Infrastructure is operational. Select a curriculum node from the sidebar to begin structural design.</p>
                </div>
-               <div className="flex gap-4">
-                  <div className="px-6 py-3 bg-slate-50 rounded-2xl text-[10px] font-black text-slate-400 uppercase tracking-widest">Select Item</div>
-                  <div className="px-6 py-3 bg-slate-50 rounded-2xl text-[10px] font-black text-slate-400 uppercase tracking-widest">Edit Logic</div>
-                  <div className="px-6 py-3 bg-slate-50 rounded-2xl text-[10px] font-black text-slate-400 uppercase tracking-widest">Commit Changes</div>
+               <div className="flex gap-4 relative z-10">
+                  <div className="px-8 py-4 bg-slate-50 rounded-[20px] text-[10px] font-black text-slate-300 uppercase tracking-widest border border-slate-100 hover:text-indigo-500 hover:border-indigo-100 transition-all">Select Chapter</div>
+                  <div className="px-8 py-4 bg-slate-50 rounded-[20px] text-[10px] font-black text-slate-300 uppercase tracking-widest border border-slate-100 hover:text-amber-500 hover:border-amber-100 transition-all">Define Logic</div>
+                  <div className="px-8 py-4 bg-slate-50 rounded-[20px] text-[10px] font-black text-slate-300 uppercase tracking-widest border border-slate-100 hover:text-emerald-500 hover:border-emerald-100 transition-all">Commit Node</div>
                </div>
             </div>
           )}
@@ -683,3 +791,6 @@ export default function CourseBuilderPage() {
     </div>
   )
 }
+
+
+
