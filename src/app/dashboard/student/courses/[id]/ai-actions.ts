@@ -2,17 +2,17 @@
 
 import prisma from "@/lib/prisma"
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-
 async function callGemini(prompt: string, context: string) {
-  if (!GEMINI_API_KEY) {
-    console.error("AI Action: GEMINI_API_KEY IS MISSING.");
+  const key = process.env.GEMINI_API_KEY;
+  if (!key) {
+    console.error("AI Action: GEMINI_API_KEY is undefined in process.env.");
     return null;
   }
 
-  console.log("AI Action: Initiating Gemini Request...");
+  console.log("AI Action: Initiating Gemini Request to Google...");
   try {
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+    // Model updated to gemini-2.5-flash-lite as per available models in 2026
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${key}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
