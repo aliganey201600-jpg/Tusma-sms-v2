@@ -1308,45 +1308,47 @@ export default function StudentCourseViewerPage() {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
-      {/* ── Premium Dynamic Header ── */}
-      <div className="relative pt-6 pb-6 px-6 md:px-10 overflow-hidden">
-        {/* Background Layer: Professional deep gradient */}
+      {/* ── Premium Hero Section ── */}
+      <div className="relative pt-4 pb-12 px-6 md:px-10 overflow-hidden">
+        {/* Background Layer: Deep modern gradient with mesh-like texture */}
         <div className="absolute inset-0 bg-[#0F172A]">
-          <div className="absolute top-0 right-0 w-[50%] h-full bg-indigo-500/5" />
-          <div className="absolute inset-0 opacity-[0.02]" style={{ backgroundImage: 'radial-gradient(#fff 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
+          <div className="absolute top-0 right-0 w-full h-full bg-[radial-gradient(circle_at_70%_0%,#4f46e520,transparent_50%)]" />
+          <div className="absolute bottom-0 left-0 w-full h-full bg-[radial-gradient(circle_at_20%_100%,#6366f110,transparent_50%)]" />
+          <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(#fff 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
         </div>
 
         <div className="max-w-6xl mx-auto relative z-10">
           <Button
             variant="ghost"
-            className="text-white/40 hover:text-white hover:bg-white/5 mb-6 gap-2 p-0 h-auto text-[10px] font-black uppercase tracking-[0.2em] transition-all"
+            className="text-white/30 hover:text-white hover:bg-white/5 mb-8 gap-2 p-0 h-auto text-[10px] font-black uppercase tracking-[0.2em] transition-all group/back"
             onClick={() => router.back()}
           >
-            <ChevronLeft className="h-4 w-4" /> Return to Dashboard
+            <ChevronLeft className="h-4 w-4 group-hover/back:-translate-x-1 transition-transform" /> Return to Dashboard
           </Button>
-
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-end">
-            <div className="lg:col-span-8 space-y-4 animate-in fade-in slide-in-from-left-6 duration-700">
+ 
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+            {/* Left Column: Course Info */}
+            <div className="lg:col-span-8 space-y-6 animate-in fade-in slide-in-from-left-6 duration-700">
               <div className="flex flex-wrap items-center gap-4">
                 <div className="flex -space-x-2">
                    {[1,2,3].map(i => (
-                     <div key={i} className="h-8 w-8 rounded-full border-2 border-slate-950 bg-slate-800 flex items-center justify-center overflow-hidden">
+                     <div key={i} className="h-8 w-8 rounded-full border-2 border-[#0F172A] bg-slate-800 flex items-center justify-center overflow-hidden">
                        <User className="h-4 w-4 text-slate-500" />
                      </div>
                    ))}
                 </div>
-                <span className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">+124 students enrolled</span>
-                <Separator orientation="vertical" className="h-5 bg-white/10" />
-                <Badge className="bg-amber-400 text-slate-950 border-none px-4 py-2 text-[10px] font-black uppercase tracking-widest flex items-center gap-2 shadow-xl shadow-amber-400/20">
-                  <Star className="h-3.5 w-3.5 fill-slate-950" /> {course?.enrollments?.[0]?.points || 0} XP
+                <span className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em]">+124 students enrolled</span>
+                <Separator orientation="vertical" className="h-4 bg-white/10" />
+                <Badge className="bg-amber-400 text-slate-950 border-none px-3 py-1.5 text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 shadow-xl shadow-amber-400/10">
+                  <Star className="h-3 w-3 fill-slate-950" /> {course?.enrollments?.[0]?.points || 0} XP
                 </Badge>
-                <Badge className="bg-white/5 text-white/60 border border-white/10 backdrop-blur-md px-4 py-2 text-[10px] font-black uppercase tracking-widest">
+                <Badge className="bg-white/5 text-white/40 border border-white/10 backdrop-blur-md px-3 py-1.5 text-[9px] font-black uppercase tracking-widest">
                   {course?.category || "Core Module"}
                 </Badge>
               </div>
-
-              <div className="space-y-2">
-                <h1 className="text-2xl md:text-3xl font-black tracking-tight text-white leading-tight">
+ 
+              <div className="space-y-3">
+                <h1 className="text-3xl md:text-4xl font-black tracking-tight text-white leading-tight">
                   {course?.name}
                 </h1>
                 <p className="text-sm text-slate-400 max-w-2xl leading-relaxed font-medium">
@@ -1354,39 +1356,41 @@ export default function StudentCourseViewerPage() {
                 </p>
               </div>
             </div>
-
-            <div className="lg:col-span-4 flex flex-col gap-8 animate-in fade-in slide-in-from-right-6 duration-700">
-               <div className="bg-white/5 backdrop-blur-3xl border border-white/10 rounded-3xl p-6 space-y-4 shadow-2xl relative overflow-hidden group">
-                  <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/10 rounded-full blur-3xl -mr-8 -mt-8" />
-
+ 
+            {/* Right Column: Progress & Stats Widget */}
+            <div className="lg:col-span-4 space-y-6 animate-in fade-in slide-in-from-right-6 duration-700">
+               <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-8 space-y-6 shadow-2xl relative overflow-hidden group">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl -mr-12 -mt-12" />
+ 
                   <div className="flex items-center justify-between relative z-10">
                      <div className="space-y-1">
-                       <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em] leading-none mb-3">Mastery Progress</p>
-                       <h3 className="text-5xl font-black text-white">{courseProgress}%</h3>
+                       <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.2em] leading-none mb-3">Overall Completion</p>
+                       <h3 className="text-5xl font-black text-white">{courseProgress}<span className="text-indigo-400 text-3xl">%</span></h3>
                      </div>
-                     <div className="h-16 w-16 bg-gradient-to-br from-indigo-500 to-violet-600 rounded-[22px] flex items-center justify-center shadow-2xl shadow-indigo-500/30 group-hover:scale-110 transition-transform duration-500">
-                        <Trophy className="h-8 w-8 text-white" />
+                     <div className="h-14 w-14 bg-gradient-to-br from-indigo-500 to-indigo-700 rounded-2xl flex items-center justify-center shadow-2xl shadow-indigo-500/20 group-hover:scale-105 transition-transform duration-500">
+                        <Trophy className="h-7 w-7 text-white" />
                      </div>
                   </div>
-                   <div className="space-y-2 relative z-10">
-                    <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden p-0.5 border border-white/5">
-                       <div className="h-full bg-indigo-500 rounded-full transition-all duration-1000" style={{ width: `${courseProgress}%` }} />
+ 
+                   <div className="space-y-3 relative z-10">
+                    <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden p-[2px] border border-white/5">
+                       <div className="h-full bg-indigo-500 rounded-full transition-all duration-1000 shadow-[0_0_12px_rgba(99,102,241,0.5)]" style={{ width: `${courseProgress}%` }} />
                     </div>
-                    <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-[0.2em] text-white/30">
-                      <span>{completedLessons.length} Done</span>
-                      <span>{totalLessons} Lessons</span>
+                    <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-[0.2em] text-white/20">
+                      <span>{completedLessons.length} Modules Done</span>
+                      <span>{totalLessons} Lessons total</span>
                     </div>
                   </div>
                </div>
- Broadway
-               <div className="flex gap-4">
-                  <div className="flex-1 bg-white/5 border border-white/10 rounded-2xl p-4 flex flex-col gap-1 hover:bg-white/10 transition-all cursor-default">
-                    <Layers className="h-4 w-4 text-indigo-400 mb-1" />
+ 
+               <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-white/5 border border-white/10 rounded-2xl p-4 flex flex-col gap-1 hover:bg-white/10 transition-all cursor-default group/stat">
+                    <Layers className="h-4 w-4 text-indigo-400 mb-1 group-hover/stat:scale-110 transition-transform" />
                     <p className="text-xl font-black text-white">{course?.sections?.length || 0}</p>
                     <p className="text-[9px] text-white/30 font-black uppercase tracking-widest">Chapters</p>
                   </div>
-                  <div className="flex-1 bg-white/5 border border-white/10 rounded-2xl p-4 flex flex-col gap-1 hover:bg-white/10 transition-all cursor-default">
-                    <Zap className="h-4 w-4 text-amber-400 mb-1" />
+                  <div className="bg-white/5 border border-white/10 rounded-2xl p-4 flex flex-col gap-1 hover:bg-white/10 transition-all cursor-default group/stat">
+                    <Zap className="h-4 w-4 text-amber-400 mb-1 group-hover/stat:scale-110 transition-transform" />
                     <p className="text-xl font-black text-white">{totalQuizzes}</p>
                     <p className="text-[9px] text-white/30 font-black uppercase tracking-widest">Quizzes</p>
                   </div>
@@ -1396,19 +1400,20 @@ export default function StudentCourseViewerPage() {
         </div>
       </div>
 
+
       <div className="max-w-6xl mx-auto px-6 md:px-10 mt-16 relative z-20 pb-40">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
           <div className="lg:col-span-8 space-y-12">
             {/* ── Integrated Curriculum Section ── */}
-            <div className="bg-white rounded-[4rem] p-10 md:p-14 shadow-[0_30px_100px_-30px_rgba(0,0,0,0.1)] border border-slate-100 flex flex-col">
-               <div className="flex items-center justify-between mb-16">
-                  <div className="border-l-[6px] border-indigo-600 pl-8">
-                    <h2 className="text-4xl font-black text-slate-900 tracking-tighter">Curriculum <span className="text-indigo-600">Structure</span></h2>
-                    <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.25em] mt-3">Comprehensive syllabus for this module</p>
+            <div className="bg-white rounded-[3rem] p-8 md:p-12 shadow-[0_8px_40px_-12px_rgba(0,0,0,0.03)] border border-slate-100 flex flex-col">
+               <div className="flex items-center justify-between mb-12">
+                  <div className="space-y-2">
+                    <h2 className="text-2xl font-black text-slate-900 tracking-tight">Expert Curriculum</h2>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Mastery path through {totalLessons} modules</p>
                   </div>
-                  <div className="hidden sm:flex items-center gap-3 bg-slate-50 px-6 py-3 rounded-[20px] border border-slate-100 shadow-sm">
-                    <BookOpenCheck className="h-5 w-5 text-indigo-500" />
-                    <span className="text-[11px] font-black uppercase text-slate-500 tracking-widest">Self-Paced</span>
+                  <div className="hidden sm:flex items-center gap-3 bg-slate-50/50 px-5 py-2.5 rounded-2xl border border-slate-100">
+                    <BookOpenCheck className="h-4 w-4 text-indigo-500" />
+                    <span className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Accredited Course</span>
                   </div>
                </div>
 
@@ -1423,45 +1428,34 @@ export default function StudentCourseViewerPage() {
                   const sectionProgress = sectionTotalItems > 0 ? Math.round((sectionCompletedItems / sectionTotalItems) * 100) : 0
 
                   return (
-                    <div key={section.id} className={cn("group bg-white rounded-[3rem] border-2 transition-all duration-700 overflow-hidden", isExpanded ? "border-indigo-100 shadow-2xl shadow-indigo-50/50" : "border-slate-50 hover:border-slate-100")}>
-                      <button onClick={() => toggleSection(section.id)} className="w-full flex items-center justify-between p-8 md:p-10 hover:bg-slate-50/50 transition-colors text-left relative overflow-hidden">
+                    <div key={section.id} className={cn("group bg-white rounded-[2.5rem] border transition-all duration-500 overflow-hidden", isExpanded ? "border-indigo-100 shadow-[0_12px_40px_-12px_rgba(79,70,229,0.1)]" : "border-slate-100 hover:border-slate-200 shadow-sm")}>
+                      <button onClick={() => toggleSection(section.id)} className="w-full flex items-center justify-between p-6 mdx:p-8 hover:bg-slate-50/30 transition-colors text-left relative">
                         {/* Section highlight for expanded state */}
                         {isExpanded && <div className="absolute top-0 left-0 w-1.5 h-full bg-indigo-600" />}
 
                         <div className="flex items-center gap-8">
-                          <div className={cn("h-20 w-20 rounded-[28px] flex flex-col items-center justify-center shrink-0 border-2 transition-all duration-500", isExpanded ? "bg-indigo-600 border-indigo-500 text-white shadow-2xl shadow-indigo-200" : "bg-white border-slate-50 text-slate-900")}>
-                             <span className="text-[10px] font-black uppercase opacity-60">Unit</span>
-                             <span className="text-2xl font-black leading-none">{idx + 1}</span>
+                          <div className={cn("h-14 w-14 rounded-2xl flex flex-col items-center justify-center shrink-0 border transition-all duration-500", isExpanded ? "bg-indigo-600 border-indigo-500 text-white shadow-xl shadow-indigo-200" : "bg-slate-50 border-slate-100 text-slate-400")}>
+                             <span className="text-[7px] font-black uppercase opacity-60">Module</span>
+                             <span className="text-lg font-black leading-none">{idx + 1}</span>
                           </div>
                           <div>
-                            <h3 className="text-xl md:text-2xl font-black text-slate-900 group-hover:text-indigo-600 transition-colors">{section.title}</h3>
-                            <div className="flex items-center gap-4 mt-3">
-                               <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 text-[10px] font-bold text-slate-500">
-                                 <BookOpen className="h-3.5 w-3.5" /> {section.lessons?.length || 0} Lessons
-                               </div>
-                               <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-amber-50 text-[10px] font-bold text-amber-600">
-                                 <Zap className="h-3.5 w-3.5" /> {section.quizzes?.length || 0} Quizzes
-                               </div>
-                               {sectionProgress > 0 && (
-                                 <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 text-[10px] font-black text-emerald-600 uppercase">
-                                   <Check className="h-3.5 w-3.5" /> {sectionProgress}% done
-                                 </div>
-                               )}
+                            <h3 className="text-base font-black text-slate-900 group-hover:text-indigo-600 transition-colors uppercase tracking-tight">{section.title}</h3>
+                            <div className="flex items-center gap-2.5 mt-2">
+                               <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none">{sectionTotalItems} items</span>
+                               <span className="h-1 w-1 rounded-full bg-slate-200" />
+                               <span className="text-[9px] font-bold text-indigo-500/60 uppercase tracking-widest leading-none">{sectionProgress}% complete</span>
                             </div>
                           </div>
                         </div>
-                        <div className="flex items-center gap-6">
-                           <div className="hidden sm:block h-2 w-32 bg-slate-100 rounded-full overflow-hidden p-0.5">
-                              <div className="h-full bg-indigo-500 rounded-full transition-all duration-1000 shadow-[0_0_10px_rgba(99,102,241,0.3)]" style={{ width: `${sectionProgress}%` }} />
-                           </div>
-                           <div className={cn("h-12 w-12 rounded-full border border-slate-100 flex items-center justify-center transition-all duration-500", isExpanded ? "bg-indigo-50 text-indigo-600 rotate-180" : "bg-white text-slate-300")}>
-                             <ChevronDown className="h-6 w-6" />
+                        <div className="flex items-center gap-4">
+                           <div className={cn("h-8 w-8 rounded-lg border border-slate-100 flex items-center justify-center transition-all duration-500", isExpanded ? "bg-indigo-50 text-indigo-600 rotate-180" : "bg-white text-slate-300")}>
+                             <ChevronDown className="h-4 w-4" />
                            </div>
                         </div>
                       </button>
 
-                      <div className={cn("transition-all duration-700 ease-in-out overflow-hidden bg-slate-50/50", isExpanded ? "max-h-[5000px] opacity-100" : "max-h-0 opacity-0")}>
-                        <div className="p-6 md:p-10 space-y-4">
+                      <div className={cn("transition-all duration-700 ease-in-out overflow-hidden bg-slate-50/30", isExpanded ? "max-h-[5000px] opacity-100" : "max-h-0 opacity-0")}>
+                        <div className="p-4 md:p-8 space-y-3">
                           {(() => {
                             const items = [
                               ...(section.lessons || []).map((l: BaseLesson) => ({ ...l, type: "lesson" as const })),
@@ -1492,28 +1486,28 @@ export default function StudentCourseViewerPage() {
 
                               if (item.type === "lesson") {
                                 return (
-                                  <div key={item.id} onClick={() => !isLocked && openLesson(item)} className={cn("group flex items-center gap-6 p-5 rounded-[2rem] transition-all duration-500 border-2", isLocked ? "bg-white/50 border-transparent opacity-60 cursor-not-allowed" : "bg-white border-white hover:border-indigo-500 hover:shadow-2xl hover:shadow-indigo-100/50 group-hover:translate-x-1 cursor-pointer shadow-sm")}>
-                                    <div className={cn("h-12 w-12 rounded-[18px] flex items-center justify-center text-sm font-black shrink-0 transition-all duration-500", isLocked ? "bg-slate-100 text-slate-300" : "bg-indigo-50 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white group-hover:shadow-indigo-500/30 group-hover:shadow-lg")}>
+                                  <div key={item.id} onClick={() => !isLocked && openLesson(item)} className={cn("group flex items-center gap-4 p-4 rounded-2xl transition-all duration-300 border", isLocked ? "bg-white/50 border-transparent opacity-60 cursor-not-allowed" : "bg-white border-slate-100 hover:border-indigo-400 hover:shadow-xl hover:shadow-indigo-50/50 cursor-pointer shadow-sm")}>
+                                    <div className={cn("h-9 w-9 rounded-xl flex items-center justify-center text-[10px] font-black shrink-0 transition-all duration-500", isLocked ? "bg-slate-100 text-slate-300" : "bg-indigo-50 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition-all")}>
                                       {completedLessons.includes(item.id) ? <CheckCircle2 className="h-6 w-6 text-emerald-500" /> : isLocked ? <Clock className="h-5 w-5 opacity-40" /> : iIdx + 1}
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                      <p className={cn("text-base font-bold truncate transition-colors duration-300", isLocked ? "text-slate-400" : "text-slate-800")}>{item.title}</p>
-                                      <p className={cn("text-[10px] font-black uppercase tracking-widest mt-1 opacity-60", isLocked ? "text-slate-400" : "text-indigo-400")}>Theory Lecture</p>
+                                      <p className={cn("text-sm font-bold truncate transition-colors duration-300", isLocked ? "text-slate-400" : "text-slate-700")}>{item.title}</p>
+                                      <p className={cn("text-[9px] font-black uppercase tracking-widest mt-1 opacity-40", isLocked ? "text-slate-400" : "text-indigo-400")}>Module Content</p>
                                     </div>
-                                    {!isLocked && <ArrowRight className="h-5 w-5 text-indigo-200 group-hover:text-indigo-600 group-hover:translate-x-1 transition-all" />}
+                                    {!isLocked && <ArrowRight className="h-4 w-4 text-indigo-200 group-hover:text-indigo-600 group-hover:translate-x-1 transition-all" />}
                                   </div>
                                 )
                               } else {
                                 return (
-                                  <div key={item.id} onClick={() => !isLocked && openQuiz(item)} className={cn("group flex items-center gap-6 p-5 rounded-[2rem] transition-all duration-500 border-2", isLocked ? "bg-white/50 border-transparent opacity-60 cursor-not-allowed" : "bg-white border-white hover:border-amber-400 hover:shadow-2xl hover:shadow-amber-100/50 group-hover:translate-x-1 cursor-pointer shadow-sm")}>
-                                    <div className={cn("h-12 w-12 rounded-[18px] flex items-center justify-center shrink-0 transition-all duration-500", isLocked ? "bg-slate-100 text-slate-300" : "bg-amber-50 text-amber-600 group-hover:bg-amber-500 group-hover:text-white group-hover:shadow-amber-500/30 group-hover:shadow-lg")}>
-                                      <Zap className="h-5 w-5" />
+                                  <div key={item.id} onClick={() => !isLocked && openQuiz(item)} className={cn("group flex items-center gap-4 p-4 rounded-2xl transition-all duration-300 border", isLocked ? "bg-white/50 border-transparent opacity-60 cursor-not-allowed" : "bg-white border-slate-100 hover:border-amber-400 hover:shadow-xl hover:shadow-amber-50/50 cursor-pointer shadow-sm")}>
+                                    <div className={cn("h-9 w-9 rounded-xl flex items-center justify-center shrink-0 transition-all duration-500", isLocked ? "bg-slate-100 text-slate-300" : "bg-amber-50 text-amber-600 group-hover:bg-amber-500 group-hover:text-white transition-all")}>
+                                      <Zap className="h-4 w-4" />
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                      <p className={cn("text-base font-bold truncate transition-colors duration-300", isLocked ? "text-slate-400" : "text-slate-800")}>{item.title}</p>
-                                      <p className={cn("text-[10px] font-black uppercase tracking-widest mt-1 opacity-60", isLocked ? "text-slate-400" : "text-amber-500")}>Knowledge Assessment</p>
+                                      <p className={cn("text-sm font-bold truncate transition-colors duration-300", isLocked ? "text-slate-400" : "text-slate-700")}>{item.title}</p>
+                                      <p className={cn("text-[9px] font-black uppercase tracking-widest mt-1 opacity-40", isLocked ? "text-slate-400" : "text-amber-500")}>Assessment</p>
                                     </div>
-                                    {!isLocked && <ChevronRight className="h-5 w-5 text-amber-200 group-hover:text-amber-500 group-hover:translate-x-1 transition-all" />}
+                                    {!isLocked && <ChevronRight className="h-4 w-4 text-amber-200 group-hover:text-amber-500 group-hover:translate-x-1 transition-all" />}
                                   </div>
                                 )
                               }
@@ -1556,10 +1550,10 @@ export default function StudentCourseViewerPage() {
                           } else {
                             openQuiz(next);
                           }
-                        }} className="w-full h-20 rounded-[30px] bg-indigo-600 text-white font-black text-sm uppercase tracking-[0.2em] shadow-2xl shadow-indigo-200 hover:bg-indigo-700 gap-4 border-b-[6px] border-indigo-800 active:border-b-0 active:translate-y-1 transition-all group/btn overflow-hidden relative">
+                        }} className="w-full h-16 rounded-[2rem] bg-indigo-600 text-white font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-indigo-100/50 hover:bg-slate-900 transition-all duration-300 group/btn relative overflow-hidden">
                         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover/btn:animate-shimmer" />
-                        <span className="relative z-10 flex items-center gap-4">
-                           {started ? "Continue Journey" : "Start Learning"} <ArrowRight className="h-5 w-5 group-hover/btn:translate-x-2 transition-transform duration-500" />
+                        <span className="relative z-10 flex items-center justify-center gap-3 w-full">
+                           {started ? "Continue Journey" : "Start Learning"} <ArrowRight className="h-4 w-4 group-hover/btn:translate-x-2 transition-transform duration-500" />
                         </span>
                       </Button>
                     </div>
@@ -1595,9 +1589,9 @@ export default function StudentCourseViewerPage() {
               <Card className="border-none shadow-2xl rounded-[3rem] overflow-hidden bg-slate-950 text-white p-10 relative group">
                 <div className="absolute top-0 right-0 p-10 opacity-10 group-hover:scale-125 transition-transform duration-1000"><Trophy className="h-28 w-28" /></div>
                 <div className="relative z-10 space-y-8">
-                   <div className="h-16 w-16 bg-amber-400 rounded-3xl flex items-center justify-center shadow-2xl shadow-amber-400/30 animate-bounce">
-                      <Star className="h-8 w-8 text-indigo-950 fill-indigo-950" />
-                   </div>
+                    <div className="h-14 w-14 bg-amber-400 rounded-2xl flex items-center justify-center shadow-xl shadow-amber-400/20">
+                       <Star className="h-7 w-7 text-indigo-950 fill-indigo-950" />
+                    </div>
                    <div className="space-y-3">
                       <h3 className="text-2xl font-black tracking-tight">Mastery Achieved!</h3>
                       <p className="text-sm text-white/50 leading-relaxed font-medium">You have successfully completed all course requirements. Your professional certificate is now ready.</p>
