@@ -163,18 +163,28 @@ export async function generateQuizQuestions(quizId: string, questionCount: numbe
     // Limit content length to prevent token overflow
     const truncatedContent = contentToAnalyze.slice(0, 50000);
 
-    const prompt = `Based on the following lesson content, generate exactly ${questionCount} highly educational multiple-choice questions. 
+    const prompt = `Based on the following lesson content, generate exactly ${questionCount} highly educational questions.
+    Mix the question types to include: "MCQ" (Multiple Choice), "TRUE_FALSE", "MATCHING", "FILL_BLANK", and "SHORT_ANSWER".
+    Make the questions challenging but fair. Use the same language as the lesson (Somali or English).
+    
     Output the result EXCLUSIVELY as a JSON array of objects. Do not include any other text or markdown formatting.
     
-    Each object must have exactly this structure:
-    {
-      "question": "The question text",
-      "options": ["Option 1", "Option 2", "Option 3", "Option 4"],
-      "correctIndex": 0,
-      "hint": "A short hint for the student"
-    }
+    Each object must strictly follow its type's structure:
     
-    Make the questions challenging but fair. Use the same language as the lesson (Somali or English).`;
+    For MCQ:
+    { "type": "MCQ", "question": "Question text", "options": ["Opt 1", "Opt 2", "Opt 3", "Opt 4"], "correctIndex": 0, "hint": "Hint text", "points": 1 }
+    
+    For TRUE_FALSE:
+    { "type": "TRUE_FALSE", "question": "Statement text", "isTrue": true, "hint": "Hint text", "points": 1 }
+    
+    For MATCHING:
+    { "type": "MATCHING", "question": "Match the following terms", "pairs": [{"left": "Term A", "right": "Def A"}, {"left": "Term B", "right": "Def B"}], "hint": "Hint text", "points": 2 }
+    
+    For FILL_BLANK:
+    { "type": "FILL_BLANK", "question": "Water boils at ____ degrees Celsius.", "correctAnswer": "100", "hint": "Hint text", "points": 1 }
+    
+    For SHORT_ANSWER:
+    { "type": "SHORT_ANSWER", "question": "Explain X briefly.", "hint": "Hint text", "points": 3 }`;
 
     const aiResult = await callGemini(prompt, truncatedContent);
 
@@ -184,24 +194,59 @@ export async function generateQuizQuestions(quizId: string, questionCount: numbe
 
     // Clean up response in case Gemini included markdown blocks
     const cleanedResult = aiResult.replace(/```json/g, "").replace(/```/g, "").trim();
-    const questions = JSON.parse(cleanedResult);
+    let questions;
+    try {
+      questions = JSON.parse(cleanedResult);
+    } catch (e) {
+      console.error("Failed to parse AI JSON:", cleanedResult);
+      return { error: "AI generated an invalid format. Please try again." }
+    }
 
-    // Map AI result to our Data Format
-    const formattedQuestions = questions.map((q: any) => ({
-      id: crypto.randomUUID(),
-      type: "MCQ",
-      question: q.question,
-      points: 1,
-      required: true,
-      shuffleOptions: true,
-      hint: q.hint,
-      options: q.options.map((opt: string, idx: number) => ({
+    // Map AI result to our Data Format based on question type
+    const formattedQuestions = questions.map((q: any) => {
+      const baseQ = {
         id: crypto.randomUUID(),
-        text: opt,
-        isCorrect: idx === q.correctIndex,
-        matchKey: ""
-      }))
-    }));
+        type: q.type || "MCQ",
+        question: q.question,
+        points: q.points || 1,
+        required: true,
+        shuffleOptions: false,
+        hint: q.hint || "",
+        correctAnswer: "",
+        options: [] as any[]
+      };
+
+      if (baseQ.type === "MCQ") {
+        baseQ.shuffleOptions = true;
+        baseQ.options = (q.options || []).map((opt: string, idx: number) => ({
+          id: crypto.randomUUID(),
+          text: opt,
+          isCorrect: idx === q.correctIndex,
+          matchKey: ""
+        }));
+      } else if (baseQ.type === "TRUE_FALSE") {
+        const isTrue = q.isTrue === true;
+        baseQ.options = [
+          { id: crypto.randomUUID(), text: "True", isCorrect: isTrue, matchKey: "" },
+          { id: crypto.randomUUID(), text: "False", isCorrect: !isTrue, matchKey: "" }
+        ];
+      } else if (baseQ.type === "MATCHING") {
+        baseQ.options = (q.pairs || []).map((pair: any) => ({
+          id: crypto.randomUUID(),
+          text: pair.left,
+          isCorrect: false,
+          matchKey: pair.right
+        }));
+      } else if (baseQ.type === "FILL_BLANK") {
+        baseQ.correctAnswer = q.correctAnswer || "";
+      } else if (baseQ.type === "SHORT_ANSWER") {
+        // Short answers are manually graded, no correct answer needed here
+      } else if (baseQ.type === "ESSAY") {
+         // Fallback just in case AI spits out an essay type
+      }
+
+      return baseQ;
+    });
 
     return { success: true, questions: formattedQuestions };
   } catch (error: any) {
