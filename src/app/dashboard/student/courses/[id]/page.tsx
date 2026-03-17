@@ -32,6 +32,7 @@ import {
   issueCertificate,
   getCertificate
 } from "../../../admin/courses/builder-actions"
+import { generateLessonSummary, askAIQuestion } from "./ai-actions"
 import { useParams, useRouter } from "next/navigation"
 import { useCurrentUser } from "@/hooks/use-current-user"
 import { LessonDiscussions } from "./lesson-discussions"
@@ -392,6 +393,43 @@ export default function StudentCourseViewerPage() {
   const [certificate, setCertificate] = React.useState<Certificate | null>(null)
   const timerRef = React.useRef<NodeJS.Timeout | null>(null)
   const startTimeRef = React.useRef<number>(0)
+
+  // AI Tutor State
+  const [aiLoading, setAiLoading] = React.useState(false)
+  const [aiResponse, setAiResponse] = React.useState<string | null>(null)
+  const [aiQuestion, setAiQuestion] = React.useState("")
+  const [aiError, setAiError] = React.useState<string | null>(null)
+
+  const handleAISummary = async () => {
+    if (!activeLesson) return
+    setAiLoading(true)
+    setAiError(null)
+    setAiResponse(null)
+    try {
+       const res = await generateLessonSummary(activeLesson.id)
+       if (res.error) setAiError(res.error)
+       else if (res.summary) setAiResponse(res.summary)
+    } finally {
+       setAiLoading(false)
+    }
+  }
+
+  const handleAIQuestion = async () => {
+    if (!activeLesson || !aiQuestion.trim()) return
+    setAiLoading(true)
+    setAiError(null)
+    setAiResponse(null)
+    try {
+       const res = await askAIQuestion(activeLesson.id, aiQuestion)
+       if (res.error) setAiError(res.error)
+       else if (res.answer) {
+          setAiResponse(res.answer)
+          setAiQuestion("")
+       }
+    } finally {
+       setAiLoading(false)
+    }
+  }
 
   // Quiz-taking state
   const [answers, setAnswers] = React.useState<Record<string, string | Record<string, string>>>({})
@@ -1228,21 +1266,21 @@ export default function StudentCourseViewerPage() {
                             </h3>
                             <p className="text-xs text-slate-400 font-medium mt-1">Personalized guidance and semantic summaries</p>
                          </div>
-                         <Badge className="bg-indigo-50 text-indigo-600 border-indigo-100 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest">Active Intelligence</Badge>
+                         <Badge className={cn("px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest", aiLoading ? "bg-amber-50 text-amber-600 animate-pulse" : "bg-indigo-50 text-indigo-600 border-indigo-100")}>
+                            {aiLoading ? "AI is Thinking..." : "Active Intelligence"}
+                         </Badge>
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
-                         <Card className="border-none shadow-sm bg-slate-50/50 hover:bg-white hover:shadow-xl hover:shadow-indigo-50/50 transition-all p-8 rounded-3xl group cursor-pointer border-2 border-transparent hover:border-indigo-100" 
-                               onClick={() => {
-                                  // Mock logic: Trigger a simulated summary
-                                  const btn = document.getElementById("ai-summary-btn");
-                                  if (btn) btn.click();
-                               }}>
+                         <Card 
+                            className={cn("border-none shadow-sm bg-slate-50/50 hover:bg-white hover:shadow-xl hover:shadow-indigo-50/50 transition-all p-8 rounded-3xl group cursor-pointer border-2 border-transparent hover:border-indigo-100", aiLoading && "opacity-50 cursor-not-allowed")} 
+                            onClick={handleAISummary}
+                          >
                             <div className="h-12 w-12 rounded-2xl bg-indigo-100 text-indigo-600 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform"><FileText className="h-6 w-6" /></div>
                             <h4 className="text-sm font-black text-slate-900 uppercase tracking-tight mb-2">Lesson Executive Summary</h4>
                             <p className="text-xs text-slate-500 leading-relaxed font-medium">Extract the most critical insights and core concepts from this lesson into a high-density summary.</p>
-                            <Button id="ai-summary-btn" variant="ghost" className="mt-6 p-0 h-auto text-[10px] font-black uppercase tracking-widest text-indigo-600 hover:bg-transparent flex items-center gap-2 group/btn">
-                               Generate Now <ArrowRight className="h-3.5 w-3.5 group-hover/btn:translate-x-1 transition-transform" />
+                            <Button variant="ghost" disabled={aiLoading} className="mt-6 p-0 h-auto text-[10px] font-black uppercase tracking-widest text-indigo-600 hover:bg-transparent flex items-center gap-2 group/btn">
+                               {aiLoading ? "Processing..." : "Generate Now"} <ArrowRight className="h-3.5 w-3.5 group-hover/btn:translate-x-1 transition-transform" />
                             </Button>
                          </Card>
 
@@ -1251,21 +1289,53 @@ export default function StudentCourseViewerPage() {
                             <h4 className="text-sm font-black text-slate-900 uppercase tracking-tight mb-2">Semantic Concept Explainer</h4>
                             <p className="text-xs text-slate-500 leading-relaxed font-medium">Struggling with a specific concept? Describe what you don&apos;t understand and get a personalized explanation.</p>
                             <div className="mt-6 flex gap-2">
-                               <input type="text" placeholder="Explain the..." className="flex-1 bg-white border border-slate-100 rounded-xl px-4 py-2 text-xs outline-none focus:border-amber-400 transition-all" />
-                               <Button size="icon" className="h-8 w-8 rounded-xl bg-amber-500 hover:bg-amber-600 text-white shadow-lg shadow-amber-200"><ArrowRight className="h-4 w-4" /></Button>
+                               <input 
+                                  type="text" 
+                                  value={aiQuestion}
+                                  onChange={(e) => setAiQuestion(e.target.value)}
+                                  onKeyDown={(e) => e.key === 'Enter' && handleAIQuestion()}
+                                  placeholder="Explain the..." 
+                                  className="flex-1 bg-white border border-slate-100 rounded-xl px-4 py-2 text-xs outline-none focus:border-amber-400 transition-all" 
+                                />
+                               <Button 
+                                  size="icon" 
+                                  disabled={aiLoading || !aiQuestion.trim()}
+                                  onClick={handleAIQuestion}
+                                  className="h-8 w-8 rounded-xl bg-amber-500 hover:bg-amber-600 text-white shadow-lg shadow-amber-200"
+                                >
+                                  {aiLoading ? <RotateCcw className="h-3 w-3 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
+                                </Button>
                             </div>
                          </Card>
                       </div>
 
-                      <div className="bg-indigo-950 rounded-[2.5rem] p-8 md:p-12 text-white relative overflow-hidden group">
+                      {aiError && (
+                         <div className="p-4 bg-red-50 border border-red-100 text-red-600 rounded-2xl text-xs font-bold animate-in fade-in zoom-in duration-300">
+                            Error: {aiError}
+                         </div>
+                      )}
+
+                      <div className={cn("bg-indigo-950 rounded-[2.5rem] p-8 md:p-12 text-white relative overflow-hidden group transition-all duration-700", aiResponse ? "shadow-2xl shadow-indigo-200" : "")}>
                          <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl -mr-32 -mt-32" />
-                         <div className="relative z-10 flex flex-col md:flex-row items-center gap-8">
-                            <div className="h-20 w-20 rounded-3xl bg-white/10 flex items-center justify-center shrink-0 border border-white/10 group-hover:rotate-6 transition-transform">
+                         <div className="relative z-10 flex flex-col md:flex-row items-start gap-8">
+                            <div className={cn("h-20 w-20 rounded-3xl bg-white/10 flex items-center justify-center shrink-0 border border-white/10 group-hover:rotate-6 transition-transform", aiLoading && "animate-pulse")}>
                                <Sparkles className="h-10 w-10 text-indigo-300" />
                             </div>
-                            <div className="space-y-4">
-                               <h4 className="text-xl font-black tracking-tight">AI Status: Waiting for Inquiry</h4>
-                               <p className="text-sm text-white/50 leading-relaxed font-medium">Your personal AI tutor is ready to assist. Select an option above to generate a summary or ask for an explanation of complex topics.</p>
+                            <div className="space-y-4 w-full text-left">
+                               <h4 className="text-xl font-black tracking-tight">
+                                  {aiLoading ? "AI Assistant is formulating a response..." : (aiResponse ? "Tutor Feedback Integrated" : "AI Status: Waiting for Inquiry")}
+                               </h4>
+                               {aiResponse ? (
+                                  <div className="prose prose-invert prose-sm max-w-none text-white/80 leading-relaxed font-medium whitespace-pre-wrap animate-in fade-in slide-in-from-bottom-4 duration-1000">
+                                     {aiResponse}
+                                  </div>
+                               ) : (
+                                  <p className="text-sm text-white/50 leading-relaxed font-medium">
+                                     {aiLoading 
+                                       ? "Our neural pathways are processing the semantic structure of this lesson. Please hold on for a moment." 
+                                       : "Your personal AI tutor is ready to assist. Select an option above to generate a summary or ask for an explanation of complex topics."}
+                                  </p>
+                               )}
                             </div>
                          </div>
                       </div>
