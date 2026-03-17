@@ -121,7 +121,9 @@ export default function QuizBuilderPage() {
   const [expandedQ, setExpandedQ] = React.useState<string | null>(null)
   const fileRef = React.useRef<HTMLInputElement>(null)
   const [isGeneratingAI, setIsGeneratingAI] = React.useState(false)
-  const [aiQuestionCount, setAiQuestionCount] = React.useState(5)
+  const [aiCounts, setAiCounts] = React.useState<Record<string, number>>({
+    MCQ: 2, TRUE_FALSE: 1, MATCHING: 1, FILL_BLANK: 1, SHORT_ANSWER: 0
+  })
   const [showAIConfig, setShowAIConfig] = React.useState(false)
 
   // Quiz settings state
@@ -165,7 +167,7 @@ export default function QuizBuilderPage() {
     setIsGeneratingAI(true)
     try {
       // Pass the quiz ID directly instead of lessonId. The backend handles finding the right content.
-      const res = await generateQuizQuestions(quiz.id, aiQuestionCount)
+      const res = await generateQuizQuestions(quiz.id, aiCounts)
       if (res.success && res.questions) {
         setQuestions(prev => [...prev, ...res.questions])
         toast.success(`Neural Network Sync: ${res.questions.length} New Challenges Deployed`)
@@ -359,18 +361,20 @@ export default function QuizBuilderPage() {
                     <h4 className="text-xs font-bold text-slate-800 uppercase tracking-widest">AI Assessment Config</h4>
                   </div>
                   <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label className="text-[10px] uppercase text-slate-400 tracking-wider">Target Node Count</Label>
-                      <div className="flex items-center gap-3">
-                        <Input 
-                          type="number" 
-                          min={1} max={50}
-                          value={aiQuestionCount}
-                          onChange={e => setAiQuestionCount(Number(e.target.value) || 1)}
-                          className="h-10 border-slate-200 bg-slate-50 text-center font-bold"
-                        />
-                        <span className="text-xs font-semibold text-slate-400 whitespace-nowrap">Questions</span>
-                      </div>
+                    <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2">
+                      <Label className="text-[10px] uppercase text-indigo-400 tracking-wider">Configure Quantity</Label>
+                      {QUESTION_TYPES.filter(t => t.value !== 'ESSAY').map(t => (
+                        <div key={t.value} className="flex items-center justify-between gap-3">
+                          <Label className={`text-[10px] uppercase font-bold text-${t.color}-600`}>{t.label}</Label>
+                          <Input 
+                            type="number" 
+                            min={0} max={20}
+                            value={aiCounts[t.value] || 0}
+                            onChange={e => setAiCounts(prev => ({ ...prev, [t.value]: Number(e.target.value) || 0 }))}
+                            className="h-8 w-16 border-slate-200 bg-slate-50 text-center font-bold text-xs rounded-lg"
+                          />
+                        </div>
+                      ))}
                     </div>
                     <Button 
                       onClick={() => {

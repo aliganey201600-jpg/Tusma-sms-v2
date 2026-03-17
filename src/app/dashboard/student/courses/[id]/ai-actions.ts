@@ -128,8 +128,12 @@ export async function askAIQuestion(lessonId: string, question: string) {
   }
 }
 
-export async function generateQuizQuestions(quizId: string, questionCount: number = 5) {
-  console.log(`AI Action: Generating ${questionCount} quiz questions for quiz`, quizId)
+export async function generateQuizQuestions(quizId: string, counts: Record<string, number>) {
+  const totalCount = Object.values(counts).reduce((a, b) => a + b, 0);
+  console.log(`AI Action: Generating ${totalCount} customized quiz questions for quiz`, quizId)
+  
+  if (totalCount === 0) return { error: "Please configure at least one question to generate." }
+
   try {
     const quiz = await prisma.quiz.findUnique({
       where: { id: quizId },
@@ -163,8 +167,14 @@ export async function generateQuizQuestions(quizId: string, questionCount: numbe
     // Limit content length to prevent token overflow
     const truncatedContent = contentToAnalyze.slice(0, 50000);
 
-    const prompt = `Based on the following lesson content, generate exactly ${questionCount} highly educational questions.
-    Mix the question types to include: "MCQ" (Multiple Choice), "TRUE_FALSE", "MATCHING", "FILL_BLANK", and "SHORT_ANSWER".
+    const prompt = `Based on the following lesson content, generate exactly ${totalCount} highly educational questions.
+    The exact breakdown of question types MUST be:
+    - ${counts.MCQ || 0} MCQ (Multiple Choice)
+    - ${counts.TRUE_FALSE || 0} TRUE_FALSE
+    - ${counts.MATCHING || 0} MATCHING
+    - ${counts.FILL_BLANK || 0} FILL_BLANK
+    - ${counts.SHORT_ANSWER || 0} SHORT_ANSWER
+
     Make the questions challenging but fair. Use the same language as the lesson (Somali or English).
     
     Output the result EXCLUSIVELY as a JSON array of objects. Do not include any other text or markdown formatting.
