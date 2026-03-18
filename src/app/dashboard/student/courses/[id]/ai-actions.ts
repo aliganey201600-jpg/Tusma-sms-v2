@@ -1,55 +1,38 @@
 "use server"
 
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import prisma from "@/lib/prisma"
 
+// Initialize Google Generative AI
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
 async function callGemini(prompt: string, context: string) {
-  const key = process.env.GEMINI_API_KEY;
-  if (!key) {
-    console.error("AI Action: GEMINI_API_KEY is undefined in process.env.");
+  if (!process.env.GEMINI_API_KEY) {
+    console.error("AI Action: GEMINI_API_KEY is missing from environment.");
     return null;
   }
 
-  console.log("AI Action: Initiating Gemini Request to Google...");
   try {
-    // Model updated to gemini-1.5-flash for stable production
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        contents: [{
-          parts: [{
-            text: `You are an expert academic tutor for the Tusmo SMS platform. 
-            Context of the current lesson:
-            ---
-            ${context}
-            ---
-            Student Question/Task: ${prompt}
-            
-            Provide clear, concise, and highly educational responses. Use Markdown for formatting. 
-            CRITICAL: If the student asks in Somali, you MUST respond in Somali. Keep a professional yet encouraging tone.`
-          }]
-        }]
-      }),
-    });
-
-    if (!response.ok) {
-        const errorData = await response.json();
-        console.error("AI Action: Gemini API Error Response:", response.status, errorData);
-        return null;
-    }
-
-    const data = await response.json();
-    console.log("AI Action: Gemini Request Successful.");
+    console.log("AI Action: Initiating Live Gemini Request...");
     
-    // Extract text from Gemini response structure
-    if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts) {
-        return data.candidates[0].content.parts[0].text;
-    }
-    return null;
-  } catch (error) {
-    console.error("AI Action: Network or Internal Error (Gemini):", error);
+    const combinedPrompt = `You are an expert academic tutor for the Tusmo SMS platform. 
+    Context of the current lesson:
+    ---
+    ${context}
+    ---
+    Student Question/Task: ${prompt}
+    
+    Provide clear, concise, and highly educational responses. Use Markdown for formatting. 
+    CRITICAL: If the student asks in Somali, you MUST respond in Somali. Keep a professional yet encouraging tone.`;
+
+    const result = await model.generateContent(combinedPrompt);
+    const response = await result.response;
+    const text = response.text();
+    
+    return text;
+  } catch (error: any) {
+    console.error("AI Action: Gemini SDK Error:", error);
     return null;
   }
 }

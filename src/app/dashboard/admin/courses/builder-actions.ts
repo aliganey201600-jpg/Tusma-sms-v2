@@ -484,9 +484,14 @@ export async function getCertificate(courseId: string, studentId: string) {
   }
 }
 
+import { GoogleGenerativeAI } from "@google/generative-ai";
+
+// Initialize Gemini
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
 export async function generateLessonContentAI(topicName: string, courseName?: string, sourceContext?: string, mode: 'objectives' | 'content' = 'content') {
-  const key = process.env.GEMINI_API_KEY;
-  if (!key) return { error: "GEMINI_API_KEY is missing." };
+  if (!process.env.GEMINI_API_KEY) return { error: "GEMINI_API_KEY is missing." };
 
   try {
     let modeInstruction = "";
@@ -524,22 +529,16 @@ export async function generateLessonContentAI(topicName: string, courseName?: st
 
     ${modeInstruction}`;
 
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }]
-      }),
-    });
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
 
-    if (!response.ok) return { error: "Failed to connect to AI service." };
-
-    const data = await response.json();
-    if (data.candidates && data.candidates[0]?.content?.parts) {
-        return { content: data.candidates[0].content.parts[0].text };
+    if (text) {
+        return { content: text };
     }
     return { error: "Empty response from AI." };
   } catch (error: any) {
+    console.error("AI Generation Error:", error);
     return { error: error.message || "Internal server error" };
   }
 }
