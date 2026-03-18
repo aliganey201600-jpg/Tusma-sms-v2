@@ -399,11 +399,44 @@ export default function QuizBuilderPage() {
             </div>
           )}
 
-          {/* Question Cards */}
-          {questions.map((q, idx) => {
-            const typeInfo = QUESTION_TYPES.find(t => t.value === q.type)
-            const isExpanded = expandedQ === q.id
-            return (
+          {/* Question Cards — grouped by type */}
+          {(() => {
+            const TYPE_ORDER = ["MCQ", "TRUE_FALSE", "MATCHING", "FILL_BLANK", "SHORT_ANSWER", "ESSAY"]
+            const grouped: Record<string, typeof questions> = {}
+            questions.forEach(q => {
+              if (!grouped[q.type]) grouped[q.type] = []
+              grouped[q.type].push(q)
+            })
+            const presentTypes = TYPE_ORDER.filter(t => grouped[t]?.length)
+
+            if (presentTypes.length === 0) return null
+
+            let globalIdx = 0
+            return presentTypes.map((type, secIdx) => {
+              const typeInfo = QUESTION_TYPES.find(t => t.value === type)!
+              const sectionQs = grouped[type]
+              return (
+                <div key={type} className="space-y-3">
+                  {/* Section Header */}
+                  <div className={cn(
+                    "flex items-center gap-3 px-4 py-3 rounded-2xl border",
+                    `bg-${typeInfo.color}-50 border-${typeInfo.color}-100`
+                  )}>
+                    <div className={cn("h-8 w-8 rounded-xl flex items-center justify-center text-white font-black text-sm shadow", `bg-${typeInfo.color}-600`)}>
+                      {secIdx + 1}
+                    </div>
+                    <typeInfo.icon className={cn("h-4 w-4", `text-${typeInfo.color}-600`)} />
+                    <span className={cn("text-sm font-black tracking-wide", `text-${typeInfo.color}-800`)}>{typeInfo.label}</span>
+                    <Badge className={cn("ml-auto text-[9px] font-bold uppercase border-none", `bg-${typeInfo.color}-100 text-${typeInfo.color}-700`)}>
+                      {sectionQs.length} Question{sectionQs.length !== 1 ? "s" : ""}
+                    </Badge>
+                  </div>
+
+                  {/* Questions in this section */}
+                  {sectionQs.map((q) => {
+                    const idx = globalIdx++
+                    const isExpanded = expandedQ === q.id
+                    return (
               <div key={q.id} className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden transition-all">
                 {/* Question Header */}
                 <div
@@ -582,6 +615,10 @@ export default function QuizBuilderPage() {
               </div>
             )
           })}
+                </div>
+              )
+            })
+          })()}
         </div>
 
         {/* ─ Right: Quiz Settings ───────────────────────────── */}
