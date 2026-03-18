@@ -23,6 +23,7 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { RichEditor } from "@/components/ui/rich-editor"
 import { 
   Dialog,
   DialogContent,
@@ -265,7 +266,7 @@ export default function FullLessonWorkspace() {
                  {/* Content */}
                  <div className="space-y-4">
                     <div className="flex items-center justify-between ml-2">
-                       <Label className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-400 leading-none">Curriculum Narrative Engine</Label>
+                       <Label className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-400 leading-none">Curriculum Composition Suite</Label>
                        <div className="flex items-center gap-3">
                           <Button 
                             onClick={() => setIsAIModalOpen(true)}
@@ -278,18 +279,11 @@ export default function FullLessonWorkspace() {
                        </div>
                     </div>
 
-                    <div className="relative">
-                       <div className="absolute top-6 right-8 flex items-center gap-2 z-10">
-                          <Button variant="secondary" size="icon" className="h-12 w-12 rounded-2xl bg-white shadow-xl"><Bold className="h-5 w-5" /></Button>
-                          <Button variant="secondary" size="icon" className="h-12 w-12 rounded-2xl bg-white shadow-xl"><Italic className="h-5 w-5" /></Button>
-                       </div>
-                       <textarea 
-                          className="w-full min-h-[600px] p-12 rounded-[48px] border border-slate-50 bg-slate-50 focus:bg-white focus:ring-[12px] focus:ring-indigo-50/50 outline-none text-slate-600 font-medium text-xl leading-[1.8] transition-all shadow-inner placeholder:text-slate-300 placeholder:italic" 
-                          placeholder="Architect your full instructional content here..."
-                          value={editData.content}
-                          onChange={e => setEditData({...editData, content: e.target.value})}
-                       />
-                    </div>
+                    <RichEditor 
+                       content={editData.content}
+                       onChange={(html) => setEditData({...editData, content: html})}
+                       placeholder="Architect your full instructional content here..."
+                    />
                  </div>
               </div>
             </section>

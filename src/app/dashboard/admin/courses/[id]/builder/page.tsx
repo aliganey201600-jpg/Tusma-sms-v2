@@ -41,6 +41,7 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { RichEditor } from "@/components/ui/rich-editor"
 import { 
   Dialog,
   DialogContent,
@@ -882,7 +883,7 @@ export default function CourseBuilderPage() {
                              {/* Lesson Content */}
                              <div className="space-y-4">
                                 <div className="flex items-center justify-between ml-2">
-                                   <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Curriculum Narrative Engine</Label>
+                                   <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Curriculum Composition Suite</Label>
                                    <div className="flex gap-2">
                                       <Button
                                         onClick={() => setIsAIModalOpen(true)}
@@ -895,19 +896,11 @@ export default function CourseBuilderPage() {
                                       <Badge className="bg-emerald-50 text-emerald-500 border-none font-black text-[9px] uppercase tracking-widest pt-1.5">Live Editor</Badge>
                                    </div>
                                 </div>
-                                <div className="relative group">
-                                  <div className="absolute top-6 right-8 flex items-center gap-2 z-10 opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0">
-                                    <Button variant="secondary" size="icon" className="h-10 w-10 rounded-xl bg-white shadow-xl hover:bg-slate-50"><Bold className="h-4 w-4" /></Button>
-                                    <Button variant="secondary" size="icon" className="h-10 w-10 rounded-xl bg-white shadow-xl hover:bg-slate-50"><Italic className="h-4 w-4" /></Button>
-                                    <Button variant="secondary" size="icon" className="h-10 w-10 rounded-xl bg-white shadow-xl hover:bg-slate-50"><LinkIcon className="h-4 w-4" /></Button>
-                                  </div>
-                                  <textarea
-                                    className="w-full min-h-[500px] p-10 rounded-[40px] border border-slate-100 bg-slate-50 focus:bg-white focus:border-indigo-200 focus:ring-4 focus:ring-indigo-50/50 outline-none text-slate-600 font-medium text-lg leading-relaxed transition-all shadow-inner"
-                                    placeholder="Architect your instructional narrative..."
-                                    value={editData?.content || ""}
-                                    onChange={e => setEditData({...editData, content: e.target.value})}
-                                  />
-                                </div>
+                                <RichEditor 
+                                  content={editData?.content || ""}
+                                  onChange={(html) => setEditData({...editData, content: html})}
+                                  placeholder="Architect your instructional narrative..."
+                                />
                              </div>
 
                           <div className="grid grid-cols-2 gap-10">
