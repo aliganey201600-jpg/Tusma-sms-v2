@@ -19,18 +19,25 @@ async function callGemini(prompt: string, context: string) {
     }
 
     const availableModels = listData.models || [];
-    const validModel = availableModels.find((m: any) => m.supportedMethods && m.supportedMethods.includes("generateContent"));
+    
+    // Priority Fallback Chain
+    let finalModelName = "gemini-1.5-flash"; // Default
+    const listNames = availableModels.map((m: any) => m.name);
 
-    if (!validModel) {
-       const modelDetails = availableModels.map((m: any) => `${m.name} (${m.supportedMethods?.join(',') || 'no-methods'})`).join(" | ");
-       return { error: `No compatible models found for this key. Models visible: ${modelDetails || "None"}. If you just created this key, give it 5 minutes.` };
+    if (listNames.includes("models/gemini-2.0-flash")) {
+      finalModelName = "gemini-2.0-flash";
+    } else if (listNames.includes("models/gemini-1.5-flash")) {
+      finalModelName = "gemini-1.5-flash";
+    } else if (availableModels.length > 0) {
+      // Pick the first candidate if both preferred are missing
+      const candidate = availableModels.find((m: any) => m.name.includes("flash") || m.name.includes("pro")) || availableModels[0];
+      finalModelName = candidate.name.replace("models/", "");
     }
+    
+    console.log(`AI Action: Selected Model: ${finalModelName}`);
 
-    const modelName = validModel.name; // e.g., "models/gemini-1.5-flash"
-    console.log(`AI Action: Discovered and using model: ${modelName}`);
-
-    // Step 2: Use the discovered model
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/${modelName}:generateContent?key=${key}`, {
+    // Step 2: Use the selected or discovered model
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${finalModelName}:generateContent?key=${key}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
