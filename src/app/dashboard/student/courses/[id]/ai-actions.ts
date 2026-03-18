@@ -20,21 +20,23 @@ async function callGemini(prompt: string, context: string) {
 
     const availableModels = listData.models || [];
     
-    // Priority Fallback Chain
-    let finalModelName = "gemini-1.5-flash"; // Default
+    // Priority Fallback Chain based on user's active inventory
+    let finalModelName = "gemini-1.5-flash"; // Default fallback
     const listNames = availableModels.map((m: any) => m.name);
 
-    if (listNames.includes("models/gemini-2.0-flash")) {
-      finalModelName = "gemini-2.0-flash";
+    if (listNames.includes("models/gemini-flash-latest")) {
+      finalModelName = "gemini-flash-latest";
+    } else if (listNames.includes("models/gemini-pro-latest")) {
+      finalModelName = "gemini-pro-latest";
     } else if (listNames.includes("models/gemini-1.5-flash")) {
       finalModelName = "gemini-1.5-flash";
     } else if (availableModels.length > 0) {
-      // Pick the first candidate if both preferred are missing
-      const candidate = availableModels.find((m: any) => m.name.includes("flash") || m.name.includes("pro")) || availableModels[0];
-      finalModelName = candidate.name.replace("models/", "");
+      // Pick a non-2.0 model if possible to avoid the 0-limit issue
+      const nonExperimental = availableModels.find((m: any) => !m.name.includes("2.0") && !m.name.includes("2.5") && (m.name.includes("flash") || m.name.includes("pro")));
+      finalModelName = (nonExperimental ? nonExperimental.name : availableModels[0].name).replace("models/", "");
     }
     
-    console.log(`AI Action: Selected Model: ${finalModelName}`);
+    console.log(`AI Action: Selected Safe Model: ${finalModelName}`);
 
     // Step 2: Use the selected or discovered model
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${finalModelName}:generateContent?key=${key}`, {
