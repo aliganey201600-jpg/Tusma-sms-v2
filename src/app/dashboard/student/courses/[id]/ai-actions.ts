@@ -4,36 +4,47 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import prisma from "@/lib/prisma"
 
 async function callGemini(prompt: string, context: string) {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    console.error("AI Action: GEMINI_API_KEY is missing from environment.");
-    return { error: "GEMINI_API_KEY is not configured in Vercel/Environment Settings." };
-  }
+  const key = process.env.GEMINI_API_KEY;
+  if (!key) return { error: "GEMINI_API_KEY is missing." };
 
   try {
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+    console.log("AI Action: Initiating Manually Managed Fetch Request (v1beta/flash)...");
     
-    console.log("AI Action: Initiating Live SDK Gemini (Pro-Stable) Request...");
-    
-    const combinedPrompt = `You are an expert academic tutor for the Tusmo SMS platform. 
-    Context of the current lesson:
-    ---
-    ${context}
-    ---
-    Student Question/Task: ${prompt}
-    
-    Provide clear, concise, and highly educational responses. Use Markdown for formatting. 
-    CRITICAL: If the student asks in Somali, you MUST respond in Somali. Keep a professional yet encouraging tone.`;
+    // Using v1beta explicitly for maximal compatibility with flash model
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{
+          parts: [{
+            text: `You are an expert academic tutor for the Tusmo SMS platform. 
+            Context of the current lesson:
+            ---
+            ${context}
+            ---
+            Student Question/Task: ${prompt}
+            
+            Provide clear, concise, and highly educational responses. Use Markdown for formatting. 
+            CRITICAL: If the student asks in Somali, you MUST respond in Somali. Keep a professional yet encouraging tone.`
+          }]
+        }]
+      }),
+    });
 
-    const result = await model.generateContent(combinedPrompt);
-    const response = await result.response;
-    const text = response.text();
-    
-    return { text };
+    if (!response.ok) {
+       const err = await response.json();
+       console.error("AI Action: API Error:", err);
+       return { error: `Gemini API Error (${response.status}): ${err.error?.message || "Unknown error"}. Please check if Generative Language API is enabled for this key.` };
+    }
+
+    const data = await response.json();
+    if (data.candidates && data.candidates[0]?.content?.parts) {
+        return { text: data.candidates[0].content.parts[0].text };
+    }
+    return { error: "AI returned an empty response." };
   } catch (error: any) {
-    console.error("AI Action: Gemini SDK Error:", error);
-    return { error: error.message || "An unexpected error occurred during AI generation." };
+    console.error("AI Action: Network Error:", error);
+    return { error: `Network error: ${error.message}` };
   }
 }
 
