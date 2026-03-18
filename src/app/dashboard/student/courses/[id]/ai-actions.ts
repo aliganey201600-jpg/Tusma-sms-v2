@@ -8,10 +8,29 @@ async function callGemini(prompt: string, context: string) {
   if (!key) return { error: "GEMINI_API_KEY is missing." };
 
   try {
-    console.log("AI Action: Initiating Manually Managed Fetch Request (v1beta/flash)...");
+    console.log("AI Action: Initiating Model Discovery...");
     
-    // Using v1beta explicitly for maximal compatibility with flash model
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`, {
+    // Step 1: Discover available models for this specific key
+    const listResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}`);
+    const listData = await listResponse.json();
+    
+    if (!listResponse.ok) {
+       return { error: `Discovery Error (${listResponse.status}): ${listData.error?.message || "Failed to list models"}` };
+    }
+
+    const availableModels = listData.models || [];
+    const validModel = availableModels.find((m: any) => m.supportedMethods.includes("generateContent"));
+
+    if (!validModel) {
+       const modelNames = availableModels.map((m: any) => m.name).join(", ");
+       return { error: `No valid models found for this key. Available: ${modelNames || "None"}. Please ensure Generative Language API is enabled.` };
+    }
+
+    const modelName = validModel.name; // e.g., "models/gemini-1.5-flash"
+    console.log(`AI Action: Discovered and using model: ${modelName}`);
+
+    // Step 2: Use the discovered model
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/${modelName}:generateContent?key=${key}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -33,8 +52,7 @@ async function callGemini(prompt: string, context: string) {
 
     if (!response.ok) {
        const err = await response.json();
-       console.error("AI Action: API Error:", err);
-       return { error: `Gemini API Error (${response.status}): ${err.error?.message || "Unknown error"}. Please check if Generative Language API is enabled for this key.` };
+       return { error: `Gemini API Error (${response.status}): ${err.error?.message || "Unknown error"}` };
     }
 
     const data = await response.json();
@@ -43,8 +61,8 @@ async function callGemini(prompt: string, context: string) {
     }
     return { error: "AI returned an empty response." };
   } catch (error: any) {
-    console.error("AI Action: Network Error:", error);
-    return { error: `Network error: ${error.message}` };
+    console.error("AI Action: Fatal Error:", error);
+    return { error: `Fatal Error: ${error.message}` };
   }
 }
 
