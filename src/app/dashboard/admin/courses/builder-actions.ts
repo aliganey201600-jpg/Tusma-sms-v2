@@ -83,7 +83,7 @@ export async function addLesson(sectionId: string, title: string) {
     const courseId = lesson.section.courseId
     revalidatePath(`/dashboard/admin/courses/${courseId}/builder`)
     revalidatePath(`/dashboard/admin/courses/${courseId}/preview`)
-    return { success: true }
+    return { success: true, lessonId: lesson.id }
   } catch (error) {
     return { success: false }
   }

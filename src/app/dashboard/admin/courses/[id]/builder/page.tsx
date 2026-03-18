@@ -538,6 +538,11 @@ export default function CourseBuilderPage() {
   }
 
   const handleSelectItem = (item: any) => {
+    if (item.type === 'lesson') {
+       router.push(`/dashboard/admin/courses/${id}/builder/lesson/${item.data.id}`)
+       return
+    }
+    
     setActiveItem(item)
     setEditData({
       title: item.data.title,
@@ -545,7 +550,9 @@ export default function CourseBuilderPage() {
       objectives: item.data.objectives || "",
       duration: item.data.duration?.toString() || "",
       videoUrl: item.data.videoUrl || "",
-      attachmentUrl: item.data.attachmentUrl || ""
+      attachmentUrl: item.data.attachmentUrl || "",
+      passingScore: item.data.passingScore || 70,
+      timeLimit: item.data.timeLimit || ""
     })
   }
 
