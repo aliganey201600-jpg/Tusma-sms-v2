@@ -727,84 +727,100 @@ export default function CourseBuilderPage() {
                           </div>
 
                           {/* AI Source Context Section */}
-                          <div className="space-y-6 bg-indigo-50/30 p-10 rounded-[48px] border border-indigo-100/50 shadow-inner">
+                          <div className="space-y-6 bg-indigo-50/40 p-10 rounded-[48px] border-2 border-indigo-100 shadow-xl shadow-indigo-50">
                              <div className="flex items-center justify-between ml-2">
                                 <div className="space-y-1">
-                                   <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-700 leading-none">AI Knowledge Source Hub</Label>
-                                   <p className="text-[9px] font-bold text-slate-400">Extract facts from PDF or Video for better accuracy</p>
+                                   <div className="flex items-center gap-2">
+                                      <Sparkles className="h-4 w-4 text-indigo-600 animate-pulse" />
+                                      <Label className="text-[11px] font-black uppercase tracking-[0.3em] text-indigo-700 leading-none">AI Smart Knowledge Hub</Label>
+                                   </div>
+                                   <p className="text-[10px] font-bold text-slate-500">Feed the AI with your PDF or Video for 100% accuracy</p>
                                 </div>
-                                <Badge className="bg-indigo-600 text-white border-none font-black text-[9px] uppercase tracking-widest px-4 py-1.5 rounded-full shadow-lg shadow-indigo-200 animate-pulse">Smart Assistant</Badge>
+                                <Badge className="bg-indigo-600 text-white border-none font-black text-[9px] uppercase tracking-widest px-4 py-1.5 rounded-full">Assistant v2.0</Badge>
                              </div>
 
-                             <div className="grid grid-cols-2 gap-6 mt-4">
+                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
                                 {/* YouTube Option */}
-                                <div className="bg-white p-6 rounded-[32px] shadow-sm space-y-4 border border-slate-100">
-                                   <div className="flex items-center gap-3">
-                                      <div className="h-8 w-8 rounded-xl bg-red-50 text-red-500 flex items-center justify-center"><Video className="h-4 w-4" /></div>
-                                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">YouTube Transcript</span>
+                                <div className="bg-white p-6 rounded-[32px] shadow-sm space-y-4 border border-slate-100 group hover:border-red-100 transition-all">
+                                   <div className="flex items-center justify-between">
+                                      <div className="flex items-center gap-3">
+                                         <div className="h-10 w-10 rounded-2xl bg-red-50 text-red-500 flex items-center justify-center transition-transform group-hover:scale-110"><Video className="h-5 w-5" /></div>
+                                         <span className="text-[11px] font-black uppercase tracking-widest text-slate-600">YouTube Source</span>
+                                      </div>
+                                      <Badge variant="outline" className="border-red-100 text-red-500 text-[8px] font-black">Link Needed</Badge>
                                    </div>
-                                   <div className="flex gap-2">
-                                      <Input 
-                                        placeholder="Paste YouTube Video URL..."
-                                        value={ytUrl}
-                                        onChange={e => setYtUrl(e.target.value)}
-                                        className="h-10 rounded-xl bg-slate-50 border-none text-[11px] font-bold"
-                                      />
+                                   <div className="space-y-3">
+                                      <div className="relative">
+                                         <Input 
+                                           placeholder="PASTE YOUTUBE URL HERE..."
+                                           value={ytUrl}
+                                           onChange={e => setYtUrl(e.target.value)}
+                                           className="h-14 rounded-2xl bg-slate-50 border-none text-[12px] font-bold px-6 placeholder:text-slate-300"
+                                         />
+                                      </div>
                                       <Button 
                                         disabled={isProcessingSource}
-                                        size="sm"
                                         onClick={handleFetchYoutube}
-                                        className="h-10 px-4 rounded-xl bg-slate-900 text-white text-[10px] font-black uppercase"
+                                        className="w-full h-12 rounded-2xl bg-slate-900 hover:bg-red-600 text-white text-[10px] font-black uppercase tracking-[0.2em] transition-all"
                                       >
-                                        {isProcessingSource ? "..." : "Fetch"}
+                                        {isProcessingSource ? (
+                                          <span className="flex items-center gap-2"><div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Fetching...</span>
+                                        ) : "Fetch Video Transcript"}
                                       </Button>
                                    </div>
                                 </div>
 
                                 {/* PDF Option */}
-                                <div className="bg-white p-6 rounded-[32px] shadow-sm space-y-4 border border-slate-100">
-                                   <div className="flex items-center gap-3">
-                                      <div className="h-8 w-8 rounded-xl bg-indigo-50 text-indigo-500 flex items-center justify-center"><FileText className="h-4 w-4" /></div>
-                                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">PDF Page Extractor</span>
-                                   </div>
-                                   <div className="flex items-center gap-3">
-                                      <Input 
-                                        type="file" 
-                                        accept=".pdf"
-                                        onChange={handleProcessPDF}
-                                        className="hidden" 
-                                        id="pdf-upload"
-                                      />
-                                      <Label htmlFor="pdf-upload" className="flex-1 h-10 border-2 border-dashed border-indigo-100 rounded-xl flex items-center justify-center text-[10px] font-black text-indigo-400 uppercase cursor-pointer hover:bg-indigo-50 transition-all">
-                                         {isProcessingSource ? "Reading PDF..." : "Choose File"}
-                                      </Label>
-                                      <div className="flex gap-1">
-                                         <Input 
-                                            type="number" 
-                                            placeholder="Ex: 5"
-                                            value={pdfPages.start}
-                                            onChange={e => setPdfPages({...pdfPages, start: parseInt(e.target.value)})}
-                                            className="w-12 h-10 rounded-xl bg-slate-50 border-none text-center text-[10px] font-black" 
-                                         />
-                                         <span className="text-slate-200 mt-2">-</span>
-                                         <Input 
-                                            type="number" 
-                                            placeholder="Ex: 10"
-                                            value={pdfPages.end}
-                                            onChange={e => setPdfPages({...pdfPages, end: parseInt(e.target.value)})}
-                                            className="w-12 h-10 rounded-xl bg-slate-50 border-none text-center text-[10px] font-black" 
-                                         />
+                                <div className="bg-white p-6 rounded-[32px] shadow-sm space-y-4 border border-slate-100 group hover:border-indigo-200 transition-all">
+                                   <div className="flex items-center justify-between">
+                                      <div className="flex items-center gap-3">
+                                         <div className="h-10 w-10 rounded-2xl bg-indigo-50 text-indigo-500 flex items-center justify-center transition-transform group-hover:scale-110"><FileText className="h-5 w-5" /></div>
+                                         <span className="text-[11px] font-black uppercase tracking-widest text-slate-600">PDF Document</span>
                                       </div>
+                                      <Badge variant="outline" className="border-indigo-100 text-indigo-500 text-[8px] font-black">Page Range</Badge>
+                                   </div>
+                                   <div className="space-y-3">
+                                      <div className="flex items-center gap-3">
+                                         <Input 
+                                           type="file" 
+                                           accept=".pdf"
+                                           onChange={handleProcessPDF}
+                                           className="hidden" 
+                                           id="pdf-upload"
+                                         />
+                                         <Label htmlFor="pdf-upload" className="flex-1 h-14 border-2 border-dashed border-indigo-100 rounded-2xl flex items-center justify-center text-[10px] font-black text-indigo-500 uppercase cursor-pointer hover:bg-indigo-50 transition-all bg-indigo-50/20">
+                                            {isProcessingSource ? "AI Reading..." : "Upload PDF File"}
+                                         </Label>
+                                         <div className="flex items-center gap-1 bg-slate-50 p-1.5 rounded-2xl border border-slate-100">
+                                            <Input 
+                                               type="number" 
+                                               value={pdfPages.start}
+                                               onChange={e => setPdfPages({...pdfPages, start: parseInt(e.target.value) || 1})}
+                                               className="w-12 h-10 rounded-xl bg-white border-none text-center text-[11px] font-black p-0" 
+                                            />
+                                            <span className="text-slate-300 font-bold mx-0.5">to</span>
+                                            <Input 
+                                               type="number" 
+                                               value={pdfPages.end}
+                                               onChange={e => setPdfPages({...pdfPages, end: parseInt(e.target.value) || 1})}
+                                               className="w-12 h-10 rounded-xl bg-white border-none text-center text-[11px] font-black p-0" 
+                                            />
+                                         </div>
+                                      </div>
+                                      <p className="text-[9px] text-center text-slate-400 font-bold italic">Page Range selects which parts the AI extracts.</p>
                                    </div>
                                 </div>
                              </div>
 
-                             <Textarea 
-                               value={sourceContext}
-                               onChange={e => setSourceContext(e.target.value)}
-                               placeholder="Source text will appear here. You can also paste manually..."
-                               className="min-h-[150px] rounded-[30px] border-indigo-100 bg-white focus:ring-4 focus:ring-indigo-100 transition-all font-medium text-slate-600 p-8 shadow-inner"
-                             />
+                             <div className="space-y-3">
+                                <Label className="text-[9px] font-black uppercase tracking-widest text-indigo-400 ml-4">Extracted Knowledge Base</Label>
+                                <Textarea 
+                                  value={sourceContext}
+                                  onChange={e => setSourceContext(e.target.value)}
+                                  placeholder="Extracted text will appear here. You can also paste manually..."
+                                  className="min-h-[150px] rounded-[30px] border-indigo-100 bg-white focus:ring-4 focus:ring-indigo-100 transition-all font-medium text-slate-600 p-8 shadow-inner text-sm leading-relaxed"
+                                />
+                             </div>
                           </div>
 
                           <div className="space-y-4">
