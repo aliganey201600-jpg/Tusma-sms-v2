@@ -8,7 +8,7 @@ import {
   Layers, AlertCircle, Trophy, RotateCcw, Check, Eye,
   Sparkles, MessageSquare, User, Plus, Trash2, Save, Upload,
   Download, CheckSquare, ArrowLeftRight, PenLine, AlignLeft,
-  GripVertical, Star, Shuffle, EyeOff
+  GripVertical, Star, Shuffle, EyeOff, Hash, Target, Type
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -217,6 +217,7 @@ export default function CoursePreviewPage() {
   const [currentQ, setCurrentQ] = React.useState(0)
   const [timeLeft, setTimeLeft] = React.useState<number | null>(null)
   const [quizTab, setQuizTab] = React.useState<string>("questions")
+  const [quizViewState, setQuizViewState] = React.useState<"overview"|"section_intro"|"question">("overview")
   const timerRef = React.useRef<any>(null)
   
   // AI Tutor State
@@ -267,10 +268,10 @@ export default function CoursePreviewPage() {
 
   // Timer countdown
   React.useEffect(() => {
-    if (mode === "quiz" && activeQuiz?.timeLimit && !submitted) {
-      setTimeLeft(activeQuiz.timeLimit * 60)
+    if (mode === "quiz" && activeQuiz?.timeLimit && !submitted && quizViewState !== "overview") {
+      setTimeLeft(prev => prev === null ? (activeQuiz.timeLimit || 0) * 60 : prev)
     }
-  }, [mode, activeQuiz, submitted])
+  }, [mode, activeQuiz, submitted, quizViewState])
 
   React.useEffect(() => {
     if (timeLeft === null) return
@@ -288,15 +289,39 @@ export default function CoursePreviewPage() {
     setMode("lesson")
   }
 
+  // Helper: Fisher-Yates shuffle
+  const shuffle = <T,>(arr: T[]): T[] => {
+    const a = [...arr]
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));[a[i], a[j]] = [a[j], a[i]]
+    }
+    return a
+  }
+
   const openQuiz = async (quiz: any) => {
     setQuizLoading(true)
     const data = await getQuizWithQuestions(quiz.id)
+    if (data) {
+      const TYPE_ORDER = ["MCQ", "TRUE_FALSE", "MATCHING", "FILL_BLANK", "SHORT_ANSWER", "ESSAY"]
+      const rawQs: any[] = data.questions || []
+      const grouped: Record<string, any[]> = {}
+      rawQs.forEach(q => {
+        if (!grouped[q.type]) grouped[q.type] = []
+        grouped[q.type].push(q)
+      })
+      const shuffledQs = TYPE_ORDER
+        .filter(t => grouped[t]?.length)
+        .flatMap(t => shuffle(grouped[t]))
+      
+      data.questions = shuffledQs
+    }
     setActiveQuiz(data)
     setAnswers({})
     setSubmitted(false)
     setScore(0)
     setCurrentQ(0)
     setTimeLeft(null)
+    setQuizViewState("overview")
     setMode("quiz")
     setQuizLoading(false)
   }
@@ -366,7 +391,8 @@ export default function CoursePreviewPage() {
     setResults([])
     setShowFeedback(false)
     setCurrentQ(0)
-    setTimeLeft(activeQuiz?.timeLimit ? activeQuiz.timeLimit * 60 : null)
+    setTimeLeft(null)
+    setQuizViewState("overview")
   }
 
   if (loading) return (
@@ -402,6 +428,23 @@ export default function CoursePreviewPage() {
     const passed = score >= (activeQuiz?.passingScore || 70)
     const isLast = currentQ === questions.length - 1
     const q = questions[currentQ]
+
+    // ── Compute section info for current question ──────────────────────────
+    const TYPE_LABELS: Record<string, { label: string; color: string }> = {
+      MCQ:          { label: "Multiple Choice",      color: "indigo"  },
+      TRUE_FALSE:   { label: "True / False",          color: "emerald" },
+      MATCHING:     { label: "Matching",              color: "violet"  },
+      FILL_BLANK:   { label: "Fill in the Blank",     color: "amber"   },
+      SHORT_ANSWER: { label: "Short Answer",          color: "rose"    },
+      ESSAY:        { label: "Essay",                 color: "slate"   },
+    }
+    const orderedTypes = (questions as any[]).reduce((acc: string[], qq: any) => {
+      if (!acc.includes(qq.type)) acc.push(qq.type)
+      return acc
+    }, [] as string[])
+    const sectionIdx = orderedTypes.indexOf(q?.type)
+    const isFirstOfType = q && (questions as any[]).findIndex((qq: any) => qq.type === q.type) === currentQ
+    const sectionMeta = q ? (TYPE_LABELS[q.type] || { label: q.type, color: "slate" }) : null
 
     return (
       <div className="fixed inset-0 z-[100] bg-[#FDFDFD] flex flex-col">
@@ -543,19 +586,109 @@ export default function CoursePreviewPage() {
                       </div>
                     </div>
                   </div>
+                ) : quizViewState === "overview" ? (
+                  <div className="max-w-4xl mx-auto space-y-8 py-10 md:py-20 animate-in fade-in zoom-in duration-500">
+                    <div className="bg-white rounded-[3rem] shadow-[0_20px_50px_-20px_rgba(0,0,0,0.1)] p-10 md:p-16 border border-slate-100 relative overflow-hidden text-center space-y-12">
+                      <div className="absolute top-0 inset-x-0 h-3 bg-gradient-to-r from-indigo-500 via-purple-500 to-amber-500" />
+                      
+                      <div className="space-y-6">
+                        <div className="h-28 w-28 mx-auto rounded-[2rem] bg-indigo-50 flex items-center justify-center -rotate-6 shadow-2xl shadow-indigo-100/50 mb-8 border-4 border-white">
+                          <BookOpenCheck className="h-14 w-14 text-indigo-600 rotate-6" />
+                        </div>
+                        <h2 className="text-4xl md:text-6xl font-black text-slate-900 tracking-tight px-4 leading-[1.1]">{activeQuiz?.title}</h2>
+                        <p className="text-sm md:text-base font-bold text-slate-400 max-w-xl mx-auto leading-relaxed px-4">This assessment is organized into distinct sections designed to comprehensively evaluate your knowledge.</p>
+                      </div>
+
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 px-2">
+                         <div className="p-6 rounded-[2rem] bg-slate-50 border border-slate-100/50 flex flex-col items-center justify-center relative overflow-hidden">
+                            <Hash className="absolute top-4 right-4 h-24 w-24 text-slate-900/5 rotate-12" />
+                            <p className="text-4xl font-black text-slate-800 leading-none z-10">{questions.length}</p>
+                            <p className="text-[10px] font-black uppercase text-slate-400 tracking-[.2em] mt-3 z-10">Total Questions</p>
+                         </div>
+                         <div className="p-6 rounded-[2rem] bg-slate-50 border border-slate-100/50 flex flex-col items-center justify-center relative overflow-hidden">
+                            <Target className="absolute top-4 right-4 h-24 w-24 text-slate-900/5 rotate-12" />
+                            <p className="text-4xl font-black text-slate-800 leading-none z-10">{orderedTypes.length}</p>
+                            <p className="text-[10px] font-black uppercase text-slate-400 tracking-[.2em] mt-3 z-10">Sections</p>
+                         </div>
+                         <div className="p-6 rounded-[2rem] bg-slate-50 border border-slate-100/50 flex flex-col items-center justify-center relative overflow-hidden">
+                            <Clock className="absolute top-4 right-4 h-24 w-24 text-slate-900/5 rotate-12" />
+                            <p className="text-4xl font-black text-slate-800 leading-none z-10">{activeQuiz?.timeLimit || "∞"}</p>
+                            <p className="text-[10px] font-black uppercase text-slate-400 tracking-[.2em] mt-3 z-10">Max Minutes</p>
+                         </div>
+                         <div className="p-6 rounded-[2rem] bg-slate-50 border border-slate-100/50 flex flex-col items-center justify-center relative overflow-hidden">
+                            <Trophy className="absolute top-4 right-4 h-24 w-24 text-slate-900/5 rotate-12" />
+                            <p className="text-4xl font-black text-slate-800 leading-none z-10">{activeQuiz?.passingScore}%</p>
+                            <p className="text-[10px] font-black uppercase text-slate-400 tracking-[.2em] mt-3 z-10">Passing Score</p>
+                         </div>
+                      </div>
+
+                      <Button onClick={() => setQuizViewState("section_intro")} className="h-20 w-full max-w-sm mx-auto rounded-[1.5rem] bg-indigo-600 hover:bg-indigo-700 text-white font-black text-lg tracking-[.2em] uppercase transition-all shadow-2xl shadow-indigo-600/30 hover:scale-[1.02] flex items-center justify-center gap-3">
+                         Begin Assessment <ArrowRight className="h-6 w-6" />
+                      </Button>
+                    </div>
+                  </div>
+                ) : quizViewState === "section_intro" ? (
+                  <div className="max-w-3xl mx-auto space-y-8 py-10 md:py-24 animate-in slide-in-from-bottom-8 duration-700">
+                     <div className={`bg-white rounded-[3rem] shadow-[0_20px_50px_-20px_rgba(0,0,0,0.1)] p-10 md:p-16 border border-${sectionMeta?.color}-100 relative overflow-hidden text-center`}>
+                        <div className={`absolute top-0 inset-x-0 h-3 bg-${sectionMeta?.color}-500`} />
+                        
+                        <div className={`h-32 w-32 mx-auto rounded-[2.5rem] bg-${sectionMeta?.color}-50 flex items-center justify-center mb-10 shadow-2xl shadow-${sectionMeta?.color}-100/50 border-4 border-white`}>
+                           <span className={`text-6xl font-black text-${sectionMeta?.color}-600`}>{sectionIdx + 1}</span>
+                        </div>
+
+                        <div className="space-y-4 mb-12">
+                           <p className={`text-[12px] font-black uppercase tracking-[.4em] text-${sectionMeta?.color}-400 ml-2`}>Section Overview</p>
+                           <h2 className="text-5xl md:text-6xl font-black text-slate-900 tracking-tight">{sectionMeta?.label}</h2>
+                        </div>
+
+                        <div className={`inline-flex items-center gap-10 px-12 py-6 rounded-[2rem] bg-${sectionMeta?.color}-50/50 mb-12 border border-${sectionMeta?.color}-100/50`}>
+                           <div className="text-center">
+                              <p className={`text-4xl font-black text-${sectionMeta?.color}-900 leading-none`}>{questions.filter((qq:any) => qq.type === q?.type).length}</p>
+                              <p className={`text-[10px] font-bold uppercase tracking-[.2em] text-${sectionMeta?.color}-500 mt-2`}>Questions</p>
+                           </div>
+                           <div className={`w-px h-12 bg-${sectionMeta?.color}-200`} />
+                           <div className="text-center">
+                              <p className={`text-4xl font-black text-${sectionMeta?.color}-900 leading-none`}>
+                                 {questions.filter((qq:any) => qq.type === q?.type).reduce((acc: number, qq: any) => acc + (qq.points || 1), 0)}
+                              </p>
+                              <p className={`text-[10px] font-bold uppercase tracking-[.2em] text-${sectionMeta?.color}-500 mt-2`}>Total Points</p>
+                           </div>
+                        </div>
+
+                        <Button onClick={() => setQuizViewState("question")} className={`h-20 w-full max-w-sm mx-auto rounded-[1.5rem] bg-${sectionMeta?.color}-600 hover:bg-${sectionMeta?.color}-700 text-white font-black text-lg tracking-[.2em] uppercase transition-all shadow-2xl shadow-${sectionMeta?.color}-600/30 hover:scale-[1.02] flex items-center justify-center gap-3`}>
+                           Start Section <ArrowRight className="h-6 w-6" />
+                        </Button>
+                     </div>
+                  </div>
                 ) : (
-                  <div className="max-w-3xl mx-auto space-y-8 py-4 md:py-10">
+                  <div className="max-w-3xl mx-auto space-y-6 py-4 md:py-10 animate-in fade-in duration-300">
+                    {/* ── Section Header Banner (shows when type group changes) ── */}
+                    {isFirstOfType && sectionMeta && (
+                      <div className={`animate-in slide-in-from-left-4 duration-500 rounded-2xl p-5 border border-${sectionMeta.color}-100 bg-${sectionMeta.color}-50 flex items-center gap-4`}>
+                        <div className={`h-11 w-11 rounded-xl bg-${sectionMeta.color}-600 text-white flex items-center justify-center font-black text-sm shadow-lg`}>
+                          {sectionIdx + 1}
+                        </div>
+                        <div>
+                          <p className={`text-[9px] font-black uppercase tracking-[.3em] text-${sectionMeta.color}-400`}>Section {sectionIdx + 1}</p>
+                          <p className={`text-sm font-black text-${sectionMeta.color}-800`}>{sectionMeta.label}</p>
+                        </div>
+                        <div className="ml-auto">
+                          <Badge className={`bg-${sectionMeta.color}-100 text-${sectionMeta.color}-700 border-none text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg`}>
+                            {questions.filter((qq:any) => qq.type === q.type).length} Questions
+                          </Badge>
+                        </div>
+                      </div>
+                    )}
+
                     <div className="bg-white rounded-[3rem] shadow-[0_20px_50px_-20px_rgba(0,0,0,0.05)] border-2 border-slate-50 p-6 md:p-12 space-y-10">
                       <div className="space-y-6 leading-none">
                         <div className="flex items-center gap-3">
-                          <span className="h-10 w-10 flex items-center justify-center bg-indigo-600 rounded-xl text-white text-xs font-black shadow-lg shadow-indigo-200">{currentQ + 1}</span>
+                          <span className={`h-10 w-10 flex items-center justify-center bg-${sectionMeta?.color || 'indigo'}-600 rounded-xl text-white text-xs font-black shadow-lg`}>{currentQ + 1}</span>
                           <span className="h-1.5 w-1.5 rounded-full bg-slate-200" />
-                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-[.2em]">Intellectual Challenge</span>
+                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-[.2em]">{sectionMeta?.label || 'Question'}</span>
                         </div>
                         <h2 className="text-2xl md:text-5xl font-black text-slate-900 tracking-tight leading-[1.1]">{q?.question || "No question text defined."}</h2>
                       </div>
-
-
 
                       <div className="space-y-4">
                         {q?.type === "MCQ" && (
@@ -625,13 +758,25 @@ export default function CoursePreviewPage() {
                           </Button>
                         )}
                         <Button
-                          onClick={isLast ? handleSubmitQuiz : () => setCurrentQ(q => q + 1)}
+                          onClick={() => {
+                             if (isLast) {
+                               handleSubmitQuiz()
+                             } else {
+                               const nextQ = questions[currentQ + 1]
+                               if (nextQ.type !== q.type) {
+                                 setQuizViewState("section_intro")
+                                 setCurrentQ(qNum => qNum + 1)
+                               } else {
+                                 setCurrentQ(qNum => qNum + 1)
+                               }
+                             }
+                          }}
                           className={cn(
                             "flex-1 h-16 px-12 rounded-[20px] font-black uppercase tracking-[.2em] text-xs gap-4 shadow-2xl transition-all hover:scale-[1.01] active:scale-[0.99]",
-                            isLast ? "bg-emerald-600 shadow-emerald-100" : "bg-indigo-600 shadow-indigo-100"
+                            isLast ? "bg-emerald-600 shadow-emerald-100" : (questions[currentQ + 1]?.type !== q.type ? "bg-slate-900 text-white shadow-slate-200" : "bg-indigo-600 shadow-indigo-100")
                           )}
                         >
-                          {isLast ? "Finalize Intellect" : "Continue Journey"} <ArrowRight className="h-4 w-4" />
+                          {isLast ? "Finalize Intellect" : (questions[currentQ + 1]?.type !== q.type ? "Finish Section" : "Continue Journey")} <ArrowRight className="h-4 w-4" />
                         </Button>
                       </div>
                     </div>
