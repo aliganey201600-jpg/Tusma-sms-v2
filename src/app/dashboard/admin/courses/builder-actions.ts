@@ -491,13 +491,16 @@ export async function generateLessonContentAI(topicName: string, courseName?: st
   try {
     let modeInstruction = "";
     if (mode === 'objectives') {
-      modeInstruction = `TASK: Generate exactly 5 to 6 clear, professional, and measurable 'Learning Objectives' for a lesson titled "${topicName}".
+      modeInstruction = `TASK: Generate a high-fidelity, nested list of 'Learning Objectives' for a lesson titled "${topicName}".
       
-      Requirements & FORMATTING:
-      - START the text with the exact phrase: "At the end of this Lesson the student should be able to:" followed by a new line.
-      - Each objective MUST start with a sequential bullet point in the format: LO1, LO2, LO3, etc. (e.g., 'LO1: Fahamka...', 'LO2: Codsiga...').
-      - Each objective should start with an action verb.
-      - Write the objective points EXCLUSIVELY in Somali (Af-Soomaali), but keep the intro phrase and 'LO1, LO2' labels.`;
+      Requirements & HTML STRUCTURE:
+      - Use professional HTML tags.
+      - HEADING: Start with <strong style="font-size: 1.25rem;">Ujeedooyinka Casharka (Lesson Objectives)</strong> followed by a <br/>.
+      - INTRO: Use an italicized Somali sentence: <p><em>Dhamaadka casharkan, ardayga waxaa laga filayaa inuu awoodo:</em></p>.
+      - LIST: Create a <ul> list where each primary <li> starts with a bolded **LO1: [Title]**, **LO2: [Title]**, etc.
+      - NESTING: Inside each primary <li>, add a nested <ul> with a single <li> providing a detailed 1-2 sentence Somali description of that objective.
+      - JUSTIFICATION: Wrap paragraphs or use styles to ensure text is justified.
+      - Write the core content EXCLUSIVELY in Somali (Af-Soomaali).`;
     } else {
       modeInstruction = `TASK: Write a highly detailed, comprehensive, and engaging lesson body (narrative) about "${topicName}" ${courseName ? `within the context of a course titled "${courseName}"` : ""}. 
 
