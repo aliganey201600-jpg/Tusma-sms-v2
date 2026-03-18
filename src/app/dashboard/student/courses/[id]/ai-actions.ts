@@ -12,9 +12,9 @@ async function callGemini(prompt: string, context: string) {
 
   try {
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }, { apiVersion: 'v1' });
     
-    console.log("AI Action: Initiating Live SDK Gemini Request...");
+    console.log("AI Action: Initiating Live SDK Gemini (v1) Request...");
     
     const combinedPrompt = `You are an expert academic tutor for the Tusmo SMS platform. 
     Context of the current lesson:
