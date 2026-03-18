@@ -484,11 +484,28 @@ export async function getCertificate(courseId: string, studentId: string) {
   }
 }
 
-export async function generateLessonContentAI(topicName: string, courseName?: string, sourceContext?: string) {
+export async function generateLessonContentAI(topicName: string, courseName?: string, sourceContext?: string, mode: 'objectives' | 'content' = 'content') {
   const key = process.env.GEMINI_API_KEY;
   if (!key) return { error: "GEMINI_API_KEY is missing." };
 
   try {
+    let modeInstruction = "";
+    if (mode === 'objectives') {
+      modeInstruction = `TASK: Generate exactly 5 to 6 clear, professional, and measurable 'Learning Objectives' or 'Ahdaafta Waxbarasho' for a lesson titled "${topicName}".
+      Requirements: 
+      - Use professional bullet points.
+      - Each objective should start with an action verb (e.g., 'Fahamka...', 'Codsiga...', 'Sharaxidda...').
+      - Write EXCLUSIVELY in Somali (Af-Soomaali).`;
+    } else {
+      modeInstruction = `TASK: Write a highly detailed, comprehensive, and engaging lesson body (narrative) about "${topicName}" ${courseName ? `within the context of a course titled "${courseName}"` : ""}. 
+      Requirements:
+      - If Source Material is provided, ensure the lesson accurately reflects those facts.
+      - Write the content using professional Markdown styling (headings, bold technical terms, structured lists).
+      - Include 3 to 4 well-developed main sections explaining the primary concepts in depth.
+      - End with a summary or "Gunaanad & Qodobbada Muhiimka ah" section.
+      - Write EXCLUSIVELY in Somali, maintaining a formal academic tone. Use Somali for explanations while keeping standard international technical terms in English.`;
+    }
+
     const prompt = `You are an expert academic curriculum designer. 
     
     ${sourceContext ? `CRITICAL SOURCE MATERIAL (Use this for the core factual content):
@@ -496,15 +513,7 @@ export async function generateLessonContentAI(topicName: string, courseName?: st
     ${sourceContext}
     -------------------------------------------------------` : ""}
 
-    TASK: Write a highly detailed, comprehensive, and engaging lesson about "${topicName}" ${courseName ? `within the context of a course titled "${courseName}"` : ""}. 
-    
-    Requirements:
-    - If Source Material is provided above, ensure the lesson accurately reflects those facts and concepts.
-    - Write the content using professional Markdown styling (headings, bold technical terms, structured lists).
-    - Start with a clear introduction and learning objectives.
-    - Include 3 to 4 well-developed main sections explaining the primary concepts in depth.
-    - End with a summary or "Gunaanad & Qodobbada Muhiimka ah" (Key Takeaways) section.
-    - Write EXCLUSIVELY in Somali, maintaining a formal academic yet accessible tone. Use Somali for explanations while keeping standard international technical terms in English (but explain them).`;
+    ${modeInstruction}`;
 
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`, {
       method: "POST",

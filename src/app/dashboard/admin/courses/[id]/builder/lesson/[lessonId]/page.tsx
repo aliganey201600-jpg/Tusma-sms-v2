@@ -44,6 +44,7 @@ export default function FullLessonWorkspace() {
   const [editData, setEditData] = React.useState<any>(null)
   const [isSaving, setIsSaving] = React.useState(false)
   const [isGeneratingAI, setIsGeneratingAI] = React.useState(false)
+  const [isGeneratingObjectives, setIsGeneratingObjectives] = React.useState(false)
   const [isProcessingSource, setIsProcessingSource] = React.useState(false)
   const [sourceContext, setSourceContext] = React.useState("")
   const [ytUrl, setYtUrl] = React.useState("")
@@ -124,7 +125,26 @@ export default function FullLessonWorkspace() {
     }
   }
 
-  const handleGenerateAI = async () => {
+  const handleGenerateObjectivesAI = async () => {
+    if (!editData?.title) {
+       return toast.error("Please enter a Lesson Title first")
+    }
+    setIsGeneratingObjectives(true)
+    const contextWithRange = sourceContext ? (
+      `SOURCE MATERIAL: Please extract the learning goals precisely from this material:\n\n` + 
+      sourceContext
+    ) : ""
+    const res = await generateLessonContentAI(editData.title, lesson?.section?.course?.name, contextWithRange, 'objectives')
+    if (res.error) {
+       toast.error(res.error)
+    } else if (res.content) {
+       setEditData({...editData, objectives: res.content})
+       toast.success("Strategic Objectives Generated! 🎯")
+    }
+    setIsGeneratingObjectives(false)
+  }
+
+  const handleGenerateContentAI = async () => {
     if (!editData?.title) {
        return toast.error("Please enter a Lesson Title first")
     }
@@ -133,12 +153,12 @@ export default function FullLessonWorkspace() {
       `SOURCE RANGE: Please focus specifically on the content between pages ${pdfPages.start} and ${pdfPages.end} (if applicable) or the video content described below:\n\n` + 
       sourceContext
     ) : ""
-    const res = await generateLessonContentAI(editData.title, lesson?.section?.course?.name, contextWithRange)
+    const res = await generateLessonContentAI(editData.title, lesson?.section?.course?.name, contextWithRange, 'content')
     if (res.error) {
        toast.error(res.error)
     } else if (res.content) {
        setEditData({...editData, content: res.content})
-       toast.success("AI Content Generated based on your Selection! ✨")
+       toast.success("Lesson Narrative Generated! ✨")
     }
     setIsGeneratingAI(false)
   }
@@ -226,7 +246,17 @@ export default function FullLessonWorkspace() {
                  <div className="space-y-4">
                     <div className="flex items-center justify-between ml-2">
                        <Label className="text-[11px] font-black uppercase tracking-[0.3em] text-indigo-400 leading-none">Lesson Learning Objectives</Label>
-                       <Badge className="bg-indigo-50 text-indigo-400 border-none font-black text-[9px] uppercase px-3 py-1">Strategic Goals</Badge>
+                       <div className="flex items-center gap-3">
+                          <Button 
+                            disabled={isGeneratingObjectives}
+                            onClick={handleGenerateObjectivesAI}
+                            variant="outline" 
+                            className="h-7 rounded-full border-none bg-indigo-50 text-indigo-600 font-black text-[8px] uppercase tracking-widest hover:bg-indigo-600 hover:text-white transition-all px-4"
+                          >
+                            {isGeneratingObjectives ? <span className="flex items-center gap-2"><div className="h-2 w-2 border-2 border-indigo-400 border-t-white rounded-full animate-spin" /> Drafting...</span> : <span className="flex items-center gap-2"><Sparkles className="h-3 w-3" /> AI Objectives</span>}
+                          </Button>
+                          <Badge className="bg-indigo-50 text-indigo-400 border-none font-black text-[9px] uppercase px-3 py-1">Strategic Goals</Badge>
+                       </div>
                     </div>
                     <textarea 
                       className="w-full min-h-[150px] p-8 rounded-[36px] border border-slate-50 bg-slate-50 focus:bg-white focus:ring-[8px] focus:ring-indigo-50/30 outline-none text-slate-600 font-medium text-lg leading-relaxed transition-all shadow-inner" 
@@ -243,11 +273,11 @@ export default function FullLessonWorkspace() {
                        <div className="flex items-center gap-3">
                           <Button 
                             disabled={isGeneratingAI}
-                            onClick={handleGenerateAI}
+                            onClick={handleGenerateContentAI}
                             variant="outline" 
                             className="h-8 rounded-full border-none bg-indigo-50 text-indigo-600 font-black text-[9px] uppercase tracking-widest hover:bg-indigo-600 hover:text-white transition-all px-4"
                           >
-                            {isGeneratingAI ? <span className="flex items-center gap-2"><div className="h-3 w-3 border-2 border-indigo-400 border-t-white rounded-full animate-spin" /> Synthesizing...</span> : <span className="flex items-center gap-2"><Sparkles className="h-3 w-3" /> Enhance via Intelligence</span>}
+                            {isGeneratingAI ? <span className="flex items-center gap-2"><div className="h-3 w-3 border-2 border-indigo-400 border-t-white rounded-full animate-spin" /> Synthesizing...</span> : <span className="flex items-center gap-2"><Sparkles className="h-3 w-3" /> AI Content</span>}
                           </Button>
                           <Badge className="bg-emerald-50 text-emerald-500 border-none font-black text-[9px] uppercase px-3 py-1 mt-0.5">Live Editor</Badge>
                        </div>
