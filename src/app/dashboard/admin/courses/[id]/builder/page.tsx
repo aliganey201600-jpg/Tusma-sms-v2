@@ -32,7 +32,8 @@ import {
   Sparkles,
   ArrowRight,
   Clock,
-  Link as LinkIcon
+  Link as LinkIcon,
+  Maximize2
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -690,14 +691,24 @@ export default function CourseBuilderPage() {
                            </div>
                         </div>
                       </div>
-                      <Button 
-                        disabled={isSaving}
-                        onClick={handleSaveChanges}
-                        className="h-16 px-12 rounded-[24px] bg-slate-950 text-white font-black uppercase tracking-widest text-[11px] gap-4 shadow-2xl shadow-slate-200 hover:scale-[1.05] active:scale-[0.95] transition-all border-b-4 border-slate-800 active:border-b-0"
-                      >
-                        {isSaving ? <div className="h-5 w-5 border-3 border-white/30 border-t-white rounded-full animate-spin"></div> : <Save className="h-5 w-5" />}
-                        Commit Strategy
-                      </Button>
+                      <div className="flex items-center gap-4">
+                          {activeItem.type === 'lesson' && (
+                             <Link href={`/dashboard/admin/courses/${id}/builder/lesson/${activeItem.data.id}`}>
+                                <Button variant="outline" className="h-16 w-16 rounded-[24px] border-slate-100 shadow-xl group/fs flex flex-col gap-1 items-center justify-center">
+                                   <Maximize2 className="h-6 w-6 text-slate-400 group-hover:text-indigo-600 transition-colors" />
+                                   <span className="text-[7px] font-black uppercase text-slate-300">Expand</span>
+                                </Button>
+                             </Link>
+                          )}
+                          <Button 
+                            disabled={isSaving}
+                            onClick={handleSaveChanges}
+                            className="h-16 px-12 rounded-[24px] bg-slate-950 text-white font-black uppercase tracking-widest text-[11px] gap-4 shadow-2xl shadow-slate-200 hover:scale-[1.05] active:scale-[0.95] transition-all border-b-4 border-slate-800 active:border-b-0"
+                          >
+                            {isSaving ? <div className="h-5 w-5 border-3 border-white/30 border-t-white rounded-full animate-spin"></div> : <Save className="h-5 w-5" />}
+                            Commit Strategy
+                          </Button>
+                       </div>
                    </header>
 
                   <CardContent className="p-12">

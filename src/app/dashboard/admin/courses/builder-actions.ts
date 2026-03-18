@@ -28,6 +28,23 @@ export async function getCourseStructure(courseId: string, studentId?: string) {
   }
 }
 
+export async function getLesson(lessonId: string) {
+  try {
+    const lesson = await prisma.lesson.findUnique({
+      where: { id: lessonId },
+      include: {
+        section: {
+           include: { course: true }
+        }
+      }
+    })
+    return lesson
+  } catch (error) {
+    console.error("Error fetching lesson:", error)
+    return null
+  }
+}
+
 export async function addSection(courseId: string, title: string) {
   try {
     const lastSection = await prisma.courseSection.findFirst({
@@ -115,9 +132,9 @@ export async function updateLesson(lessonId: string, data: {
     revalidatePath(`/dashboard/admin/courses/${courseId}/builder`)
     revalidatePath(`/dashboard/admin/courses/${courseId}/preview`)
     return { success: true }
-  } catch (error) {
+  } catch (error: any) {
     console.error("Update Lesson Error:", error)
-    return { success: false }
+    return { success: false, error: error.message || "Failed to update lesson" }
   }
 }
 
@@ -512,12 +529,32 @@ export async function generateLessonContentAI(topicName: string, courseName?: st
 export async function fetchYoutubeTranscript(url: string) {
   try {
     const { YoutubeTranscript } = require('youtube-transcript');
-    const transcript = await YoutubeTranscript.fetchTranscript(url);
+    
+    // Attempting fetch (often defaults to English or auto-generated)
+    let transcript;
+    try {
+      transcript = await YoutubeTranscript.fetchTranscript(url);
+    } catch (e) {
+      // Fallback: try Somali specifically if first try fails
+      try {
+        transcript = await YoutubeTranscript.fetchTranscript(url, { lang: 'so' });
+      } catch (e2) {
+        // Last resort fallback attempt
+        throw e; // Rethrow original error if both failed
+      }
+    }
+
     const fullText = (transcript as any[]).map(t => t.text).join(" ");
     return { text: fullText };
   } catch (err: any) {
-    console.error("YouTube Error:", err);
-    return { error: "Could not fetch YouTube transcript. Ensure the video has subtitles enabled." };
+    console.error("YouTube Fetch Error Detail:", err);
+    let errorMsg = "Could not fetch YouTube transcript.";
+    if (err.message?.includes("Captions are disabled")) {
+      errorMsg = "Xogta Transcript-ka lagama helin Video-gan. Fadlan hubi in 'Subtitles/CC' uu si dhab ah u furan yahay Video-gan YouTube-kiisa.";
+    } else {
+      errorMsg = "Waan ku guuldareysanay inaan helno qoraalka Video-gan. Fadlan isku day inaad gacanta ugu shubtid xogta sanduuqa weyn ee AI Source Hub.";
+    }
+    return { error: errorMsg };
   }
 }
 
@@ -525,14 +562,25 @@ export async function extractPdfTextAction(formData: FormData) {
   try {
     const pdf = require('pdf-parse');
     const file = formData.get('file') as File;
-    if (!file) return { error: "No file provided" };
+    if (!file) return { error: "Fadlan soo dooro faylka PDF-ka." };
     
+    // Check file size (e.g., max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      return { error: "Faylkani aad ayuu u weyn yahay. Fadlan soo geli PDF ka yar 10MB." };
+    }
+
     const buffer = Buffer.from(await file.arrayBuffer());
     const data = await pdf(buffer);
     
+    if (!data.text || data.text.trim().length === 0) {
+      return { 
+        error: "PDF-kan qoraal lagama helin. Waxaa laga yaabaa inuu yahay Sawir (Scanned PDF). Fadlan isticmaal PDF qoraal ah (Selectable Text)." 
+      };
+    }
+
     return { text: data.text };
   } catch (err: any) {
-    console.error("PDF Parse Error:", err);
-    return { error: "Failed to extract text from PDF." };
+    console.error("PDF Extraction Critical Error:", err);
+    return { error: "Waan ku guuldareysanay inaan akhrino PDF-kan. Fadlan hubi inuu yahay fayl sax ah." };
   }
 }
