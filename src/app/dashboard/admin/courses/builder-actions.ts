@@ -498,15 +498,16 @@ export async function generateLessonContentAI(topicName: string, courseName?: st
       - Write EXCLUSIVELY in Somali (Af-Soomaali).`;
     } else {
       modeInstruction = `TASK: Write a highly detailed, comprehensive, and engaging lesson body (narrative) about "${topicName}" ${courseName ? `within the context of a course titled "${courseName}"` : ""}. 
-      
-      Requirements & Style:
-      - If Source Material is provided, ensure the lesson accurately reflects those facts.
-      - STYLE: FADLAN HA ISTICMAALIN "###" (Headings) ama "***". 
-      - CADAWAD: Halkii aad "###" u isticmaali laheed, fadlan isticmaal **BOLD** (Labada xiddigood) oo kaliya si aad cinwaanada u muujisid.
-      - Write the content using professional spacing between paragraphs.
-      - Include 3 to 4 well-developed main sections explaining the primary concepts in depth.
-      - End with a summary or "Gunaanad & Qodobbada Muhiimka ah" section.
-      - Write EXCLUSIVELY in Somali, maintaining a formal academic tone. Use Somali for explanations while keeping standard international technical terms in English.`;
+
+      Requirements & FORMATTING (HTML):
+      - STYLE: Use professional HTML tags for output.
+      - HEADINGS: Use **Bold** (wrapping in <strong>...</strong>) for all sections and sub-sections. Do NOT use "###" or "***".
+      - JUSTIFICATION: Every paragraph should be wrapped in <p style="text-align: justify;">...</p> to ensure clean alignment.
+      - HIGHLIGHTING: Identify important keywords such as Names, Dates, Historical Places, and Technical Terms. Wrap them in <span style="color: #4f46e2; font-weight: bold;">...</span> to make them stand out in Indigo color.
+      - LISTS: Use Numbered Lists (1., 2., 3...) for sequences or sets of points. Wrap them in <ol><li>...</li></ol> tags.
+      - SPACING: Ensure clean vertical spacing between different sections.
+      - Write EXCLUSIVELY in Somali (Af-Soomaali), maintaining a formal academic tone. Use Somali for explanations while keeping standard international technical terms in English.
+      - End with a summary or "Gunaanad & Qodobbada Muhiimka ah" section.`;
     }
 
     const prompt = `You are an expert academic curriculum designer. 
