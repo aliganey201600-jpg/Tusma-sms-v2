@@ -508,3 +508,31 @@ export async function generateLessonContentAI(topicName: string, courseName?: st
     return { error: error.message || "Internal server error" };
   }
 }
+
+export async function fetchYoutubeTranscript(url: string) {
+  try {
+    const { YoutubeTranscript } = require('youtube-transcript');
+    const transcript = await YoutubeTranscript.fetchTranscript(url);
+    const fullText = (transcript as any[]).map(t => t.text).join(" ");
+    return { text: fullText };
+  } catch (err: any) {
+    console.error("YouTube Error:", err);
+    return { error: "Could not fetch YouTube transcript. Ensure the video has subtitles enabled." };
+  }
+}
+
+export async function extractPdfTextAction(formData: FormData) {
+  try {
+    const pdf = require('pdf-parse');
+    const file = formData.get('file') as File;
+    if (!file) return { error: "No file provided" };
+    
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const data = await pdf(buffer);
+    
+    return { text: data.text };
+  } catch (err: any) {
+    console.error("PDF Parse Error:", err);
+    return { error: "Failed to extract text from PDF." };
+  }
+}

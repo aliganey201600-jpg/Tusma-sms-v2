@@ -52,7 +52,9 @@ import {
   updateQuiz,
   reorderSections,
   reorderItems,
-  generateLessonContentAI
+  generateLessonContentAI,
+  fetchYoutubeTranscript,
+  extractPdfTextAction
 } from "../../builder-actions"
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
@@ -346,8 +348,48 @@ export default function CourseBuilderPage() {
   const [editData, setEditData] = React.useState<any>(null)
   const [isSaving, setIsSaving] = React.useState(false)
   const [isGeneratingAI, setIsGeneratingAI] = React.useState(false)
+  const [isProcessingSource, setIsProcessingSource] = React.useState(false)
   const [sourceContext, setSourceContext] = React.useState("")
+  const [ytUrl, setYtUrl] = React.useState("")
+  const [pdfPages, setPdfPages] = React.useState({ start: 1, end: 5 })
   const [expandedSectionId, setExpandedSectionId] = React.useState<string | null>(null)
+
+  const handleFetchYoutube = async () => {
+    if (!ytUrl) return toast.error("Please enter a YouTube URL")
+    setIsProcessingSource(true)
+    const res = await fetchYoutubeTranscript(ytUrl)
+    if (res.error) {
+      toast.error(res.error)
+    } else if (res.text) {
+      setSourceContext(res.text)
+      toast.success("Transcript fetched and added to Source! 📺")
+    }
+    setIsProcessingSource(false)
+  }
+
+  const handleProcessPDF = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    
+    setIsProcessingSource(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      
+      const res = await extractPdfTextAction(formData)
+      if (res.error) {
+        toast.error(res.error)
+      } else if (res.text) {
+        setSourceContext(res.text)
+        toast.success(`PDF Extracted! AI will focus on pages ${pdfPages.start}-${pdfPages.end} 📑`)
+      }
+    } catch (err) {
+      console.error(err)
+      toast.error("Failed to parse PDF.")
+    } finally {
+      setIsProcessingSource(false)
+    }
+  }
 
   const handleGenerateAI = async () => {
     if (!editData?.title || editData.title === "New Lesson") {
@@ -355,12 +397,17 @@ export default function CourseBuilderPage() {
       return
     }
     setIsGeneratingAI(true)
-    const res = await generateLessonContentAI(editData.title, course?.name, sourceContext)
+    const contextWithRange = sourceContext ? (
+      `SOURCE RANGE: Please focus specifically on the content between pages ${pdfPages.start} and ${pdfPages.end} (if applicable) or the video content described below:\n\n` + 
+      sourceContext
+    ) : ""
+
+    const res = await generateLessonContentAI(editData.title, course?.name, contextWithRange)
     if (res.error) {
        toast.error(res.error)
     } else if (res.content) {
        setEditData({...editData, content: res.content})
-       toast.success("AI Content Generated based on your Source Material! ✨")
+       toast.success("AI Content Generated based on your Selection! ✨")
     }
     setIsGeneratingAI(false)
   }
@@ -680,18 +727,84 @@ export default function CourseBuilderPage() {
                           </div>
 
                           {/* AI Source Context Section */}
-                          <div className="space-y-4 bg-indigo-50/30 p-8 rounded-[40px] border border-indigo-100/50">
+                          <div className="space-y-6 bg-indigo-50/30 p-10 rounded-[48px] border border-indigo-100/50 shadow-inner">
                              <div className="flex items-center justify-between ml-2">
-                                <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-700">Source Material (PDF Text / Video Transcript)</Label>
-                                <Badge className="bg-indigo-100 text-indigo-600 border-none font-black text-[9px] uppercase tracking-widest px-3">Optional AI Guide</Badge>
+                                <div className="space-y-1">
+                                   <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-700 leading-none">AI Knowledge Source Hub</Label>
+                                   <p className="text-[9px] font-bold text-slate-400">Extract facts from PDF or Video for better accuracy</p>
+                                </div>
+                                <Badge className="bg-indigo-600 text-white border-none font-black text-[9px] uppercase tracking-widest px-4 py-1.5 rounded-full shadow-lg shadow-indigo-200 animate-pulse">Smart Assistant</Badge>
                              </div>
+
+                             <div className="grid grid-cols-2 gap-6 mt-4">
+                                {/* YouTube Option */}
+                                <div className="bg-white p-6 rounded-[32px] shadow-sm space-y-4 border border-slate-100">
+                                   <div className="flex items-center gap-3">
+                                      <div className="h-8 w-8 rounded-xl bg-red-50 text-red-500 flex items-center justify-center"><Video className="h-4 w-4" /></div>
+                                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">YouTube Transcript</span>
+                                   </div>
+                                   <div className="flex gap-2">
+                                      <Input 
+                                        placeholder="Paste YouTube Video URL..."
+                                        value={ytUrl}
+                                        onChange={e => setYtUrl(e.target.value)}
+                                        className="h-10 rounded-xl bg-slate-50 border-none text-[11px] font-bold"
+                                      />
+                                      <Button 
+                                        disabled={isProcessingSource}
+                                        size="sm"
+                                        onClick={handleFetchYoutube}
+                                        className="h-10 px-4 rounded-xl bg-slate-900 text-white text-[10px] font-black uppercase"
+                                      >
+                                        {isProcessingSource ? "..." : "Fetch"}
+                                      </Button>
+                                   </div>
+                                </div>
+
+                                {/* PDF Option */}
+                                <div className="bg-white p-6 rounded-[32px] shadow-sm space-y-4 border border-slate-100">
+                                   <div className="flex items-center gap-3">
+                                      <div className="h-8 w-8 rounded-xl bg-indigo-50 text-indigo-500 flex items-center justify-center"><FileText className="h-4 w-4" /></div>
+                                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">PDF Page Extractor</span>
+                                   </div>
+                                   <div className="flex items-center gap-3">
+                                      <Input 
+                                        type="file" 
+                                        accept=".pdf"
+                                        onChange={handleProcessPDF}
+                                        className="hidden" 
+                                        id="pdf-upload"
+                                      />
+                                      <Label htmlFor="pdf-upload" className="flex-1 h-10 border-2 border-dashed border-indigo-100 rounded-xl flex items-center justify-center text-[10px] font-black text-indigo-400 uppercase cursor-pointer hover:bg-indigo-50 transition-all">
+                                         {isProcessingSource ? "Reading PDF..." : "Choose File"}
+                                      </Label>
+                                      <div className="flex gap-1">
+                                         <Input 
+                                            type="number" 
+                                            placeholder="Ex: 5"
+                                            value={pdfPages.start}
+                                            onChange={e => setPdfPages({...pdfPages, start: parseInt(e.target.value)})}
+                                            className="w-12 h-10 rounded-xl bg-slate-50 border-none text-center text-[10px] font-black" 
+                                         />
+                                         <span className="text-slate-200 mt-2">-</span>
+                                         <Input 
+                                            type="number" 
+                                            placeholder="Ex: 10"
+                                            value={pdfPages.end}
+                                            onChange={e => setPdfPages({...pdfPages, end: parseInt(e.target.value)})}
+                                            className="w-12 h-10 rounded-xl bg-slate-50 border-none text-center text-[10px] font-black" 
+                                         />
+                                      </div>
+                                   </div>
+                                </div>
+                             </div>
+
                              <Textarea 
                                value={sourceContext}
                                onChange={e => setSourceContext(e.target.value)}
-                               placeholder="Copy & paste text from your PDF or Video transcript. AI will use this specific information to write the lesson."
-                               className="min-h-[150px] rounded-[30px] border-indigo-100 bg-white focus:ring-4 focus:ring-indigo-100 transition-all font-medium text-slate-600 p-6"
+                               placeholder="Source text will appear here. You can also paste manually..."
+                               className="min-h-[150px] rounded-[30px] border-indigo-100 bg-white focus:ring-4 focus:ring-indigo-100 transition-all font-medium text-slate-600 p-8 shadow-inner"
                              />
-                             <p className="text-[9px] font-bold text-slate-400 italic px-4">Note: Providing a source ensures the AI remains factual to your specific teaching materials.</p>
                           </div>
 
                           <div className="space-y-4">
