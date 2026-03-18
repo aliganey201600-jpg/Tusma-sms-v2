@@ -218,6 +218,7 @@ export default function CoursePreviewPage() {
   const [timeLeft, setTimeLeft] = React.useState<number | null>(null)
   const [quizTab, setQuizTab] = React.useState<string>("questions")
   const [quizViewState, setQuizViewState] = React.useState<"overview"|"section_intro"|"question">("overview")
+  const [previewAttempts, setPreviewAttempts] = React.useState<any[]>([])
   const timerRef = React.useRef<any>(null)
   
   // AI Tutor State
@@ -379,9 +380,20 @@ export default function CoursePreviewPage() {
       total += qTotal
     }
     setResults(feedback)
-    setScore(total > 0 ? Math.round((earned / total) * 100) : 0)
+    const pct = total > 0 ? Math.round((earned / total) * 100) : 0
+    setScore(pct)
     setSubmitted(true)
     setTimeLeft(null)
+    
+    setPreviewAttempts(prev => [{
+      id: Math.random().toString(),
+      score: pct,
+      passed: pct >= (activeQuiz?.passingScore || 70),
+      date: new Date().toISOString(),
+      earned,
+      total,
+      time: activeQuiz?.timeLimit && timeLeft !== null ? (activeQuiz.timeLimit * 60 - timeLeft) : 0,
+    }, ...prev])
   }
 
   const retakeQuiz = () => {
@@ -787,56 +799,55 @@ export default function CoursePreviewPage() {
               <TabsContent value="history" className="mt-0 outline-none space-y-6">
                  <div className="flex flex-col md:flex-row items-center justify-between gap-4">
                     <h2 className="text-2xl font-black text-slate-900">Your Journey Path (Preview)</h2>
-                    <Badge className="bg-amber-100 text-amber-700 border-none px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest">3 Attempts Recorded (Mock)</Badge>
+                    <Badge className="bg-indigo-100 text-indigo-700 border-none px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest">{previewAttempts.length} Attempts Recorded</Badge>
                  </div>
 
                  <div className="grid gap-4">
-                    {[
-                      { id: '1', score: 92, passed: true, date: '2024-03-15T10:00:00Z', earned: 46, total: 50, time: 420 },
-                      { id: '2', score: 78, passed: true, date: '2024-03-14T14:30:00Z', earned: 39, total: 50, time: 580 },
-                      { id: '3', score: 45, passed: false, date: '2024-03-13T09:15:00Z', earned: 22, total: 50, time: 310 }
-                    ].map((attempt) => (
-                      <div
-                        key={attempt.id}
-                        className="group bg-white rounded-3xl border-2 border-slate-50 p-6 flex flex-col md:flex-row items-center justify-between gap-6 hover:border-indigo-100 hover:shadow-xl hover:shadow-indigo-50/50 transition-all cursor-pointer"
-                      >
-                         <div className="flex items-center gap-6 w-full md:w-auto">
-                            <div className={cn("h-16 w-16 rounded-2xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-110 duration-500", attempt.passed ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-600")}>
-                               {attempt.passed ? <Trophy className="h-8 w-8" /> : <AlertCircle className="h-8 w-8" />}
-                            </div>
-                            <div>
-                               <h4 className="text-2xl font-black text-slate-900">{attempt.score}%</h4>
-                               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-0.5">{format(new Date(attempt.date), 'PPP @ p')}</p>
-                            </div>
-                         </div>
-                         <div className="flex items-center gap-8 w-full md:w-auto border-t md:border-t-0 md:border-l border-slate-100 pt-6 md:pt-0 md:pl-10">
-                            <div className="space-y-1">
-                               <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest">Points</p>
-                               <p className="text-xs font-black text-slate-600">{attempt.earned} / {attempt.total}</p>
-                            </div>
-                            <div className="space-y-1">
-                               <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest">Time</p>
-                               <p className="text-xs font-black text-slate-600">{Math.floor(attempt.time / 60)}m {attempt.time % 60}s</p>
-                            </div>
-                            <Button variant="ghost" className="h-10 w-10 md:h-12 md:w-12 rounded-2xl bg-slate-50 group-hover:bg-indigo-600 group-hover:text-white transition-all ml-auto">
-                               <Eye className="h-5 w-5" />
-                            </Button>
-                         </div>
-                      </div>
-                    ))}
-                    <div className="p-6 text-center text-slate-400 font-bold text-[10px] uppercase tracking-widest bg-slate-50 rounded-2xl border border-dashed border-slate-200">
-                      Historical tracking mockup for preview mode
-                    </div>
+                    {previewAttempts.length === 0 ? (
+                       <div className="p-10 text-center text-slate-400 font-bold text-sm uppercase tracking-widest bg-slate-50 rounded-3xl border border-dashed border-slate-200">
+                          No preview attempts recorded yet. Finish a simulation to see results.
+                       </div>
+                    ) : (
+                      previewAttempts.map((attempt) => (
+                        <div
+                          key={attempt.id}
+                          className="group bg-white rounded-3xl border-2 border-slate-50 p-6 flex flex-col md:flex-row items-center justify-between gap-6 hover:border-indigo-100 hover:shadow-xl hover:shadow-indigo-50/50 transition-all cursor-pointer"
+                        >
+                           <div className="flex items-center gap-6 w-full md:w-auto">
+                              <div className={cn("h-16 w-16 rounded-2xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-110 duration-500", attempt.passed ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-600")}>
+                                 {attempt.passed ? <Trophy className="h-8 w-8" /> : <AlertCircle className="h-8 w-8" />}
+                              </div>
+                              <div>
+                                 <h4 className="text-2xl font-black text-slate-900">{attempt.score}%</h4>
+                                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-0.5">{format(new Date(attempt.date), 'PPP @ p')}</p>
+                              </div>
+                           </div>
+                           <div className="flex items-center gap-8 w-full md:w-auto border-t md:border-t-0 md:border-l border-slate-100 pt-6 md:pt-0 md:pl-10">
+                              <div className="space-y-1">
+                                 <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest">Points</p>
+                                 <p className="text-xs font-black text-slate-600">{attempt.earned} / {attempt.total}</p>
+                              </div>
+                              <div className="space-y-1">
+                                 <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest">Time</p>
+                                 <p className="text-xs font-black text-slate-600">{Math.floor(attempt.time / 60)}m {attempt.time % 60}s</p>
+                              </div>
+                              <Button variant="ghost" className="h-10 w-10 md:h-12 md:w-12 rounded-2xl bg-slate-50 group-hover:bg-indigo-600 group-hover:text-white transition-all ml-auto">
+                                 <Eye className="h-5 w-5" />
+                              </Button>
+                           </div>
+                        </div>
+                      ))
+                    )}
                  </div>
               </TabsContent>
 
               <TabsContent value="performance" className="mt-0 outline-none space-y-10">
                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     {[
-                      { label: "Best Score", val: "92%", icon: Trophy, color: "text-amber-600", bg: "bg-amber-50" },
-                      { label: "Average Score", val: "84%", icon: GraduationCap, color: "text-indigo-600", bg: "bg-indigo-50" },
-                      { label: "Success Rate", val: "100%", icon: CheckCircle2, color: "text-emerald-600", bg: "bg-emerald-50" },
-                      { label: "Total Sessions", val: 3, icon: RotateCcw, color: "text-slate-600", bg: "bg-slate-50" },
+                      { label: "Best Score", val: `${previewAttempts.length ? Math.max(...previewAttempts.map(a => a.score)) : 0}%`, icon: Trophy, color: "text-amber-600", bg: "bg-amber-50" },
+                      { label: "Average Score", val: `${previewAttempts.length ? Math.round(previewAttempts.reduce((acc, a) => acc + a.score, 0) / previewAttempts.length) : 0}%`, icon: GraduationCap, color: "text-indigo-600", bg: "bg-indigo-50" },
+                      { label: "Success Rate", val: `${previewAttempts.length ? Math.round((previewAttempts.filter(a => a.passed).length / previewAttempts.length) * 100) : 0}%`, icon: CheckCircle2, color: "text-emerald-600", bg: "bg-emerald-50" },
+                      { label: "Total Sessions", val: previewAttempts.length.toString(), icon: RotateCcw, color: "text-slate-600", bg: "bg-slate-50" },
                     ].map((stat, i) => (
                       <div key={i} className="bg-white p-8 rounded-[2.5rem] border-2 border-slate-50 shadow-sm relative overflow-hidden group">
                          <div className={cn("absolute top-0 right-0 p-6 opacity-10 group-hover:scale-125 transition-transform duration-700", stat.color)}><stat.icon className="h-24 w-24" /></div>
@@ -855,14 +866,20 @@ export default function CoursePreviewPage() {
                     <div className="flex items-center justify-between">
                        <h3 className="text-xl font-black text-slate-900 leading-none">Progression Analytics (Preview)</h3>
                        <div className="flex items-center gap-4">
-                          <div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-indigo-500" /><span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Mock Data</span></div>
+                          <div className="flex items-center gap-2"><div className="h-2 w-2 rounded-full bg-indigo-500" /><span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Live Session Data</span></div>
                        </div>
                     </div>
-                    <div className="h-[300px] w-full mt-10">
-                       <ResponsiveContainer width="100%" height="100%">
-                          <AreaChart data={[{v:70}, {v:85}, {v:92}]} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                            <defs>
-                              <linearGradient id="colorScore" x1="0" y1="0" x2="0" y2="1">
+                    {previewAttempts.length < 2 ? (
+                       <div className="h-[300px] w-full mt-10 rounded-3xl border-2 border-dashed border-slate-100 flex items-center justify-center flex-col gap-4 text-slate-300">
+                          <RotateCcw className="h-10 w-10 animate-spin-slow" />
+                          <p className="text-[10px] font-bold uppercase tracking-widest">Complete at least 2 attempts to generate chart</p>
+                       </div>
+                    ) : (
+                       <div className="h-[300px] w-full mt-10">
+                          <ResponsiveContainer width="100%" height="100%">
+                             <AreaChart data={[...previewAttempts].reverse().map((a, i) => ({name: `Run ${i+1}`, v: a.score}))} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                               <defs>
+                                 <linearGradient id="colorScore" x1="0" y1="0" x2="0" y2="1">
                                 <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.1}/>
                                 <stop offset="95%" stopColor="#4f46e5" stopOpacity={0}/>
                               </linearGradient>
@@ -874,6 +891,7 @@ export default function CoursePreviewPage() {
                           </AreaChart>
                        </ResponsiveContainer>
                     </div>
+                  )}
                  </div>
               </TabsContent>
             </Tabs>
