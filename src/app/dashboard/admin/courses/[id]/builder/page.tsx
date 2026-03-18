@@ -40,9 +40,14 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Separator } from "@/components/ui/separator"
 import { Textarea } from "@/components/ui/textarea"
+import { 
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog"
 import { 
   getCourseStructure, 
   addSection, 
@@ -349,21 +354,53 @@ export default function CourseBuilderPage() {
   const [editData, setEditData] = React.useState<any>(null)
   const [isSaving, setIsSaving] = React.useState(false)
   const [isGeneratingAI, setIsGeneratingAI] = React.useState(false)
+  const [isGeneratingObjectives, setIsGeneratingObjectives] = React.useState(false)
   const [isProcessingSource, setIsProcessingSource] = React.useState(false)
+
+  // AI Modal States
+  const [isAIModalOpen, setIsAIModalOpen] = React.useState(false)
+  const [aiSubMode, setAiSubMode] = React.useState<'topic' | 'paste' | 'pdf'>('topic')
   const [sourceContext, setSourceContext] = React.useState("")
   const [ytUrl, setYtUrl] = React.useState("")
   const [pdfPages, setPdfPages] = React.useState({ start: 1, end: 5 })
   const [expandedSectionId, setExpandedSectionId] = React.useState<string | null>(null)
+
+  const handleGenerateObjectivesAI = async () => {
+    if (!editData?.title) return toast.error("Please enter a Lesson Title first")
+    setIsGeneratingObjectives(true)
+    const res = await generateLessonContentAI(editData.title, course?.name, sourceContext, 'objectives')
+    if (res.error) {
+       toast.error(res.error)
+    } else if (res.content) {
+       setEditData({...editData, objectives: res.content})
+       toast.success("Strategic Objectives Generated! 🎯")
+    }
+    setIsGeneratingObjectives(false)
+  }
+
+  const handleGenerateContentAI = async () => {
+    if (!editData?.title) return toast.error("Please enter a Lesson Title first")
+    setIsGeneratingAI(true)
+    const res = await generateLessonContentAI(editData.title, course?.name, sourceContext, 'content')
+    if (res.error) {
+       toast.error(res.error)
+    } else if (res.content) {
+       setEditData({...editData, content: res.content})
+       toast.success("Lesson Narrative Generated! ✨")
+       setIsAIModalOpen(false)
+    }
+    setIsGeneratingAI(false)
+  }
 
   const handleFetchYoutube = async () => {
     if (!ytUrl) return toast.error("Please enter a YouTube URL")
     setIsProcessingSource(true)
     const res = await fetchYoutubeTranscript(ytUrl)
     if (res.error) {
-      toast.error(res.error)
+       toast.error(res.error)
     } else if (res.text) {
-      setSourceContext(res.text)
-      toast.success("Transcript fetched and added to Source! 📺")
+       setSourceContext(res.text)
+       toast.success("Transcript fetched and added to Source! 📺")
     }
     setIsProcessingSource(false)
   }
@@ -371,18 +408,16 @@ export default function CourseBuilderPage() {
   const handleProcessPDF = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-    
     setIsProcessingSource(true)
     try {
       const formData = new FormData()
       formData.append('file', file)
-      
       const res = await extractPdfTextAction(formData)
       if (res.error) {
         toast.error(res.error)
       } else if (res.text) {
         setSourceContext(res.text)
-        toast.success(`PDF Extracted! AI will focus on pages ${pdfPages.start}-${pdfPages.end} 📑`)
+        toast.success(`PDF Extracted! Focus on pages ${pdfPages.start}-${pdfPages.end} 📑`)
       }
     } catch (err) {
       console.error(err)
@@ -390,27 +425,6 @@ export default function CourseBuilderPage() {
     } finally {
       setIsProcessingSource(false)
     }
-  }
-
-  const handleGenerateAI = async () => {
-    if (!editData?.title || editData.title === "New Lesson") {
-      toast.error("Please enter a specific Lesson Title first to guide the AI.")
-      return
-    }
-    setIsGeneratingAI(true)
-    const contextWithRange = sourceContext ? (
-      `SOURCE RANGE: Please focus specifically on the content between pages ${pdfPages.start} and ${pdfPages.end} (if applicable) or the video content described below:\n\n` + 
-      sourceContext
-    ) : ""
-
-    const res = await generateLessonContentAI(editData.title, course?.name, contextWithRange)
-    if (res.error) {
-       toast.error(res.error)
-    } else if (res.content) {
-       setEditData({...editData, content: res.content})
-       toast.success("AI Content Generated based on your Selection! ✨")
-    }
-    setIsGeneratingAI(false)
   }
 
   const sensors = useSensors(
@@ -524,7 +538,14 @@ export default function CourseBuilderPage() {
 
   const handleSelectItem = (item: any) => {
     setActiveItem(item)
-    setEditData(item.data)
+    setEditData({
+      title: item.data.title,
+      content: item.data.content || "",
+      objectives: item.data.objectives || "",
+      duration: item.data.duration?.toString() || "",
+      videoUrl: item.data.videoUrl || "",
+      attachmentUrl: item.data.attachmentUrl || ""
+    })
   }
 
   const handleSaveChanges = async () => {
@@ -620,7 +641,7 @@ export default function CourseBuilderPage() {
             <SortableContext items={course?.sections?.map((s:any) => s.id) || []} strategy={verticalListSortingStrategy}>
               <div className="space-y-4">
                 {course?.sections?.map((section: any, sIdx: number) => (
-                  <SortableSection 
+                  <SortableSection
                     key={section.id}
                     section={section}
                     sIdx={sIdx}
@@ -650,13 +671,13 @@ export default function CourseBuilderPage() {
                  <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Initialize Strategic Chapter</h4>
               </div>
               <div className="flex gap-4">
-                <Input 
-                   placeholder="Strategic Designation Name..." 
+                <Input
+                   placeholder="Strategic Designation Name..."
                    value={newSectionTitle}
                    onChange={(e) => setNewSectionTitle(e.target.value)}
                    className="h-16 rounded-[24px] bg-white border-none shadow-sm font-black text-xs px-8 uppercase tracking-widest placeholder:text-slate-200"
                 />
-                <Button 
+                <Button
                   onClick={handleAddSection}
                   disabled={isAddingSection || !newSectionTitle}
                   className="h-16 w-16 rounded-[24px] bg-slate-950 text-white shadow-2xl shadow-slate-200 disabled:opacity-50 transition-all hover:scale-105 active:scale-95 shrink-0"
@@ -700,7 +721,7 @@ export default function CourseBuilderPage() {
                                 </Button>
                              </Link>
                           )}
-                          <Button 
+                          <Button
                             disabled={isSaving}
                             onClick={handleSaveChanges}
                             className="h-16 px-12 rounded-[24px] bg-slate-950 text-white font-black uppercase tracking-widest text-[11px] gap-4 shadow-2xl shadow-slate-200 hover:scale-[1.05] active:scale-[0.95] transition-all border-b-4 border-slate-800 active:border-b-0"
@@ -717,20 +738,20 @@ export default function CourseBuilderPage() {
                           <div className="grid grid-cols-2 gap-10">
                             <div className="space-y-4">
                               <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 ml-2">Lecture Designation</Label>
-                              <Input 
-                                value={editData?.title || ""} 
+                              <Input
+                                value={editData?.title || ""}
                                 onChange={e => setEditData({...editData, title: e.target.value})}
-                                className="h-16 rounded-[24px] border-slate-100 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-100 transition-all font-black text-sm px-8 uppercase tracking-widest shadow-sm" 
+                                className="h-16 rounded-[24px] border-slate-100 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-100 transition-all font-black text-sm px-8 uppercase tracking-widest shadow-sm"
                               />
                             </div>
                             <div className="space-y-4">
                               <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 ml-2">Instructional Window (Min)</Label>
                               <div className="relative">
-                                <Input 
+                                <Input
                                   type="number"
-                                  value={editData?.duration || ""} 
+                                  value={editData?.duration || ""}
                                   onChange={e => setEditData({...editData, duration: e.target.value})}
-                                  className="h-16 rounded-[24px] border-slate-100 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-100 transition-all font-black text-sm px-8 uppercase tracking-widest shadow-sm" 
+                                  className="h-16 rounded-[24px] border-slate-100 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-100 transition-all font-black text-sm px-8 uppercase tracking-widest shadow-sm"
                                 />
                                 <Clock className="absolute right-6 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-300" />
                               </div>
@@ -762,14 +783,14 @@ export default function CourseBuilderPage() {
                                    </div>
                                    <div className="space-y-3">
                                       <div className="relative">
-                                         <Input 
+                                         <Input
                                            placeholder="PASTE YOUTUBE URL HERE..."
                                            value={ytUrl}
                                            onChange={e => setYtUrl(e.target.value)}
                                            className="h-14 rounded-2xl bg-slate-50 border-none text-[12px] font-bold px-6 placeholder:text-slate-300"
                                          />
                                       </div>
-                                      <Button 
+                                      <Button
                                         disabled={isProcessingSource}
                                         onClick={handleFetchYoutube}
                                         className="w-full h-12 rounded-2xl bg-slate-900 hover:bg-red-600 text-white text-[10px] font-black uppercase tracking-[0.2em] transition-all"
@@ -792,29 +813,29 @@ export default function CourseBuilderPage() {
                                    </div>
                                    <div className="space-y-3">
                                       <div className="flex items-center gap-3">
-                                         <Input 
-                                           type="file" 
+                                         <Input
+                                           type="file"
                                            accept=".pdf"
                                            onChange={handleProcessPDF}
-                                           className="hidden" 
+                                           className="hidden"
                                            id="pdf-upload"
                                          />
                                          <Label htmlFor="pdf-upload" className="flex-1 h-14 border-2 border-dashed border-indigo-100 rounded-2xl flex items-center justify-center text-[10px] font-black text-indigo-500 uppercase cursor-pointer hover:bg-indigo-50 transition-all bg-indigo-50/20">
                                             {isProcessingSource ? "AI Reading..." : "Upload PDF File"}
                                          </Label>
                                          <div className="flex items-center gap-1 bg-slate-50 p-1.5 rounded-2xl border border-slate-100">
-                                            <Input 
-                                               type="number" 
+                                            <Input
+                                               type="number"
                                                value={pdfPages.start}
                                                onChange={e => setPdfPages({...pdfPages, start: parseInt(e.target.value) || 1})}
-                                               className="w-12 h-10 rounded-xl bg-white border-none text-center text-[11px] font-black p-0" 
+                                               className="w-12 h-10 rounded-xl bg-white border-none text-center text-[11px] font-black p-0"
                                             />
                                             <span className="text-slate-300 font-bold mx-0.5">to</span>
-                                            <Input 
-                                               type="number" 
+                                            <Input
+                                               type="number"
                                                value={pdfPages.end}
                                                onChange={e => setPdfPages({...pdfPages, end: parseInt(e.target.value) || 1})}
-                                               className="w-12 h-10 rounded-xl bg-white border-none text-center text-[11px] font-black p-0" 
+                                               className="w-12 h-10 rounded-xl bg-white border-none text-center text-[11px] font-black p-0"
                                             />
                                          </div>
                                       </div>
@@ -825,7 +846,7 @@ export default function CourseBuilderPage() {
 
                              <div className="space-y-3">
                                 <Label className="text-[9px] font-black uppercase tracking-widest text-indigo-400 ml-4">Extracted Knowledge Base</Label>
-                                <Textarea 
+                                <Textarea
                                   value={sourceContext}
                                   onChange={e => setSourceContext(e.target.value)}
                                   placeholder="Extracted text will appear here. You can also paste manually..."
@@ -834,46 +855,70 @@ export default function CourseBuilderPage() {
                              </div>
                           </div>
 
-                          <div className="space-y-4">
-                            <div className="flex items-center justify-between ml-2">
-                               <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Scholastic Narrative Engine</Label>
-                               <div className="flex gap-2">
-                                  <Button 
-                                    variant="outline" 
-                                    size="sm" 
-                                    onClick={handleGenerateAI}
-                                    disabled={isGeneratingAI}
-                                    className="h-7 text-[9px] font-black uppercase tracking-widest text-indigo-600 bg-indigo-50 border-none hover:bg-indigo-100 hover:text-indigo-700 transition-all px-3"
-                                  >
-                                    {isGeneratingAI ? <span className="flex items-center gap-2"><div className="h-3 w-3 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" /> Generating...</span> : <span className="flex items-center gap-2"><Sparkles className="h-3 w-3" /> Generate via AI</span>}
-                                  </Button>
-                                  <Badge className="bg-emerald-50 text-emerald-500 border-none font-black text-[9px] uppercase tracking-widest leading-normal pt-1.5">AutoSave Enabled</Badge>
-                               </div>
-                            </div>
-                            <div className="relative group">
-                              <div className="absolute top-6 right-8 flex items-center gap-2 z-10 opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0">
-                                <Button variant="secondary" size="icon" className="h-10 w-10 rounded-xl bg-white shadow-xl hover:bg-slate-50"><Bold className="h-4 w-4" /></Button>
-                                <Button variant="secondary" size="icon" className="h-10 w-10 rounded-xl bg-white shadow-xl hover:bg-slate-50"><Italic className="h-4 w-4" /></Button>
-                                <Button variant="secondary" size="icon" className="h-10 w-10 rounded-xl bg-white shadow-xl hover:bg-slate-50"><LinkIcon className="h-4 w-4" /></Button>
-                              </div>
-                              <textarea 
-                                className="w-full min-h-[500px] p-10 rounded-[40px] border border-slate-100 bg-slate-50 focus:bg-white focus:border-indigo-200 focus:ring-4 focus:ring-indigo-50/50 outline-none text-slate-600 font-medium text-lg leading-relaxed transition-all shadow-inner" 
-                                placeholder="Architect your instructional narrative..."
-                                value={editData?.content || ""}
-                                onChange={e => setEditData({...editData, content: e.target.value})}
-                              />
-                            </div>
-                          </div>
+                             {/* Lesson Objectives */}
+                             <div className="space-y-4">
+                                <div className="flex items-center justify-between ml-2">
+                                   <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-400">Lesson Objectives</Label>
+                                   <div className="flex gap-2">
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={handleGenerateObjectivesAI}
+                                        disabled={isGeneratingObjectives}
+                                        className="h-7 text-[8px] font-black uppercase tracking-widest text-indigo-600 bg-indigo-50 border-none hover:bg-white transition-all px-3"
+                                      >
+                                        {isGeneratingObjectives ? "Drafting..." : "AI Objectives"}
+                                      </Button>
+                                   </div>
+                                </div>
+                                <Textarea
+                                  value={editData?.objectives || ""}
+                                  onChange={e => setEditData({...editData, objectives: e.target.value})}
+                                  placeholder="What students should learn..."
+                                  className="min-h-[120px] rounded-[30px] border-slate-100 bg-slate-50 focus:bg-white transition-all font-medium text-slate-600 p-8 shadow-inner text-sm"
+                                />
+                             </div>
+
+                             {/* Lesson Content */}
+                             <div className="space-y-4">
+                                <div className="flex items-center justify-between ml-2">
+                                   <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Curriculum Narrative Engine</Label>
+                                   <div className="flex gap-2">
+                                      <Button
+                                        onClick={() => setIsAIModalOpen(true)}
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-7 text-[9px] font-black uppercase tracking-widest text-indigo-600 bg-indigo-50 border-none hover:bg-white transition-all px-3"
+                                      >
+                                         <Sparkles className="h-3 w-3 mr-2" /> AI Content Wizard
+                                      </Button>
+                                      <Badge className="bg-emerald-50 text-emerald-500 border-none font-black text-[9px] uppercase tracking-widest pt-1.5">Live Editor</Badge>
+                                   </div>
+                                </div>
+                                <div className="relative group">
+                                  <div className="absolute top-6 right-8 flex items-center gap-2 z-10 opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0">
+                                    <Button variant="secondary" size="icon" className="h-10 w-10 rounded-xl bg-white shadow-xl hover:bg-slate-50"><Bold className="h-4 w-4" /></Button>
+                                    <Button variant="secondary" size="icon" className="h-10 w-10 rounded-xl bg-white shadow-xl hover:bg-slate-50"><Italic className="h-4 w-4" /></Button>
+                                    <Button variant="secondary" size="icon" className="h-10 w-10 rounded-xl bg-white shadow-xl hover:bg-slate-50"><LinkIcon className="h-4 w-4" /></Button>
+                                  </div>
+                                  <textarea
+                                    className="w-full min-h-[500px] p-10 rounded-[40px] border border-slate-100 bg-slate-50 focus:bg-white focus:border-indigo-200 focus:ring-4 focus:ring-indigo-50/50 outline-none text-slate-600 font-medium text-lg leading-relaxed transition-all shadow-inner"
+                                    placeholder="Architect your instructional narrative..."
+                                    value={editData?.content || ""}
+                                    onChange={e => setEditData({...editData, content: e.target.value})}
+                                  />
+                                </div>
+                             </div>
 
                           <div className="grid grid-cols-2 gap-10">
                              <div className="space-y-4">
                                <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 ml-2">Optical Resource Vector (URL)</Label>
                                <div className="relative">
-                                  <Input 
-                                    value={editData?.videoUrl || ""} 
+                                  <Input
+                                    value={editData?.videoUrl || ""}
                                     onChange={e => setEditData({...editData, videoUrl: e.target.value})}
-                                    placeholder="Source: YouTube / Vimeo / CDN" 
-                                    className="h-16 rounded-[24px] border-slate-100 bg-slate-50 focus:bg-white font-bold px-8 shadow-sm" 
+                                    placeholder="Source: YouTube / Vimeo / CDN"
+                                    className="h-16 rounded-[24px] border-slate-100 bg-slate-50 focus:bg-white font-bold px-8 shadow-sm"
                                   />
                                   <Video className="absolute right-6 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-300" />
                                </div>
@@ -881,11 +926,11 @@ export default function CourseBuilderPage() {
                              <div className="space-y-4">
                                <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 ml-2">Supplemental Datasheet (URL)</Label>
                                <div className="relative">
-                                  <Input 
-                                    value={editData?.attachmentUrl || ""} 
+                                  <Input
+                                    value={editData?.attachmentUrl || ""}
                                     onChange={e => setEditData({...editData, attachmentUrl: e.target.value})}
-                                    placeholder="Storage: Drive / S3 / Dropbox" 
-                                    className="h-16 rounded-[24px] border-slate-100 bg-slate-50 focus:bg-white font-bold px-8 shadow-sm" 
+                                    placeholder="Storage: Drive / S3 / Dropbox"
+                                    className="h-16 rounded-[24px] border-slate-100 bg-slate-50 focus:bg-white font-bold px-8 shadow-sm"
                                   />
                                   <FileText className="absolute right-6 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-300" />
                                </div>
@@ -899,11 +944,11 @@ export default function CourseBuilderPage() {
                                  <div className="space-y-4">
                                     <Label className="text-[10px] font-black uppercase text-amber-700 tracking-[0.3em] ml-2">Mastery Benchmark (%)</Label>
                                     <div className="relative">
-                                      <Input 
-                                        type="number" 
-                                        value={editData?.passingScore || ""} 
+                                      <Input
+                                        type="number"
+                                        value={editData?.passingScore || ""}
                                         onChange={e => setEditData({...editData, passingScore: e.target.value})}
-                                        className="bg-white border-white h-18 rounded-[28px] text-3xl font-black text-amber-900 px-10 shadow-2xl shadow-amber-200/50" 
+                                        className="bg-white border-white h-18 rounded-[28px] text-3xl font-black text-amber-900 px-10 shadow-2xl shadow-amber-200/50"
                                       />
                                       <div className="absolute right-8 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-600 font-black text-xl">%</div>
                                     </div>
@@ -911,12 +956,12 @@ export default function CourseBuilderPage() {
                                  <div className="space-y-4">
                                     <Label className="text-[10px] font-black uppercase text-amber-700 tracking-[0.3em] ml-2">Tempo Constraint (Min)</Label>
                                     <div className="relative">
-                                      <Input 
-                                        type="number" 
-                                        value={editData?.timeLimit || ""} 
+                                      <Input
+                                        type="number"
+                                        value={editData?.timeLimit || ""}
                                         onChange={e => setEditData({...editData, timeLimit: e.target.value})}
-                                        placeholder="Infinity" 
-                                        className="bg-white border-white h-18 rounded-[28px] text-3xl font-black text-amber-900 px-10 shadow-2xl shadow-amber-200/50" 
+                                        placeholder="Infinity"
+                                        className="bg-white border-white h-18 rounded-[28px] text-3xl font-black text-amber-900 px-10 shadow-2xl shadow-amber-200/50"
                                       />
                                       <Clock className="absolute right-8 top-1/2 -translate-y-1/2 h-8 w-8 text-amber-400 opacity-30" />
                                     </div>
@@ -937,7 +982,7 @@ export default function CourseBuilderPage() {
                               </div>
                               <Link href={`/dashboard/admin/courses/${id}/quiz/${activeItem.data.id}`} className="block">
                                 <Button className="h-16 px-12 rounded-[24px] bg-indigo-600 hover:bg-slate-950 text-white font-black uppercase tracking-[0.2em] text-[11px] gap-4 shadow-2xl shadow-indigo-100 transition-all group/lab">
-                                  <ExternalLink className="h-5 w-5 group-hover:rotate-45 transition-transform" /> 
+                                  <ExternalLink className="h-5 w-5 group-hover:rotate-45 transition-transform" />
                                   Enter Strategic Question Lab
                                 </Button>
                               </Link>
@@ -951,7 +996,7 @@ export default function CourseBuilderPage() {
             <div className="h-full flex flex-col items-center justify-center p-20 text-center space-y-10 bg-white rounded-[70px] shadow-[0_40px_120px_-30px_rgba(0,0,0,0.03)] border border-slate-50 min-h-[850px] relative overflow-hidden group">
                <div className="absolute -top-20 -right-20 w-80 h-80 bg-indigo-50/50 rounded-full blur-[100px] group-hover:bg-indigo-100 transition-all duration-1000" />
                <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-amber-50/50 rounded-full blur-[100px] group-hover:bg-amber-100 transition-all duration-1000" />
-               
+
                <div className="h-40 w-40 rounded-[50px] bg-slate-50 flex items-center justify-center text-slate-100 relative shadow-inner group-hover:scale-110 transition-transform duration-700">
                   <LayoutGrid className="h-20 w-20" />
                   <div className="absolute -top-6 -right-6 h-16 w-16 rounded-[24px] bg-slate-950 flex items-center justify-center text-white shadow-2xl animate-bounce">
@@ -971,9 +1016,93 @@ export default function CourseBuilderPage() {
           )}
         </div>
       </main>
+
+      {/* AI Content Wizard Modal (Global) */}
+      <Dialog open={isAIModalOpen} onOpenChange={setIsAIModalOpen}>
+        <DialogContent className="max-w-2xl rounded-[40px] border-none shadow-2xl p-0 overflow-hidden bg-slate-50">
+          <div className="bg-indigo-600 p-8 text-white relative">
+             <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-3xl" />
+             <DialogHeader>
+                <div className="flex items-center gap-3 mb-2">
+                   <div className="h-10 w-10 rounded-2xl bg-white/20 flex items-center justify-center backdrop-blur-md">
+                      <Sparkles className="h-5 w-5" />
+                   </div>
+                   <div className="space-y-0.5 text-left">
+                      <DialogTitle className="text-xl font-black uppercase tracking-tight text-white mb-0">AI Content Architect</DialogTitle>
+                      <DialogDescription className="text-indigo-100/70 text-[10px] uppercase font-black tracking-widest leading-none">Intelligence-Driven Generation</DialogDescription>
+                   </div>
+                </div>
+             </DialogHeader>
+          </div>
+
+          <div className="p-10 space-y-8">
+             <div className="space-y-4">
+                <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-2">Confirm Lesson Topic</Label>
+                <Input
+                  value={editData?.title || ""}
+                  onChange={e => setEditData({...editData, title: e.target.value})}
+                  className="h-16 rounded-2xl border-none bg-white shadow-inner font-black px-8 text-indigo-600 text-lg"
+                />
+             </div>
+
+             <div className="grid grid-cols-3 gap-4">
+                {[
+                  { id: 'topic', label: 'Topic Only', icon: Sparkles },
+                  { id: 'paste', label: 'Copy & Paste', icon: LinkIcon },
+                  { id: 'pdf', label: 'PDF Upload', icon: FileText }
+                ].map((mode) => (
+                  <button
+                    key={mode.id}
+                    onClick={() => setAiSubMode(mode.id as any)}
+                    className={cn(
+                      "p-6 rounded-[28px] border-2 transition-all text-center space-y-3",
+                      aiSubMode === mode.id ? "bg-white border-indigo-500 shadow-lg" : "bg-slate-50 border-transparent hover:bg-white hover:border-slate-200"
+                    )}
+                  >
+                     <div className={cn("h-12 w-12 rounded-2xl mx-auto flex items-center justify-center", aiSubMode === mode.id ? "bg-indigo-600 text-white" : "bg-slate-200 text-slate-400")}>
+                        <mode.icon className="h-6 w-6" />
+                     </div>
+                     <div className="text-[10px] font-black uppercase tracking-tight text-slate-900">{mode.label}</div>
+                  </button>
+                ))}
+             </div>
+
+             {aiSubMode === 'paste' && (
+                <div className="space-y-4">
+                   <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-2">Paste Source Material</Label>
+                   <Textarea
+                     value={sourceContext}
+                     onChange={e => setSourceContext(e.target.value)}
+                     className="min-h-[150px] rounded-3xl border-none bg-white shadow-inner p-6"
+                   />
+                </div>
+             )}
+
+             {aiSubMode === 'pdf' && (
+                <div className="grid grid-cols-2 gap-4">
+                   <div className="space-y-4">
+                      <input type="file" id="ai-pdf-modal-main" accept=".pdf" className="hidden" onChange={handleProcessPDF} />
+                      <Label htmlFor="ai-pdf-modal-main" className="flex h-16 rounded-2xl border-2 border-dashed border-slate-200 bg-white items-center justify-center cursor-pointer font-black uppercase text-[10px]">
+                         {isProcessingSource ? "Reading..." : "Attach PDF"}
+                      </Label>
+                   </div>
+                   <div className="flex items-center gap-2 bg-white rounded-2xl h-16 px-4 shadow-inner">
+                      <Input type="number" value={pdfPages.start} onChange={e => setPdfPages({...pdfPages, start: parseInt(e.target.value) || 1})} className="w-full border-none text-center font-black" />
+                      <Input type="number" value={pdfPages.end} onChange={e => setPdfPages({...pdfPages, end: parseInt(e.target.value) || 1})} className="w-full border-none text-center font-black" />
+                   </div>
+                </div>
+             )}
+
+             <Button
+                onClick={handleGenerateContentAI}
+                disabled={isGeneratingAI}
+                className="w-full h-18 rounded-[24px] bg-indigo-600 text-white font-black uppercase tracking-[0.1em] text-[12px] shadow-2xl"
+             >
+                {isGeneratingAI ? "Architecting..." : "Architect Lesson Content"}
+             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
-
-
-
