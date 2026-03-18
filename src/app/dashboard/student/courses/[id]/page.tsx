@@ -1382,7 +1382,21 @@ export default function StudentCourseViewerPage() {
                 ))}
               </div>
               <div className="p-8">
-                {activeLessonTab === "body" && <div className="space-y-4"><h3 className="text-2xl font-bold text-slate-900">{activeLesson?.title}</h3><Separator /><div className="prose prose-slate max-w-none text-slate-600 leading-[1.9] whitespace-pre-wrap text-[15px]">{activeLesson?.content || "No content yet."}</div></div>}
+                {activeLessonTab === "body" && (
+                  <div className="space-y-8">
+                    <div className="flex items-center justify-between">
+                       <h3 className="text-3xl font-black text-slate-900 tracking-tight uppercase tracking-tight">{activeLesson?.title}</h3>
+                       <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="border-slate-100 text-slate-400 font-bold text-[9px] uppercase tracking-widest px-3 py-1 scale-90">Session Hub</Badge>
+                       </div>
+                    </div>
+                    <Separator className="bg-slate-50" />
+                    <div 
+                      className="prose prose-indigo max-w-none text-slate-700 leading-relaxed text-lg"
+                      dangerouslySetInnerHTML={{ __html: activeLesson?.content || "<p className='text-slate-400 italic'>No instructional narrative available yet.</p>" }}
+                    />
+                  </div>
+                )}
                 {activeLessonTab === "materials" && (
                   <div className="space-y-4">
                     {activeLesson?.attachmentUrl ? (
