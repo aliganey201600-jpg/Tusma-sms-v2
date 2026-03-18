@@ -57,6 +57,7 @@ export default function FullLessonWorkspace() {
         setEditData({
           title: data.title,
           content: data.content || "",
+          objectives: data.objectives || "",
           duration: data.duration?.toString() || "",
           videoUrl: data.videoUrl || "",
           attachmentUrl: data.attachmentUrl || ""
@@ -75,6 +76,7 @@ export default function FullLessonWorkspace() {
     const res = await updateLesson(lessonId, {
       title: editData.title,
       content: editData.content,
+      objectives: editData.objectives,
       duration: parseInt(editData.duration) || 0,
       videoUrl: editData.videoUrl,
       attachmentUrl: editData.attachmentUrl
@@ -220,9 +222,24 @@ export default function FullLessonWorkspace() {
                     </div>
                  </div>
 
+                 {/* Lesson Objectives Section */}
                  <div className="space-y-4">
                     <div className="flex items-center justify-between ml-2">
-                       <Label className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-400 leading-none">Scholastic Narrative Engine</Label>
+                       <Label className="text-[11px] font-black uppercase tracking-[0.3em] text-indigo-400 leading-none">Lesson Learning Objectives</Label>
+                       <Badge className="bg-indigo-50 text-indigo-400 border-none font-black text-[9px] uppercase px-3 py-1">Strategic Goals</Badge>
+                    </div>
+                    <textarea 
+                      className="w-full min-h-[150px] p-8 rounded-[36px] border border-slate-50 bg-slate-50 focus:bg-white focus:ring-[8px] focus:ring-indigo-50/30 outline-none text-slate-600 font-medium text-lg leading-relaxed transition-all shadow-inner" 
+                      placeholder="What should the students master after this lesson? (e.g. Understand the core principles of...)"
+                      value={editData.objectives}
+                      onChange={e => setEditData({...editData, objectives: e.target.value})}
+                    />
+                 </div>
+
+                 {/* Lesson Content Section */}
+                 <div className="space-y-4">
+                    <div className="flex items-center justify-between ml-2">
+                       <Label className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-400 leading-none">Curriculum Narrative Engine (Detailed Content)</Label>
                        <div className="flex items-center gap-3">
                           <Button 
                             disabled={isGeneratingAI}
@@ -232,7 +249,7 @@ export default function FullLessonWorkspace() {
                           >
                             {isGeneratingAI ? <span className="flex items-center gap-2"><div className="h-3 w-3 border-2 border-indigo-400 border-t-white rounded-full animate-spin" /> Synthesizing...</span> : <span className="flex items-center gap-2"><Sparkles className="h-3 w-3" /> Enhance via Intelligence</span>}
                           </Button>
-                          <Badge className="bg-emerald-50 text-emerald-500 border-none font-black text-[9px] uppercase px-3 py-1 mt-0.5">Active Sandbox</Badge>
+                          <Badge className="bg-emerald-50 text-emerald-500 border-none font-black text-[9px] uppercase px-3 py-1 mt-0.5">Live Editor</Badge>
                        </div>
                     </div>
                     <div className="relative">
@@ -242,8 +259,8 @@ export default function FullLessonWorkspace() {
                           <Button variant="secondary" size="icon" className="h-12 w-12 rounded-2xl bg-white shadow-xl hover:scale-105 active:scale-95 transition-all"><LinkIcon className="h-5 w-5" /></Button>
                        </div>
                        <textarea 
-                          className="w-full min-h-[700px] p-12 rounded-[48px] border border-slate-50 bg-slate-50 focus:bg-white focus:ring-[12px] focus:ring-indigo-50/50 outline-none text-slate-600 font-medium text-xl leading-[1.8] transition-all shadow-inner placeholder:text-slate-300 placeholder:italic" 
-                          placeholder="Begin architecting your instructional narrative. Use Markdown formatting for optimal rendering..."
+                          className="w-full min-h-[600px] p-12 rounded-[48px] border border-slate-50 bg-slate-50 focus:bg-white focus:ring-[12px] focus:ring-indigo-50/50 outline-none text-slate-600 font-medium text-xl leading-[1.8] transition-all shadow-inner placeholder:text-slate-300 placeholder:italic" 
+                          placeholder="Architect your full instructional content here..."
                           value={editData.content}
                           onChange={e => setEditData({...editData, content: e.target.value})}
                        />
