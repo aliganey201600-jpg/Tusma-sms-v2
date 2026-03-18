@@ -59,18 +59,7 @@ export async function generateLessonSummary(lessonId: string) {
       return { summary: aiSummary };
     }
 
-    // Fallback Simulation Logic
-    await new Promise(resolve => setTimeout(resolve, 1500))
-    const paragraphs = lesson.content.split('\n').filter((p: string) => p.trim().length > 20)
-    let summary = `### 🎯 Executive Summary: ${lesson.title} (Fallback)\n\n`
-    summary += `#### 🗝️ Key Takeaways:\n`
-    if (paragraphs.length > 0) {
-      const keyPoints = paragraphs.slice(0, 3).map(p => `* **${p.split(/[.!?]/)[0].trim()}.**`)
-      summary += keyPoints.join('\n') + '\n\n'
-    }
-    summary += `#### 💡 Conceptual Synthesis:\nEssentially, this module bridges the gap between theoretical understanding and practical application.`
-
-    return { summary }
+    return { error: "AI Engine is currently unresponsive. Please check your GEMINI_API_KEY or network connection." };
   } catch (error: any) {
     console.error("AI Summary Error:", error)
     return { error: `AI System Error: ${error.message}` }
@@ -78,7 +67,7 @@ export async function generateLessonSummary(lessonId: string) {
 }
 
 export async function askAIQuestion(lessonId: string, question: string) {
-  console.log(`AI Action: Question about ${lessonId}: "${question}"`)
+  console.log(`AI Action: Live Question about ${lessonId}: "${question}"`)
   try {
     const lesson = await prisma.lesson.findUnique({
       where: { id: lessonId },
@@ -92,19 +81,7 @@ export async function askAIQuestion(lessonId: string, question: string) {
       return { answer: aiAnswer };
     }
 
-    // Fallback
-    await new Promise(resolve => setTimeout(resolve, 1500))
-    const q = question.toLowerCase()
-    let answer = ""
-    const title = lesson?.title || "this lesson"
-
-    if (q.includes("example") || q.includes("tusaale")) {
-       answer = `Certainly! Regarding **${title}**, a practical example would be applying these principles to a real-world project.`
-    } else {
-       answer = `That's a great question about **${title}**. Based on the lesson, the most important thing to remember is that this concept simplifies complex workflows.`
-    }
-
-    return { answer: `### 🤖 AI Tutor Response (Simulation)\n\n${answer}\n\n*Note: Gemini API is being configured. Please ensure GEMINI_API_KEY is active.*` }
+    return { error: "I'm having trouble connecting to my knowledge base right now. Please try again in a moment." };
   } catch (error: any) {
     console.error("AI Question Error:", error)
     return { error: `AI Assistant Error: ${error.message}` }
