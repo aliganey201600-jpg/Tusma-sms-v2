@@ -19,11 +19,11 @@ async function callGemini(prompt: string, context: string) {
     }
 
     const availableModels = listData.models || [];
-    const validModel = availableModels.find((m: any) => m.supportedMethods.includes("generateContent"));
+    const validModel = availableModels.find((m: any) => m.supportedMethods && m.supportedMethods.includes("generateContent"));
 
     if (!validModel) {
-       const modelNames = availableModels.map((m: any) => m.name).join(", ");
-       return { error: `No valid models found for this key. Available: ${modelNames || "None"}. Please ensure Generative Language API is enabled.` };
+       const modelDetails = availableModels.map((m: any) => `${m.name} (${m.supportedMethods?.join(',') || 'no-methods'})`).join(" | ");
+       return { error: `No compatible models found for this key. Models visible: ${modelDetails || "None"}. If you just created this key, give it 5 minutes.` };
     }
 
     const modelName = validModel.name; // e.g., "models/gemini-1.5-flash"
