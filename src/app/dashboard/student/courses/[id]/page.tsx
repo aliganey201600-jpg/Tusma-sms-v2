@@ -640,14 +640,36 @@ export default function StudentCourseViewerPage() {
     }
   }
 
+  // Helper: Fisher-Yates shuffle
+  const shuffle = <T,>(arr: T[]): T[] => {
+    const a = [...arr]
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));[a[i], a[j]] = [a[j], a[i]]
+    }
+    return a
+  }
+
   const openQuiz = async (quiz: Quiz) => {
     setQuizLoading(true)
     const rawData = await getQuizWithQuestions(quiz.id, user?.studentId || undefined)
     
     if (rawData) {
+      // ── Sectioned shuffle: group by type, shuffle within each group, flatten ──
+      const TYPE_ORDER = ["MCQ", "TRUE_FALSE", "MATCHING", "FILL_BLANK", "SHORT_ANSWER", "ESSAY"]
+      const rawQs: any[] = (rawData as any).questions || []
+      const grouped: Record<string, any[]> = {}
+      rawQs.forEach(q => {
+        if (!grouped[q.type]) grouped[q.type] = []
+        grouped[q.type].push(q)
+      })
+      const shuffledQs = TYPE_ORDER
+        .filter(t => grouped[t]?.length)
+        .flatMap(t => shuffle(grouped[t]))
+
       // Force type compliance for the state and sub-properties
       const data = {
         ...rawData,
+        questions: shuffledQs,
         type: "quiz" as const,
         attempts: (rawData as unknown as { attempts: QuizAttempt[] }).attempts || []
       } as unknown as (Quiz & { attempts: QuizAttempt[] })
@@ -702,6 +724,24 @@ export default function StudentCourseViewerPage() {
     const passed = score >= (activeQuiz?.passingScore || 70)
     const isLast = currentQ === questions.length - 1
     const q = questions[currentQ]
+
+    // ── Compute section info for current question ──────────────────────────
+    const TYPE_LABELS: Record<string, { label: string; color: string }> = {
+      MCQ:          { label: "Multiple Choice",      color: "indigo"  },
+      TRUE_FALSE:   { label: "True / False",          color: "emerald" },
+      MATCHING:     { label: "Matching",              color: "violet"  },
+      FILL_BLANK:   { label: "Fill in the Blank",     color: "amber"   },
+      SHORT_ANSWER: { label: "Short Answer",          color: "rose"    },
+      ESSAY:        { label: "Essay",                 color: "slate"   },
+    }
+    // Build ordered list of unique types as they appear in the shuffled array
+    const orderedTypes = questions.reduce<string[]>((acc, qq) => {
+      if (!acc.includes(qq.type)) acc.push(qq.type)
+      return acc
+    }, [])
+    const sectionIdx = orderedTypes.indexOf(q?.type)
+    const isFirstOfType = q && questions.findIndex(qq => qq.type === q.type) === currentQ
+    const sectionMeta = q ? (TYPE_LABELS[q.type] || { label: q.type, color: "slate" }) : null
 
     return (
       <div className="fixed inset-0 z-[100] bg-[#FDFDFD] flex flex-col">
@@ -844,13 +884,31 @@ export default function StudentCourseViewerPage() {
                     </div>
                   </div>
                 ) : (
-                  <div className="max-w-3xl mx-auto space-y-8 py-4 md:py-10">
+                  <div className="max-w-3xl mx-auto space-y-6 py-4 md:py-10">
+                    {/* ── Section Header Banner (shows when type group changes) ── */}
+                    {isFirstOfType && sectionMeta && (
+                      <div className={`animate-in slide-in-from-left-4 duration-500 rounded-2xl p-5 border border-${sectionMeta.color}-100 bg-${sectionMeta.color}-50 flex items-center gap-4`}>
+                        <div className={`h-11 w-11 rounded-xl bg-${sectionMeta.color}-600 text-white flex items-center justify-center font-black text-sm shadow-lg`}>
+                          {sectionIdx + 1}
+                        </div>
+                        <div>
+                          <p className={`text-[9px] font-black uppercase tracking-[.3em] text-${sectionMeta.color}-400`}>Section {sectionIdx + 1}</p>
+                          <p className={`text-sm font-black text-${sectionMeta.color}-800`}>{sectionMeta.label}</p>
+                        </div>
+                        <div className="ml-auto">
+                          <Badge className={`bg-${sectionMeta.color}-100 text-${sectionMeta.color}-700 border-none text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg`}>
+                            {questions.filter(qq => qq.type === q.type).length} Questions
+                          </Badge>
+                        </div>
+                      </div>
+                    )}
+
                     <div className="bg-white rounded-[3rem] shadow-[0_20px_50px_-20px_rgba(0,0,0,0.05)] border-2 border-slate-50 p-6 md:p-12 space-y-10">
                       <div className="space-y-6 leading-none">
                         <div className="flex items-center gap-3">
-                          <span className="h-10 w-10 flex items-center justify-center bg-indigo-600 rounded-xl text-white text-xs font-black shadow-lg shadow-indigo-200">{currentQ + 1}</span>
+                          <span className={`h-10 w-10 flex items-center justify-center bg-${sectionMeta?.color || 'indigo'}-600 rounded-xl text-white text-xs font-black shadow-lg`}>{currentQ + 1}</span>
                           <span className="h-1.5 w-1.5 rounded-full bg-slate-200" />
-                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-[.2em]">Intellectual Challenge</span>
+                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-[.2em]">{sectionMeta?.label || 'Question'}</span>
                         </div>
                         <h2 className="text-2xl md:text-5xl font-black text-slate-900 tracking-tight leading-[1.1]">{q?.question}</h2>
                       </div>
