@@ -498,9 +498,12 @@ export async function generateLessonContentAI(topicName: string, courseName?: st
       - Write EXCLUSIVELY in Somali (Af-Soomaali).`;
     } else {
       modeInstruction = `TASK: Write a highly detailed, comprehensive, and engaging lesson body (narrative) about "${topicName}" ${courseName ? `within the context of a course titled "${courseName}"` : ""}. 
-      Requirements:
+      
+      Requirements & Style:
       - If Source Material is provided, ensure the lesson accurately reflects those facts.
-      - Write the content using professional Markdown styling (headings, bold technical terms, structured lists).
+      - STYLE: FADLAN HA ISTICMAALIN "###" (Headings) ama "***". 
+      - CADAWAD: Halkii aad "###" u isticmaali laheed, fadlan isticmaal **BOLD** (Labada xiddigood) oo kaliya si aad cinwaanada u muujisid.
+      - Write the content using professional spacing between paragraphs.
       - Include 3 to 4 well-developed main sections explaining the primary concepts in depth.
       - End with a summary or "Gunaanad & Qodobbada Muhiimka ah" section.
       - Write EXCLUSIVELY in Somali, maintaining a formal academic tone. Use Somali for explanations while keeping standard international technical terms in English.`;
