@@ -51,7 +51,8 @@ import {
   updateLesson,
   updateQuiz,
   reorderSections,
-  reorderItems
+  reorderItems,
+  generateLessonContentAI
 } from "../../builder-actions"
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
@@ -344,7 +345,24 @@ export default function CourseBuilderPage() {
   const [activeItem, setActiveItem] = React.useState<any>(null)
   const [editData, setEditData] = React.useState<any>(null)
   const [isSaving, setIsSaving] = React.useState(false)
+  const [isGeneratingAI, setIsGeneratingAI] = React.useState(false)
   const [expandedSectionId, setExpandedSectionId] = React.useState<string | null>(null)
+
+  const handleGenerateAI = async () => {
+    if (!editData?.title || editData.title === "New Lesson") {
+      toast.error("Please enter a specific Lesson Title first to guide the AI.")
+      return
+    }
+    setIsGeneratingAI(true)
+    const res = await generateLessonContentAI(editData.title, course?.name)
+    if (res.error) {
+       toast.error(res.error)
+    } else if (res.content) {
+       setEditData({...editData, content: res.content})
+       toast.success("AI Content Generated Successfully! ✨")
+    }
+    setIsGeneratingAI(false)
+  }
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -664,7 +682,16 @@ export default function CourseBuilderPage() {
                             <div className="flex items-center justify-between ml-2">
                                <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Scholastic Narrative Engine</Label>
                                <div className="flex gap-2">
-                                  <Badge className="bg-emerald-50 text-emerald-500 border-none font-black text-[9px] uppercase tracking-widest">AutoSave Enabled</Badge>
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    onClick={handleGenerateAI}
+                                    disabled={isGeneratingAI}
+                                    className="h-7 text-[9px] font-black uppercase tracking-widest text-indigo-600 bg-indigo-50 border-none hover:bg-indigo-100 hover:text-indigo-700 transition-all px-3"
+                                  >
+                                    {isGeneratingAI ? <span className="flex items-center gap-2"><div className="h-3 w-3 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" /> Generating...</span> : <span className="flex items-center gap-2"><Sparkles className="h-3 w-3" /> Generate via AI</span>}
+                                  </Button>
+                                  <Badge className="bg-emerald-50 text-emerald-500 border-none font-black text-[9px] uppercase tracking-widest leading-normal pt-1.5">AutoSave Enabled</Badge>
                                </div>
                             </div>
                             <div className="relative group">

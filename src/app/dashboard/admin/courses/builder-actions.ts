@@ -466,3 +466,37 @@ export async function getCertificate(courseId: string, studentId: string) {
     return null
   }
 }
+
+export async function generateLessonContentAI(topicName: string, courseName?: string) {
+  const key = process.env.GEMINI_API_KEY;
+  if (!key) return { error: "GEMINI_API_KEY is missing." };
+
+  try {
+    const prompt = `You are an expert curriculum designer. Write a highly detailed, comprehensive, and engaging lesson about "${topicName}" ${courseName ? `for a course titled "${courseName}"` : ""}. 
+    
+    Requirements:
+    - Write the content using proper Markdown styling (headings, bold text, bullet points).
+    - Start with a clear introduction.
+    - Include 3 to 4 well-structured main sections explaining the core concepts.
+    - End with a summary or "Key Takeaways" section.
+    - Write exclusively in Somali, maintaining a professional and educational tone. Avoid translating technical key terms where English is standard, but explain them in Somali.`;
+
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }]
+      }),
+    });
+
+    if (!response.ok) return { error: "Failed to connect to AI service." };
+
+    const data = await response.json();
+    if (data.candidates && data.candidates[0]?.content?.parts) {
+        return { content: data.candidates[0].content.parts[0].text };
+    }
+    return { error: "Empty response from AI." };
+  } catch (error: any) {
+    return { error: error.message || "Internal server error" };
+  }
+}
