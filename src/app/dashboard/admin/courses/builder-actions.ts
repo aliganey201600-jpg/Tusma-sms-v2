@@ -491,11 +491,13 @@ export async function generateLessonContentAI(topicName: string, courseName?: st
   try {
     let modeInstruction = "";
     if (mode === 'objectives') {
-      modeInstruction = `TASK: Generate exactly 5 to 6 clear, professional, and measurable 'Learning Objectives' or 'Ahdaafta Waxbarasho' for a lesson titled "${topicName}".
-      Requirements: 
-      - Use professional bullet points.
-      - Each objective should start with an action verb (e.g., 'Fahamka...', 'Codsiga...', 'Sharaxidda...').
-      - Write EXCLUSIVELY in Somali (Af-Soomaali).`;
+      modeInstruction = `TASK: Generate exactly 5 to 6 clear, professional, and measurable 'Learning Objectives' for a lesson titled "${topicName}".
+      
+      Requirements & FORMATTING:
+      - START the text with the exact phrase: "At the end of this Lesson the student should be able to:" followed by a new line.
+      - Each objective MUST start with a sequential bullet point in the format: LO1, LO2, LO3, etc. (e.g., 'LO1: Fahamka...', 'LO2: Codsiga...').
+      - Each objective should start with an action verb.
+      - Write the objective points EXCLUSIVELY in Somali (Af-Soomaali), but keep the intro phrase and 'LO1, LO2' labels.`;
     } else {
       modeInstruction = `TASK: Write a highly detailed, comprehensive, and engaging lesson body (narrative) about "${topicName}" ${courseName ? `within the context of a course titled "${courseName}"` : ""}. 
 

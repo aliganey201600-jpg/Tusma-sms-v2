@@ -255,11 +255,10 @@ export default function FullLessonWorkspace() {
                           <Badge className="bg-indigo-50 text-indigo-400 border-none font-black text-[9px] uppercase px-3 py-1">Strategic Goals</Badge>
                        </div>
                     </div>
-                    <textarea 
-                      className="w-full min-h-[150px] p-8 rounded-[36px] border border-slate-50 bg-slate-50 focus:bg-white focus:ring-[8px] focus:ring-indigo-50/30 outline-none text-slate-600 font-medium text-lg leading-relaxed transition-all shadow-inner" 
-                      placeholder="What should students master?"
-                      value={editData.objectives}
-                      onChange={e => setEditData({...editData, objectives: e.target.value})}
+                    <RichEditor 
+                      content={editData.objectives}
+                      onChange={(html) => setEditData({...editData, objectives: html})}
+                      placeholder="Define the learning trajectory and mastery outcomes..."
                     />
                  </div>
 

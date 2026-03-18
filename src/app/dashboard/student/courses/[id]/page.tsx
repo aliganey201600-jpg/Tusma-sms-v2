@@ -1332,37 +1332,29 @@ export default function StudentCourseViewerPage() {
               </h1>
             </div>
 
-            {/* ── Premium Objectives Card ── */}
-            <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-[2.5rem] p-8 md:p-12 text-white shadow-2xl shadow-indigo-100 relative overflow-hidden group animate-in zoom-in-95 duration-700">
-               {/* Abstract background shapes */}
-               <div className="absolute -top-20 -right-20 w-80 h-80 bg-white/10 rounded-full blur-3xl group-hover:scale-125 transition-transform duration-1000" />
-               <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-indigo-400/20 rounded-full blur-3xl" />
-
+            {/* ── Learning Outcomes & Objectives ── */}
+            <div className="bg-white rounded-[2.5rem] p-8 md:p-12 border-2 border-slate-50 shadow-2xl shadow-slate-100/50 relative overflow-hidden group animate-in zoom-in-95 duration-700">
                <div className="relative z-10 space-y-8">
                 <div className="flex items-center gap-4">
-                  <div className="h-14 w-14 bg-white/10 backdrop-blur-xl rounded-[20px] flex items-center justify-center border border-white/20 shadow-xl">
-                    <Target className="h-7 w-7 text-white" />
+                  <div className="h-14 w-14 bg-indigo-50 rounded-[20px] flex items-center justify-center border border-indigo-100 shadow-sm">
+                    <Target className="h-7 w-7 text-indigo-600" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-black uppercase tracking-[0.2em] text-indigo-100">Learning Objectives</h3>
-                    <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Target outcomes for this lesson</p>
+                    <h3 className="text-sm font-black uppercase tracking-[0.2em] text-slate-900">Learning Outcomes</h3>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">At the end of this Lesson the student should be able to:</p>
                   </div>
                 </div>
 
                 <div className="space-y-4">
                   {activeLesson?.objectives ? (
-                    activeLesson.objectives.split('\n').filter((line: string) => line.trim()).map((line: string, idx: number) => (
-                      <div key={idx} className="flex items-start gap-4 group/item">
-                         <div className="mt-2 h-2 w-2 rounded-full bg-yellow-400 shrink-0 shadow-[0_0_12px_rgba(250,204,21,0.6)] group-hover/item:scale-125 transition-transform" />
-                         <p className="text-white/90 text-sm md:text-lg leading-relaxed font-medium">
-                           {line.replace(/^[•\-\*]\s*/, '')}
-                         </p>
-                      </div>
-                    ))
+                    <div 
+                      className="prose prose-indigo prose-sm md:prose-lg max-w-none text-slate-600 leading-relaxed text-justify"
+                      dangerouslySetInnerHTML={{ __html: activeLesson.objectives }}
+                    />
                   ) : (
-                    <div className="flex items-center gap-3 p-4 rounded-2xl bg-white/5 border border-white/10 italic text-white/60 text-sm">
-                      <Sparkles className="h-4 w-4" />
-                      Focus on the primary concepts defined in this teaching module.
+                    <div className="flex items-center gap-3 p-4 rounded-2xl bg-slate-50 border border-slate-100 italic text-slate-400 text-sm">
+                      <Sparkles className="h-4 w-4 text-indigo-400" />
+                      Pedagogical objectives are being drafted for this instructional node.
                     </div>
                   )}
                 </div>

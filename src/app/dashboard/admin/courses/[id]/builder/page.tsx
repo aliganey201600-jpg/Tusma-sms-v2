@@ -879,11 +879,10 @@ export default function CourseBuilderPage() {
                                       </Button>
                                    </div>
                                 </div>
-                                <Textarea
-                                  value={editData?.objectives || ""}
-                                  onChange={e => setEditData({...editData, objectives: e.target.value})}
-                                  placeholder="What students should learn..."
-                                  className="min-h-[120px] rounded-[30px] border-slate-100 bg-slate-50 focus:bg-white transition-all font-medium text-slate-600 p-8 shadow-inner text-sm"
+                                <RichEditor
+                                  content={editData?.objectives || ""}
+                                  onChange={(html) => setEditData({...editData, objectives: html})}
+                                  placeholder="What should students master by the end of this session?"
                                 />
                              </div>
 
