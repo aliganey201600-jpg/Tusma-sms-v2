@@ -3,18 +3,18 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import prisma from "@/lib/prisma"
 
-// Initialize Google Generative AI
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
 async function callGemini(prompt: string, context: string) {
-  if (!process.env.GEMINI_API_KEY) {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
     console.error("AI Action: GEMINI_API_KEY is missing from environment.");
-    return null;
+    return { error: "GEMINI_API_KEY is not configured in Vercel/Environment Settings." };
   }
 
   try {
-    console.log("AI Action: Initiating Live Gemini Request...");
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    
+    console.log("AI Action: Initiating Live SDK Gemini Request...");
     
     const combinedPrompt = `You are an expert academic tutor for the Tusmo SMS platform. 
     Context of the current lesson:
@@ -30,10 +30,10 @@ async function callGemini(prompt: string, context: string) {
     const response = await result.response;
     const text = response.text();
     
-    return text;
+    return { text };
   } catch (error: any) {
     console.error("AI Action: Gemini SDK Error:", error);
-    return null;
+    return { error: error.message || "An unexpected error occurred during AI generation." };
   }
 }
 
@@ -53,13 +53,13 @@ export async function generateLessonSummary(lessonId: string) {
 
     // Try Gemini
     const prompt = `Generate a high-density executive summary for the lesson titled "${lesson.title}". Focus on key takeaways and conceptual synthesis. Response should be in the language of the lesson or Somali if preferred by the context.`;
-    const aiSummary = await callGemini(prompt, lesson.content);
+    const res = await callGemini(prompt, lesson.content);
 
-    if (aiSummary) {
-      return { summary: aiSummary };
+    if (res.text) {
+      return { summary: res.text };
     }
 
-    return { error: "AI Engine is currently unresponsive. Please check your GEMINI_API_KEY or network connection." };
+    return { error: res.error || "AI Engine is currently unresponsive. Please check your GEMINI_API_KEY or network connection." };
   } catch (error: any) {
     console.error("AI Summary Error:", error)
     return { error: `AI System Error: ${error.message}` }
@@ -75,13 +75,13 @@ export async function askAIQuestion(lessonId: string, question: string) {
     })
 
     const context = lesson?.content || "No detailed content available yet.";
-    const aiAnswer = await callGemini(question, context);
+    const res = await callGemini(question, context);
 
-    if (aiAnswer) {
-      return { answer: aiAnswer };
+    if (res.text) {
+      return { answer: res.text };
     }
 
-    return { error: "I'm having trouble connecting to my knowledge base right now. Please try again in a moment." };
+    return { error: res.error || "I'm having trouble connecting to my knowledge base right now. Please try again in a moment." };
   } catch (error: any) {
     console.error("AI Question Error:", error)
     return { error: `AI Assistant Error: ${error.message}` }
@@ -156,14 +156,14 @@ export async function generateQuizQuestions(quizId: string, counts: Record<strin
     For SHORT_ANSWER:
     { "type": "SHORT_ANSWER", "question": "Explain X briefly.", "hint": "Hint text", "points": 3 }`;
 
-    const aiResult = await callGemini(prompt, truncatedContent);
+    const res = await callGemini(prompt, truncatedContent);
 
-    if (!aiResult) {
-      return { error: "AI failed to generate quiz questions." }
+    if (res.error || !res.text) {
+      return { error: res.error || "AI failed to generate quiz questions." }
     }
 
     // Clean up response in case Gemini included markdown blocks
-    const cleanedResult = aiResult.replace(/```json/g, "").replace(/```/g, "").trim();
+    const cleanedResult = res.text.replace(/```json/g, "").replace(/```/g, "").trim();
     let questions;
     try {
       questions = JSON.parse(cleanedResult);
