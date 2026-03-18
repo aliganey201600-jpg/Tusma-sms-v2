@@ -467,19 +467,27 @@ export async function getCertificate(courseId: string, studentId: string) {
   }
 }
 
-export async function generateLessonContentAI(topicName: string, courseName?: string) {
+export async function generateLessonContentAI(topicName: string, courseName?: string, sourceContext?: string) {
   const key = process.env.GEMINI_API_KEY;
   if (!key) return { error: "GEMINI_API_KEY is missing." };
 
   try {
-    const prompt = `You are an expert curriculum designer. Write a highly detailed, comprehensive, and engaging lesson about "${topicName}" ${courseName ? `for a course titled "${courseName}"` : ""}. 
+    const prompt = `You are an expert academic curriculum designer. 
+    
+    ${sourceContext ? `CRITICAL SOURCE MATERIAL (Use this for the core factual content):
+    -------------------------------------------------------
+    ${sourceContext}
+    -------------------------------------------------------` : ""}
+
+    TASK: Write a highly detailed, comprehensive, and engaging lesson about "${topicName}" ${courseName ? `within the context of a course titled "${courseName}"` : ""}. 
     
     Requirements:
-    - Write the content using proper Markdown styling (headings, bold text, bullet points).
-    - Start with a clear introduction.
-    - Include 3 to 4 well-structured main sections explaining the core concepts.
-    - End with a summary or "Key Takeaways" section.
-    - Write exclusively in Somali, maintaining a professional and educational tone. Avoid translating technical key terms where English is standard, but explain them in Somali.`;
+    - If Source Material is provided above, ensure the lesson accurately reflects those facts and concepts.
+    - Write the content using professional Markdown styling (headings, bold technical terms, structured lists).
+    - Start with a clear introduction and learning objectives.
+    - Include 3 to 4 well-developed main sections explaining the primary concepts in depth.
+    - End with a summary or "Gunaanad & Qodobbada Muhiimka ah" (Key Takeaways) section.
+    - Write EXCLUSIVELY in Somali, maintaining a formal academic yet accessible tone. Use Somali for explanations while keeping standard international technical terms in English (but explain them).`;
 
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`, {
       method: "POST",

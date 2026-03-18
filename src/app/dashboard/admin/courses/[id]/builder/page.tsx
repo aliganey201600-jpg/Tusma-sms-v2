@@ -346,6 +346,7 @@ export default function CourseBuilderPage() {
   const [editData, setEditData] = React.useState<any>(null)
   const [isSaving, setIsSaving] = React.useState(false)
   const [isGeneratingAI, setIsGeneratingAI] = React.useState(false)
+  const [sourceContext, setSourceContext] = React.useState("")
   const [expandedSectionId, setExpandedSectionId] = React.useState<string | null>(null)
 
   const handleGenerateAI = async () => {
@@ -354,12 +355,12 @@ export default function CourseBuilderPage() {
       return
     }
     setIsGeneratingAI(true)
-    const res = await generateLessonContentAI(editData.title, course?.name)
+    const res = await generateLessonContentAI(editData.title, course?.name, sourceContext)
     if (res.error) {
        toast.error(res.error)
     } else if (res.content) {
        setEditData({...editData, content: res.content})
-       toast.success("AI Content Generated Successfully! ✨")
+       toast.success("AI Content Generated based on your Source Material! ✨")
     }
     setIsGeneratingAI(false)
   }
@@ -676,6 +677,21 @@ export default function CourseBuilderPage() {
                                 <Clock className="absolute right-6 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-300" />
                               </div>
                             </div>
+                          </div>
+
+                          {/* AI Source Context Section */}
+                          <div className="space-y-4 bg-indigo-50/30 p-8 rounded-[40px] border border-indigo-100/50">
+                             <div className="flex items-center justify-between ml-2">
+                                <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-700">Source Material (PDF Text / Video Transcript)</Label>
+                                <Badge className="bg-indigo-100 text-indigo-600 border-none font-black text-[9px] uppercase tracking-widest px-3">Optional AI Guide</Badge>
+                             </div>
+                             <Textarea 
+                               value={sourceContext}
+                               onChange={e => setSourceContext(e.target.value)}
+                               placeholder="Copy & paste text from your PDF or Video transcript. AI will use this specific information to write the lesson."
+                               className="min-h-[150px] rounded-[30px] border-indigo-100 bg-white focus:ring-4 focus:ring-indigo-100 transition-all font-medium text-slate-600 p-6"
+                             />
+                             <p className="text-[9px] font-bold text-slate-400 italic px-4">Note: Providing a source ensures the AI remains factual to your specific teaching materials.</p>
                           </div>
 
                           <div className="space-y-4">
