@@ -51,7 +51,8 @@ export function useNotifications(userId: string) {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [userId, supabase])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId])
 
   const markAsRead = async (notificationId: string) => {
     const { error } = await supabase

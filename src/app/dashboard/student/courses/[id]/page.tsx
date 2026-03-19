@@ -509,28 +509,15 @@ export default function StudentCourseViewerPage() {
             studentAnswer: stringAns || "No answer", 
             correctAnswer: q.correctAnswer 
           })
-        } else if (q.type === "FILL_BLANK") {
-          qCorrect = !!(stringAns && stringAns.trim().toLowerCase() === q.correctAnswer?.trim().toLowerCase())
+        } else if (q.type === "FILL_BLANK" || q.type === "SHORT_ANSWER" || q.type === "ESSAY") {
           feedback.push({ 
             questionId: q.id,
             question: q.question, 
-            isCorrect: qCorrect, 
-            earned: qCorrect ? q.points : 0,
+            isCorrect: false, 
+            earned: 0,
             total: q.points,
             studentAnswer: stringAns || "No answer", 
-            correctAnswer: q.correctAnswer 
-          })
-        } else if (q.type === "SHORT_ANSWER") {
-          const similarity = getSimilarity(stringAns || "", q.correctAnswer || "")
-          qCorrect = similarity >= 0.7
-          feedback.push({ 
-            questionId: q.id,
-            question: q.question, 
-            isCorrect: qCorrect, 
-            earned: qCorrect ? q.points : 0,
-            total: q.points,
-            studentAnswer: stringAns || "No answer", 
-            correctAnswer: q.correctAnswer 
+            manual: true 
           })
         } else {
           feedback.push({ 
@@ -832,6 +819,14 @@ export default function StudentCourseViewerPage() {
                                  score >= 70 ? "Well done! You have a solid grasp of the material." : 
                                  "Don&apos;t discourage yourself. Learning is a journey, try reviewing the lesson and attempt again."}
                              </p>
+                             {results.some(r => r.manual) && (
+                               <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-xl p-4 mt-4 max-w-lg text-left">
+                                 <p className="text-indigo-200 text-[11px] font-medium leading-relaxed">
+                                   <strong className="text-indigo-100 uppercase tracking-widest text-[9px] block mb-1">Assessment Note</strong>
+                                   Your assessment contains both <span className="text-white">Objective</span> (Multiple Choice, True/False, Matching) and <span className="text-white">Subjective</span> (Fill in the blank, Short answer, Essay) questions. The objective portion has been auto-graded. The subjective questions are <span className="text-white font-bold">pending instructor review</span> and do not yet have a score assigned.
+                                 </p>
+                               </div>
+                             )}
                              <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 mt-4">
                                 <Button variant="ghost" className="text-white/40 hover:text-white hover:bg-white/5 h-10 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest gap-2" onClick={retakeQuiz}>
                                   <RotateCcw className="h-4 w-4" /> Retake
@@ -859,22 +854,30 @@ export default function StudentCourseViewerPage() {
 
                       <div className="grid gap-4">
                         {results.map((res, idx) => (
-                          <div key={idx} className={cn("group rounded-[2rem] border-2 transition-all p-6 md:p-10", res.isCorrect ? "bg-white border-emerald-50 hover:border-emerald-100" : "bg-white border-red-50 hover:border-red-100")}>
+                          <div key={idx} className={cn("group rounded-[2rem] border-2 transition-all p-6 md:p-10", res.manual ? "bg-amber-50/10 border-amber-100 hover:border-amber-200" : res.isCorrect ? "bg-white border-emerald-50 hover:border-emerald-100" : "bg-white border-red-50 hover:border-red-100")}>
                              <div className="flex flex-col md:flex-row gap-6 md:gap-10">
                                 <div className="space-y-6 flex-1">
                                    <div className="flex items-center gap-4">
                                       <span className="h-10 w-10 rounded-xl bg-slate-100 flex items-center justify-center text-xs font-black text-slate-900">{idx + 1}</span>
-                                      <Badge className={cn("text-[9px] font-black uppercase px-3 py-1.5 rounded-lg", res.isCorrect ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-600")}>
-                                        {res.isCorrect ? "Precision Matched" : "Review Needed"}
-                                      </Badge>
-                                      <span className="ml-auto text-[10px] font-black text-slate-300 uppercase tracking-widest">{res.earned} / {res.total} PTS</span>
+                                      {res.manual ? (
+                                        <Badge className="bg-amber-100 text-amber-600 text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg">
+                                          Pending for instructor review
+                                        </Badge>
+                                      ) : (
+                                        <Badge className={cn("text-[9px] font-black uppercase px-3 py-1.5 rounded-lg", res.isCorrect ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-600")}>
+                                          {res.isCorrect ? "Precision Matched" : "Review Needed"}
+                                        </Badge>
+                                      )}
+                                      <span className="ml-auto text-[10px] font-black text-slate-300 uppercase tracking-widest">
+                                        {res.manual ? "Pending / " + res.total + " PTS" : res.earned + " / " + res.total + " PTS"}
+                                      </span>
                                    </div>
                                    <h4 className="text-xl md:text-2xl font-black text-slate-900 leading-[1.2]">{res.question}</h4>
                                    
                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
-                                      <div className="p-5 rounded-2xl bg-slate-50 border border-slate-100 space-y-2">
-                                         <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest">Your Answer</p>
-                                         <p className={cn("text-sm font-bold", res.isCorrect ? "text-slate-900" : "text-red-600")}>{typeof res.studentAnswer === 'string' ? res.studentAnswer || "No Response" : "Matched Item"}</p>
+                                      <div className={cn("p-5 rounded-2xl border space-y-2", res.manual ? "bg-amber-50/50 border-amber-100" : "bg-slate-50 border-slate-100")}>
+                                         <p className={cn("text-[9px] font-black uppercase tracking-widest", res.manual ? "text-amber-500" : "text-slate-400")}>Your Answer</p>
+                                         <p className={cn("text-sm font-bold", res.manual ? "text-amber-900" : res.isCorrect ? "text-slate-900" : "text-red-600")}>{typeof res.studentAnswer === 'string' ? res.studentAnswer || "No Response" : "Matched Item"}</p>
                                       </div>
                                       {!res.isCorrect && !res.manual && (
                                         <div className="p-5 rounded-2xl bg-indigo-50 border border-indigo-100 space-y-2">
@@ -884,8 +887,8 @@ export default function StudentCourseViewerPage() {
                                       )}
                                    </div>
                                 </div>
-                                <div className={cn("h-16 w-16 md:h-20 md:w-20 rounded-3xl flex items-center justify-center shrink-0 motion-safe:animate-in motion-safe:zoom-in duration-1000", res.isCorrect ? "bg-emerald-500 text-white" : "bg-red-500 text-white")}>
-                                   {res.isCorrect ? <Check className="h-8 w-8" /> : <X className="h-8 w-8" />}
+                                <div className={cn("h-16 w-16 md:h-20 md:w-20 rounded-3xl flex items-center justify-center shrink-0 motion-safe:animate-in motion-safe:zoom-in duration-1000", res.manual ? "bg-amber-100 text-amber-500" : res.isCorrect ? "bg-emerald-500 text-white" : "bg-red-500 text-white")}>
+                                   {res.manual ? <Clock className="h-8 w-8" /> : res.isCorrect ? <Check className="h-8 w-8" /> : <X className="h-8 w-8" />}
                                 </div>
                              </div>
                           </div>
@@ -1134,16 +1137,17 @@ export default function StudentCourseViewerPage() {
                                <h4 className="text-sm font-black text-slate-900 uppercase tracking-widest">Historical Feedback</h4>
                                <div className="grid gap-3">
                                   {selectedAttempt?.results?.map((res, idx) => (
-                                    <div key={idx} className={cn("p-6 rounded-3xl border-2 transition-all cursor-default", res.isCorrect ? "bg-emerald-50/20 border-emerald-50" : "bg-red-50/20 border-red-50")}>
+                                    <div key={idx} className={cn("p-6 rounded-3xl border-2 transition-all cursor-default", res.manual ? "bg-amber-50/20 border-amber-50" : res.isCorrect ? "bg-emerald-50/20 border-emerald-50" : "bg-red-50/20 border-red-50")}>
                                        <div className="flex items-start gap-4">
-                                          <div className={cn("h-8 w-8 rounded-lg flex items-center justify-center text-xs font-black", res.isCorrect ? "bg-emerald-500 text-white" : "bg-red-500 text-white")}>
-                                            {res.isCorrect ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
+                                          <div className={cn("h-8 w-8 rounded-lg flex items-center justify-center text-xs font-black", res.manual ? "bg-amber-500 text-white" : res.isCorrect ? "bg-emerald-500 text-white" : "bg-red-500 text-white")}>
+                                            {res.manual ? <Clock className="h-4 w-4" /> : res.isCorrect ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
                                           </div>
                                           <div className="flex-1 space-y-2">
                                              <p className="text-sm font-bold text-slate-800">{res.question}</p>
                                              <div className="flex gap-4">
                                                 <p className="text-[10px]"><span className="text-slate-400 uppercase font-black tracking-widest mr-2">Your:</span> <span className="font-bold text-slate-600">{typeof res.studentAnswer === 'string' ? res.studentAnswer || "No Response" : "Matched"}</span></p>
-                                                {!res.isCorrect && <p className="text-[11px]"><span className="text-indigo-400 uppercase font-black tracking-widest mr-2">Valid:</span> <span className="font-bold text-indigo-600">{typeof res.correctAnswer === 'string' ? res.correctAnswer : "Matched"}</span></p>}
+                                                {!res.isCorrect && !res.manual && <p className="text-[11px]"><span className="text-indigo-400 uppercase font-black tracking-widest mr-2">Valid:</span> <span className="font-bold text-indigo-600">{typeof res.correctAnswer === 'string' ? res.correctAnswer : "Matched"}</span></p>}
+                                                {res.manual && <p className="text-[11px]"><span className="text-amber-500 uppercase font-black tracking-widest mr-2">Status:</span> <span className="font-bold text-amber-700">Pending Review</span></p>}
                                              </div>
                                           </div>
                                        </div>

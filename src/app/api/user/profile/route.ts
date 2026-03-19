@@ -25,8 +25,9 @@ export async function GET(request: Request) {
       }
     })
 
+    // User not found in DB — still return success so admin/non-student users don't cause 404 loops
     if (!user) {
-      return NextResponse.json({ success: false, error: "User not found" }, { status: 404 })
+      return NextResponse.json({ success: true, student: null })
     }
 
     return NextResponse.json({ 

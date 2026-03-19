@@ -60,6 +60,7 @@ export default function AdminCoursesPage() {
   const [classesList, setClassesList] = React.useState<any[]>([])
   const [isLoading, setIsLoading] = React.useState(true)
   const [isProcessing, setIsProcessing] = React.useState(false)
+  const [loadError, setLoadError] = React.useState(false)
 
   // Dialog States
   const [isAddOpen, setIsAddOpen] = React.useState(false)
@@ -90,15 +91,25 @@ export default function AdminCoursesPage() {
 
   const loadData = React.useCallback(async () => {
     setIsLoading(true)
-    const [data, tData, cData] = await Promise.all([
-      fetchCourses(),
-      fetchTeachersForDropdown(),
-      fetchClassesForDropdown()
-    ])
-    setCourses(data)
-    setTeachersList(tData)
-    setClassesList(cData)
-    setIsLoading(false)
+    setLoadError(false)
+    try {
+      // 15-second timeout — if DB is slow, show empty state instead of infinite spinner
+      const timeout = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("timeout")), 15000)
+      )
+      const [data, tData, cData] = await Promise.race([
+        Promise.all([fetchCourses(), fetchTeachersForDropdown(), fetchClassesForDropdown()]),
+        timeout
+      ])
+      setCourses(data)
+      setTeachersList(tData)
+      setClassesList(cData)
+    } catch (err) {
+      console.error("loadData error:", err)
+      setLoadError(true)
+    } finally {
+      setIsLoading(false)
+    }
   }, [])
 
   React.useEffect(() => {
@@ -233,6 +244,28 @@ export default function AdminCoursesPage() {
             <GraduationCap className="h-8 w-8 text-slate-400" />
           </div>
           <p className="text-slate-400 font-black uppercase tracking-[0.2em] text-[10px]">Synchronizing Academy...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (loadError && courses.length === 0) {
+    return (
+      <div className="flex items-center justify-center min-h-[70vh] bg-[#F8FAFD]">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-16 h-16 bg-red-50 rounded-3xl flex items-center justify-center">
+            <X className="h-8 w-8 text-red-400" />
+          </div>
+          <p className="text-slate-500 font-black uppercase tracking-[0.2em] text-[10px]">Connection Failed</p>
+          <p className="text-slate-400 text-xs text-center max-w-xs">
+            Could not reach the database. Check your internet connection and try again.
+          </p>
+          <button
+            onClick={loadData}
+            className="mt-2 px-6 py-2 rounded-xl bg-indigo-600 text-white text-xs font-black uppercase tracking-widest hover:bg-indigo-700 transition-all"
+          >
+            Retry
+          </button>
         </div>
       </div>
     )
