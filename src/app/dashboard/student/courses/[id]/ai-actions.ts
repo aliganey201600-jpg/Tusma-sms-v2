@@ -21,15 +21,15 @@ async function callGemini(prompt: string, context: string) {
     const availableModels = listData.models || [];
     
     // Priority Fallback Chain based on user's active inventory
-    let finalModelName = "gemini-1.5-flash"; // Default fallback
+    let finalModelName = "gemini-2.5-flash"; // Default fallback
     const listNames = availableModels.map((m: any) => m.name);
 
     if (listNames.includes("models/gemini-flash-latest")) {
       finalModelName = "gemini-flash-latest";
     } else if (listNames.includes("models/gemini-pro-latest")) {
       finalModelName = "gemini-pro-latest";
-    } else if (listNames.includes("models/gemini-1.5-flash")) {
-      finalModelName = "gemini-1.5-flash";
+    } else if (listNames.includes("models/gemini-2.5-flash")) {
+      finalModelName = "gemini-2.5-flash";
     } else if (availableModels.length > 0) {
       // Pick a non-2.0 model if possible to avoid the 0-limit issue
       const nonExperimental = availableModels.find((m: any) => !m.name.includes("2.0") && !m.name.includes("2.5") && (m.name.includes("flash") || m.name.includes("pro")));

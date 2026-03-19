@@ -69,7 +69,7 @@ export async function submitGradeUpdate(attemptId: string, updatedResults: any[]
 }
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
 export async function generateAIGrade(questionText: string, studentAnswer: string, maxPoints: number, correctAnswer?: string) {
   if (!process.env.GEMINI_API_KEY) return { success: false, error: "GEMINI_API_KEY is missing." };
