@@ -189,3 +189,52 @@ export async function generateAIGrade(questionText: string, studentAnswer: strin
   }
 }
 
+export async function generateBatchAIGrades(items: { id: string, question: string, studentAnswer: string, total: number, correctAnswer?: string }[]) {
+  if (!process.env.GEMINI_API_KEY) return { success: false, error: "GEMINI_API_KEY is missing." };
+
+  try {
+    const prompt = `You are an expert academic evaluator. Grade the following list of student answers. 
+    For each item, determine points earned and provide brief Somali feedback (1-3 sentences).
+    
+    ITEMS TO GRADE:
+    ${items.map((it, idx) => `
+    ITEM_ID: ${it.id}
+    Question: ${it.question}
+    ${it.correctAnswer ? `Expected: ${it.correctAnswer}` : ""}
+    Student: ${it.studentAnswer}
+    Max Points: ${it.total}
+    `).join('\n---\n')}
+    
+    Instructions:
+    1. Be fair and consistent.
+    2. Give points out of the indicated Max Points for each item.
+    3. Provide encouraging Somali feedback.
+    
+    Respond STRICTLY with a valid JSON array matching this exact format, with no extra text:
+    [
+      { "id": "string", "earned": number, "feedback": "string" },
+      ...
+    ]`;
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    let text = response.text().trim();
+    
+    const startIndex = text.indexOf('[');
+    const endIndex = text.lastIndexOf(']');
+    if (startIndex !== -1 && endIndex !== -1) {
+       text = text.substring(startIndex, endIndex + 1);
+    }
+    
+    try {
+      const parsed = JSON.parse(text);
+      return { success: true, results: parsed };
+    } catch (parseError) {
+      console.error("Batch AI Grading JSON Parse Error. Raw text:", text);
+      return { success: false, error: "AI failed to respond in a readable format." };
+    }
+  } catch (error: any) {
+    console.error("Batch AI Grading Error:", error);
+    return { success: false, error: error.message || "Bulk grading failed" };
+  }
+}
