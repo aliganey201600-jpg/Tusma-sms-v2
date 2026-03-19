@@ -118,7 +118,7 @@ export async function aiGradeSubmissionBatch(attemptId: string) {
         // This lets us re-run the updated prompt on failed matches.
         const isSubjective = res.manual || res.aiGraded || res.type === "SHORT_ANSWER" || res.type === "ESSAY" || res.type === "FILL_BLANK";
         
-        if (isSubjective && (!res.aiGraded || res.earned === 0)) {
+        if (isSubjective) {
            const q = attempt.quiz.questions.find(q => q.question === res.question);
            
            if (q && (q.type === "SHORT_ANSWER" || q.type === "ESSAY" || q.type === "FILL_BLANK")) {
