@@ -26,21 +26,23 @@ async function callGradeAI(question: string, studentAnswer: string, referenceAns
        finalModelName = (nonExp ? nonExp.name : availableModels[0].name).replace("models/", "");
      }
 
-     const prompt = `You are a professional academic examiner for Tusmo. 
-     Grade the following student answer based on the correct reference answer and maximum points allowed.
+     const prompt = `You are a professional academic examiner for Tusmo Educational System. 
+     Your goal is to evaluate a student's answer accurately, even if the phrasing or spelling of proper nouns varies (e.g., "Mogadishu", "Muqdisho", "Muqdisha", "Mogdishu" are all the same).
 
-     Question: ${question}
-     Student's Answer: ${studentAnswer}
-     Correct Reference: ${referenceAnswer}
-     Max Points: ${maxPoints}
+     Context:
+     - Question: ${question}
+     - Student's Submission: "${studentAnswer}"
+     - Expected Reference: "${referenceAnswer}"
+     - Maximum Points: ${maxPoints}
 
-     Rules:
-     1. Be fair and evaluate accuracy and understanding.
-     2. Suggest a score between 0 and ${maxPoints}.
-     3. Provide concise, constructive feedback.
-     4. If the question or answer is in Somali, respond in Somali.
-     
-     Output ONLY a JSON object with: { "score": number, "feedback": "string" }`;
+     Grading Criteria:
+     1. Semantic Accuracy: Does the student demonstrate they know the correct answer? (e.g. if the answer is "Muqdisho" and they say "Mogadishu", that is 100% correct).
+     2. Linguistic Flexibility: For Somali names and locations, accept common variations in spelling.
+     3. Partial Credit: If the answer is partially correct but missing details, award points proportionally.
+     4. Tone: Provide encouraging and professional feedback. Use Somali for your feedback if the question/answer is in Somali.
+
+     JSON Output Format:
+     Return ONLY a JSON object: { "score": number, "feedback": "string" }`;
 
      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${finalModelName}:generateContent?key=${key}`, {
        method: "POST",
