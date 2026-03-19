@@ -95,13 +95,24 @@ export async function generateAIGrade(questionText: string, studentAnswer: strin
 
     const result = await model.generateContent(prompt);
     const response = await result.response;
-    const text = response.text().trim().replace(/^```json/, "").replace(/```$/, "").trim();
+    let text = response.text().trim();
     
-    const parsed = JSON.parse(text);
-    return { success: true, earned: parsed.earned, feedback: parsed.feedback };
+    const startIndex = text.indexOf('{');
+    const endIndex = text.lastIndexOf('}');
+    if (startIndex !== -1 && endIndex !== -1) {
+       text = text.substring(startIndex, endIndex + 1);
+    }
+    
+    try {
+      const parsed = JSON.parse(text);
+      return { success: true, earned: parsed.earned, feedback: parsed.feedback };
+    } catch (parseError) {
+      console.error("AI Grading JSON Parse Error. Raw text:", text);
+      return { success: false, error: "Adeega AI-da xog qaldan ayuu soo celiyay. Mar kale isku day." };
+    }
   } catch (error: any) {
     console.error("AI Grading Error:", error);
-    return { success: false, error: "Failed to generate AI grade" };
+    return { success: false, error: error.message || "Failed to generate AI grade" };
   }
 }
 
