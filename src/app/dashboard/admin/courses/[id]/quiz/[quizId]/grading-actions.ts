@@ -7,6 +7,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai"
 // Unified AI Caller for Grading
 async function callGradeAI(question: string, studentAnswer: string, referenceAnswer: string, maxPoints: number) {
   const key = process.env.GEMINI_API_KEY;
+  console.log("[AI Grade] Starting. Key present:", !!key);
   if (!key) return { error: "GEMINI_API_KEY is missing." };
 
   try {
@@ -15,16 +16,18 @@ async function callGradeAI(question: string, studentAnswer: string, referenceAns
      const listData = await listResponse.json();
      const availableModels = listData.models || [];
      const listNames = availableModels.map((m: any) => m.name);
+     console.log("[AI Grade] Available models:", listNames.slice(0, 5));
 
-     let finalModelName = "gemini-1.5-flash"; 
-     if (listNames.includes("models/gemini-flash-latest")) {
-       finalModelName = "gemini-flash-latest";
-     } else if (listNames.includes("models/gemini-pro-latest")) {
-       finalModelName = "gemini-pro-latest";
-     } else if (availableModels.length > 0) {
-       const nonExp = availableModels.find((m: any) => !m.name.includes("2.0") && !m.name.includes("2.5") && (m.name.includes("flash") || m.name.includes("pro")));
-       finalModelName = (nonExp ? nonExp.name : availableModels[0].name).replace("models/", "");
-     }
+     // Pick a model that supports generateContent
+     const supportedModel = availableModels.find((m: any) => 
+       m.supportedGenerationMethods?.includes("generateContent")
+     );
+     
+     let finalModelName = supportedModel 
+       ? supportedModel.name.replace("models/", "") 
+       : "gemini-2.0-flash";
+     
+     console.log("[AI Grade] Using model:", finalModelName);
 
      const prompt = `You are a professional academic examiner for Tusmo Educational System. 
      Your goal is to evaluate a student's answer accurately, even if the phrasing or spelling of proper nouns varies (e.g., "Mogadishu", "Muqdisho", "Muqdisha", "Mogdishu" are all the same).
@@ -54,14 +57,19 @@ async function callGradeAI(question: string, studentAnswer: string, referenceAns
 
      if (!response.ok) {
        const err = await response.json();
+       console.error("[AI Grade] API Error:", JSON.stringify(err));
        return { error: `Gemini Error: ${err.error?.message || "AI Request Failed"}` };
      }
 
      const data = await response.json();
-     const text = data.candidates[0].content.parts[0].text.replace(/```json|```/g, "").trim();
-     return JSON.parse(text);
+     const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.replace(/```json|```/g, "").trim();
+     console.log("[AI Grade] Raw AI response:", text);
+     if (!text) return { error: "Empty AI response" };
+     const parsed = JSON.parse(text);
+     console.log("[AI Grade] Parsed result:", parsed);
+     return parsed;
   } catch (error: any) {
-    console.error("Grading AI Error:", error);
+    console.error("[AI Grade] Exception:", error.message);
     return { error: error.message };
   }
 }
