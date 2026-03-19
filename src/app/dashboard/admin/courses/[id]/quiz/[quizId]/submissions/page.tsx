@@ -322,7 +322,7 @@ function ReviewModal({ attempt, isOpen, onClose, onGradeAI, isGrading }: any) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-5xl h-[90vh] flex flex-col p-0 gap-0 border-none rounded-[3rem] overflow-hidden bg-[#F8FAFD]">
+      <DialogContent className="max-w-[95vw] h-[95vh] flex flex-col p-0 gap-0 border-none rounded-[3rem] overflow-hidden bg-[#F8FAFD]">
         <div className="bg-slate-950 p-8 pb-12 relative overflow-hidden shrink-0">
            <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl -mr-32 -mt-32" />
            <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
