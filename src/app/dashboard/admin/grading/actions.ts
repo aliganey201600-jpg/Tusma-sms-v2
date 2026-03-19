@@ -4,6 +4,79 @@ import prisma from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { GoogleGenerativeAI } from "@google/generative-ai"
 
+export async function getGradingCourses() {
+  try {
+    const courses = await prisma.course.findMany({
+      include: {
+        teacher: { select: { firstName: true, lastName: true } },
+        teacherAssignments: { 
+          include: { class: { select: { name: true } } },
+          take: 1
+        },
+        _count: {
+          select: {
+            enrollments: true,
+            sections: {
+              // This is tricky in Prisma since it's nested. We'll manually count quizzes below or use subqueries if needed.
+            }
+          }
+        },
+        sections: {
+          include: {
+            _count: { select: { quizzes: true } }
+          }
+        }
+      }
+    })
+
+    return courses.map(c => ({
+      id: c.id,
+      name: c.name,
+      teacher: `${c.teacher.firstName} ${c.teacher.lastName}`,
+      className: c.teacherAssignments[0]?.class?.name || "N/A",
+      studentsCount: c._count.enrollments,
+      quizCount: c.sections.reduce((acc, s) => acc + s._count.quizzes, 0)
+    }))
+  } catch (error) {
+    console.error("Error fetching grading courses:", error)
+    return []
+  }
+}
+
+export async function getCourseQuizzes(courseId: string) {
+  try {
+    const quizzes = await prisma.quiz.findMany({
+      where: { section: { courseId } },
+      include: {
+        _count: { select: { attempts: true } }
+      }
+    })
+    return quizzes
+  } catch (error) {
+    console.error("Error fetching course quizzes:", error)
+    return []
+  }
+}
+
+export async function getQuizSubmissions(quizId: string) {
+  try {
+    const attempts = await prisma.quizAttempt.findMany({
+      where: { quizId },
+      include: {
+        student: { select: { firstName: true, lastName: true, studentId: true } }
+      },
+      orderBy: { createdAt: 'desc' }
+    })
+    
+    // Grouping attempts by student if needed, or just showing latest. 
+    // Usually, we show all attempts so they can be graded.
+    return attempts
+  } catch (error) {
+    console.error("Error fetching quiz submissions:", error)
+    return []
+  }
+}
+
 export async function getPendingGradingTasks() {
   try {
     const allAttempts = await prisma.quizAttempt.findMany({
