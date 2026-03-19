@@ -108,14 +108,18 @@ export async function aiGradeSubmissionBatch(attemptId: string) {
 
     const results = attempt.results as any[];
     let updatedResults = [...results];
-    let earnedPointsIncrement = 0;
+    let totalEarned = 0;
 
     for (let i = 0; i < updatedResults.length; i++) {
         const res = updatedResults[i];
-        // Only grade those that are marked for manual grading or 0 score but shouldn't be
-        if (res.manual && !res.aiGraded) {
-           const questionId = res.questionId; 
-           const q = attempt.quiz.questions.find(q => q.question === res.question); // Fallback to Title if matching by ID is tricky in JSON
+        
+        // ALLOW re-grading if:
+        // 1. It's marked as manual (subjective questions) AND (not yet AI graded OR current score is 0)
+        // This lets us re-run the updated prompt on failed matches.
+        const isSubjective = res.manual || res.aiGraded || res.type === "SHORT_ANSWER" || res.type === "ESSAY" || res.type === "FILL_BLANK";
+        
+        if (isSubjective && (!res.aiGraded || res.earned === 0)) {
+           const q = attempt.quiz.questions.find(q => q.question === res.question);
            
            if (q && (q.type === "SHORT_ANSWER" || q.type === "ESSAY" || q.type === "FILL_BLANK")) {
               const aiResult = await callGradeAI(q.question, res.studentAnswer, q.correctAnswer || "", q.points);
@@ -127,25 +131,23 @@ export async function aiGradeSubmissionBatch(attemptId: string) {
                     isCorrect: aiResult.score >= (q.points * 0.7),
                     feedback: aiResult.feedback,
                     aiGraded: true,
-                    manual: false, // Now it has a score
+                    manual: false,
                  };
-                 earnedPointsIncrement += aiResult.score;
               }
            }
         }
+        totalEarned += updatedResults[i].earned || 0;
     }
 
-    // Update the attempt with new scores
-    const newEarnedPoints = attempt.earnedPoints + earnedPointsIncrement;
-    const newScore = (newEarnedPoints / attempt.totalPoints) * 100;
+    const newScore = (totalEarned / attempt.totalPoints) * 100;
 
     await prisma.quizAttempt.update({
       where: { id: attemptId },
       data: {
         results: updatedResults,
-        earnedPoints: newEarnedPoints,
+        earnedPoints: totalEarned,
         score: newScore,
-        passed: newScore >= 70, // Basic passing threshold
+        passed: newScore >= 70,
       }
     });
 
