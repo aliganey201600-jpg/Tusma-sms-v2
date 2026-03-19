@@ -189,3 +189,31 @@ export async function updateManualGrade(attemptId: string, questionIndex: number
     return { error: error.message };
   }
 }
+
+// Fetch a single submission for a specific student attempt
+export async function getSingleSubmission(attemptId: string) {
+  try {
+    const attempt = await prisma.quizAttempt.findUnique({
+      where: { id: attemptId },
+      include: {
+        student: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            studentId: true,
+          }
+        },
+        quiz: {
+          select: {
+            title: true,
+          }
+        }
+      },
+    });
+    return attempt;
+  } catch (error) {
+    console.error("Error fetching single submission:", error);
+    return null;
+  }
+}
