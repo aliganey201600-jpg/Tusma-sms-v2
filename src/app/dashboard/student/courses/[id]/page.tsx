@@ -116,6 +116,7 @@ interface Question {
 }
 
 interface QuizAttemptResult {
+  questionId: string;
   question: string;
   isCorrect: boolean;
   earned: number;
@@ -475,6 +476,7 @@ export default function StudentCourseViewerPage() {
         })
         qCorrect = qEarned === qTotal
         feedback.push({ 
+          questionId: q.id,
           question: q.question, 
           isCorrect: qCorrect, 
           earned: qEarned, 
@@ -488,6 +490,7 @@ export default function StudentCourseViewerPage() {
           const correct = q.options.find((o) => o.isCorrect)
           qCorrect = !!(stringAns && stringAns === correct?.id)
           feedback.push({ 
+            questionId: q.id,
             question: q.question, 
             isCorrect: qCorrect, 
             earned: qCorrect ? q.points : 0,
@@ -498,6 +501,7 @@ export default function StudentCourseViewerPage() {
         } else if (q.type === "TRUE_FALSE") {
           qCorrect = !!(stringAns && stringAns.toLowerCase() === q.correctAnswer?.toLowerCase())
           feedback.push({ 
+            questionId: q.id,
             question: q.question, 
             isCorrect: qCorrect, 
             earned: qCorrect ? q.points : 0,
@@ -508,6 +512,7 @@ export default function StudentCourseViewerPage() {
         } else if (q.type === "FILL_BLANK") {
           qCorrect = !!(stringAns && stringAns.trim().toLowerCase() === q.correctAnswer?.trim().toLowerCase())
           feedback.push({ 
+            questionId: q.id,
             question: q.question, 
             isCorrect: qCorrect, 
             earned: qCorrect ? q.points : 0,
@@ -519,6 +524,7 @@ export default function StudentCourseViewerPage() {
           const similarity = getSimilarity(stringAns || "", q.correctAnswer || "")
           qCorrect = similarity >= 0.7
           feedback.push({ 
+            questionId: q.id,
             question: q.question, 
             isCorrect: qCorrect, 
             earned: qCorrect ? q.points : 0,
@@ -528,6 +534,7 @@ export default function StudentCourseViewerPage() {
           })
         } else {
           feedback.push({ 
+            questionId: q.id,
             question: q.question, 
             isCorrect: false, 
             earned: 0,

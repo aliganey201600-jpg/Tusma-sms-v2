@@ -229,12 +229,21 @@ export default function AdminCourseDetailsPage() {
                                            <p className="text-[10px] font-black text-indigo-400 uppercase">{isQuiz ? `${item.questions?.length || 0} Questions` : `${item.duration || 0} Minute Read`}</p>
                                         </div>
                                         <div className="flex items-center gap-2">
-                                           <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl border-slate-100 bg-slate-50 hover:bg-white transition-all shadow-sm">
-                                              <Eye className="h-4 w-4 text-slate-400" />
-                                           </Button>
-                                           <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-slate-100">
-                                              <MoreVertical className="h-4 w-4 text-slate-300" />
-                                           </Button>
+                                            <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl border-slate-100 bg-slate-50 hover:bg-white transition-all shadow-sm" onClick={() => router.push(`/dashboard/admin/courses/${id}/builder/${isQuiz ? "quiz" : "lesson"}/${item.id}`)}>
+                                               <Eye className="h-4 w-4 text-slate-400" />
+                                            </Button>
+                                            
+                                            {isQuiz && (
+                                              <Link href={`/dashboard/admin/courses/${id}/quiz/${item.id}/submissions`}>
+                                                <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl border-indigo-100 bg-indigo-50/50 hover:bg-indigo-50 transition-all shadow-sm" title="View Submissions & AI Grade">
+                                                   <BarChart3 className="h-4 w-4 text-indigo-500" />
+                                                </Button>
+                                              </Link>
+                                            )}
+                                            
+                                            <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-slate-100">
+                                               <MoreVertical className="h-4 w-4 text-slate-300" />
+                                            </Button>
                                         </div>
                                      </div>
                                   </div>
