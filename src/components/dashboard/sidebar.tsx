@@ -78,6 +78,7 @@ export function Sidebar({ className, role }: SidebarProps) {
       { label: "Attendance", icon: CheckCircle2, href: "/dashboard/admin/attendance" },
       { label: "Finance", icon: CreditCard, href: "/dashboard/admin/finance" },
       { label: "Exams", icon: GraduationCap, href: "/dashboard/admin/exams" },
+      { label: "Grading", icon: BookOpen, href: "/dashboard/admin/grading" },
       { label: "Assignments", icon: Briefcase, href: "/dashboard/admin/teachers/assignments" },
       { label: "Imports", icon: RefreshCcw, href: "/dashboard/admin/imports" },
       { label: "Messages", icon: Bell, href: "/dashboard/messages" },
