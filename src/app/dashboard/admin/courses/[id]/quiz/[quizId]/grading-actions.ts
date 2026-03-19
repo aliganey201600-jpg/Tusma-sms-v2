@@ -113,15 +113,14 @@ export async function aiGradeSubmissionBatch(attemptId: string) {
     for (let i = 0; i < updatedResults.length; i++) {
         const res = updatedResults[i];
         
-        // ALLOW re-grading if:
-        // 1. It's marked as manual (subjective questions) AND (not yet AI graded OR current score is 0)
-        // This lets us re-run the updated prompt on failed matches.
-        const isSubjective = res.manual || res.aiGraded || res.type === "SHORT_ANSWER" || res.type === "ESSAY" || res.type === "FILL_BLANK";
+        // Find the question definition in the database to be 100% sure of the type
+        const q = attempt.quiz.questions.find(q => q.question === res.question);
+        const type = res.type || q?.type;
         
-        if (isSubjective) {
-           const q = attempt.quiz.questions.find(q => q.question === res.question);
-           
-           if (q && (q.type === "SHORT_ANSWER" || q.type === "ESSAY" || q.type === "FILL_BLANK")) {
+        const isSubjectiveType = type === "SHORT_ANSWER" || type === "ESSAY" || type === "FILL_BLANK";
+        
+        if (isSubjectiveType) {
+           if (q) {
               const aiResult = await callGradeAI(q.question, res.studentAnswer, q.correctAnswer || "", q.points);
               
               if (aiResult.score !== undefined) {
@@ -132,6 +131,7 @@ export async function aiGradeSubmissionBatch(attemptId: string) {
                     feedback: aiResult.feedback,
                     aiGraded: true,
                     manual: false,
+                    type: type // Ensure type is saved
                  };
               }
            }
