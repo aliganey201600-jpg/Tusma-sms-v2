@@ -5,7 +5,7 @@ import {
   ChevronLeft, BarChart3, Users, Clock, CheckCircle2, 
   Search, Sparkles, Filter, MoreHorizontal, User, 
   ArrowRight, ShieldCheck, AlertCircle, RefreshCw,
-  Trophy, MinusCircle, FileText, Calendar
+  Trophy, MinusCircle, FileText, Calendar, Eye
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -15,6 +15,11 @@ import { Progress } from "@/components/ui/progress"
 import { useParams, useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
+import { 
+  Dialog,
+  DialogContent,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import Link from "next/link"
 import { getQuizSubmissions, aiGradeSubmissionBatch } from "../grading-actions"
 
@@ -46,6 +51,7 @@ export default function QuizSubmissionsPage() {
   const [isGrading, setIsGrading] = React.useState<string | null>(null)
   const [searchQuery, setSearchQuery] = React.useState("")
   const [filter, setFilter] = React.useState<"all" | "passed" | "failed" | "pending">("all")
+  const [selectedAttempt, setSelectedAttempt] = React.useState<any>(null)
 
   const loadSubmissions = React.useCallback(async () => {
     setIsLoading(true)
@@ -266,8 +272,12 @@ export default function QuizSubmissionsPage() {
                                  {isGrading === s.id ? "Analyzing..." : "AI GRADE"}
                                </CustomButton>
                              )}
-                             <CustomButton variant="outline" className="h-10 w-10 p-0">
-                                <ArrowRight className="h-4 w-4" />
+                             <CustomButton 
+                               variant="outline" 
+                               className="h-10 w-10 p-0"
+                               onClick={() => setSelectedAttempt(s)}
+                             >
+                                <Eye className="h-4 w-4" />
                              </CustomButton>
                           </div>
                        </td>
@@ -290,7 +300,135 @@ export default function QuizSubmissionsPage() {
            </div>
         </CardContent>
       </Card>
+
+      {/* ── Submission Review Terminal ── */}
+      <ReviewModal 
+        attempt={selectedAttempt} 
+        isOpen={!!selectedAttempt} 
+        onClose={() => {
+           setSelectedAttempt(null)
+           loadSubmissions()
+        }}
+        onGradeAI={handleAiGrade}
+        isGrading={isGrading === selectedAttempt?.id}
+      />
     </div>
+  )
+}
+
+// ─── Review Modal Fragment ──────────────────────────────────────────────────
+function ReviewModal({ attempt, isOpen, onClose, onGradeAI, isGrading }: any) {
+  if (!attempt) return null
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-5xl h-[90vh] flex flex-col p-0 gap-0 border-none rounded-[3rem] overflow-hidden bg-[#F8FAFD]">
+        <div className="bg-slate-950 p-8 pb-12 relative overflow-hidden shrink-0">
+           <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl -mr-32 -mt-32" />
+           <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
+              <div className="space-y-3">
+                 <Badge className="bg-indigo-500 text-white border-none py-1.5 px-4 rounded-xl text-[9px] font-black uppercase tracking-widest">
+                    <ShieldCheck className="h-3.5 w-3.5 mr-2" /> Scholastic Review Terminal
+                 </Badge>
+                 <div className="space-y-1">
+                    <h2 className="text-3xl font-black text-white uppercase tracking-tight leading-none">{attempt.student.firstName} {attempt.student.lastName}</h2>
+                    <p className="text-indigo-300/60 text-[10px] font-black uppercase tracking-[0.2em]">ID: {attempt.student.studentId || "EXT-NODE-001"} • Submitted {new Date(attempt.createdAt).toLocaleString()}</p>
+                 </div>
+              </div>
+              <div className="flex gap-4">
+                 <div className="bg-white/5 border border-white/10 backdrop-blur-md p-4 rounded-2xl flex items-center gap-4">
+                    <div className="text-right">
+                       <p className="text-[10px] font-black uppercase text-white/30 mb-1">Final Score</p>
+                       <p className={cn("text-2xl font-black tabular-nums", attempt.passed ? "text-emerald-400" : "text-rose-400")}>{attempt.score.toFixed(1)}%</p>
+                    </div>
+                    <div className="h-10 w-px bg-white/10 mx-2" />
+                    <div className="text-right">
+                       <p className="text-[10px] font-black uppercase text-white/30 mb-1">Global Points</p>
+                       <p className="text-2xl font-black text-white tabular-nums">{attempt.earnedPoints.toFixed(1)}/{attempt.totalPoints}</p>
+                    </div>
+                 </div>
+              </div>
+           </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-8 md:p-12 space-y-10 custom-scrollbar mt-[-30px]">
+           <div className="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-100 p-8 md:p-12">
+              <div className="flex items-center justify-between mb-8">
+                 <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest">Diagnostic Item Inventory</h3>
+                 <CustomButton variant="ai" onClick={() => onGradeAI(attempt.id)} disabled={isGrading}>
+                    <Sparkles className={cn("h-4 w-4", isGrading && "animate-spin")} /> {isGrading ? "Synthesizing AI Grade..." : "Run AI Batch Grade"}
+                 </CustomButton>
+              </div>
+
+              <div className="space-y-8 divide-y divide-slate-50">
+                {attempt.results.map((res: any, idx: number) => {
+                  const isSubjective = res.manual || res.aiGraded
+                  return (
+                    <div key={idx} className={cn("pt-8 first:pt-0 space-y-6 group/q", isSubjective && "pb-8 border-b border-slate-50")}>
+                       <div className="flex justify-between items-start gap-4">
+                          <div className="flex items-start gap-5">
+                             <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center text-xs font-black shrink-0 shadow-inner", res.isCorrect ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-500")}>
+                                {idx + 1}
+                             </div>
+                             <div className="space-y-1">
+                                <p className="text-sm font-black text-slate-900 leading-snug">{res.question}</p>
+                                <div className="flex items-center gap-3">
+                                   <Badge variant="outline" className="text-[8px] font-black uppercase tracking-widest text-slate-400 px-2 h-5 border-slate-100">{res.total} Points</Badge>
+                                   <span className="h-1 w-1 rounded-full bg-slate-200" />
+                                   <p className="text-[9px] font-bold text-slate-300 uppercase tracking-widest">{res.isCorrect ? "Validated" : res.earned > 0 ? "Partially Accurate" : "Failed Verification"}</p>
+                                </div>
+                             </div>
+                          </div>
+                          <Badge className={cn("px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest", res.isCorrect ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700")}>
+                             {res.earned.toFixed(1)} / {res.total} Earned
+                          </Badge>
+                       </div>
+
+                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 ml-14">
+                          <div className="space-y-2">
+                             <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Student Response</p>
+                             <div className="p-5 rounded-2xl bg-slate-50 border border-slate-100 text-sm font-medium text-slate-700 leading-relaxed min-h-[60px]">
+                                {res.studentAnswer || "Zero input recorded."}
+                             </div>
+                          </div>
+                          <div className="space-y-2">
+                             <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Correct Benchmark</p>
+                             <div className="p-5 rounded-2xl bg-emerald-50/30 border border-emerald-100/50 text-sm font-medium text-emerald-800 leading-relaxed min-h-[60px]">
+                                {res.correctAnswer || "System Managed Evaluation."}
+                             </div>
+                          </div>
+                       </div>
+
+                       {res.feedback && (
+                         <div className="ml-14 mt-4 bg-indigo-50 border border-indigo-100 rounded-3xl p-6 flex gap-4 items-start shadow-sm border-l-8 border-l-indigo-500">
+                            <div className="h-10 w-10 rounded-xl bg-indigo-500 flex items-center justify-center text-white shrink-0 shadow-lg shadow-indigo-100">
+                               <Sparkles className="h-5 w-5" />
+                            </div>
+                            <div className="space-y-2">
+                               <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">AI Pedagogical Feedback</p>
+                               <p className="text-sm font-medium text-indigo-900 leading-relaxed Somali">{res.feedback}</p>
+                            </div>
+                         </div>
+                       )}
+                    </div>
+                  )
+                })}
+              </div>
+           </div>
+        </div>
+
+        <div className="p-8 bg-white border-t border-slate-50 flex justify-between items-center shrink-0">
+           <CustomButton variant="outline" onClick={onClose} className="px-10">
+              Diagnostic Exit
+           </CustomButton>
+           <div className="flex gap-4">
+              <CustomButton variant="ai" className="px-10 h-14" onClick={onClose}>
+                 Finalize Scholastic Review <ArrowRight className="h-4 w-4 ml-2" />
+              </CustomButton>
+           </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   )
 }
 
