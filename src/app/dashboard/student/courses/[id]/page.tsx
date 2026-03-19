@@ -396,6 +396,10 @@ export default function StudentCourseViewerPage() {
   const timerRef = React.useRef<NodeJS.Timeout | null>(null)
   const startTimeRef = React.useRef<number>(0)
 
+  // Anti-Cheat State
+  const [violations, setViolations] = React.useState(0)
+  const [showViolationWarning, setShowViolationWarning] = React.useState(false)
+
   // AI Tutor State
   const [aiLoading, setAiLoading] = React.useState(false)
   const [aiResponse, setAiResponse] = React.useState<string | null>(null)
@@ -603,6 +607,28 @@ export default function StudentCourseViewerPage() {
     return () => clearTimeout(t)
   }, [timeLeft, handleSubmitQuiz])
 
+  // Anti-Cheat: Tab Switching
+  React.useEffect(() => {
+    if (mode === "quiz" && !submitted && quizViewState === "question") {
+      const handleVisibilityChange = () => {
+        if (document.hidden) {
+          setViolations(prev => {
+            const next = prev + 1
+            if (next >= 3) {
+              handleSubmitQuiz() // Force submit
+            } else {
+              setShowViolationWarning(true)
+              setTimeout(() => setShowViolationWarning(false), 5000)
+            }
+            return next
+          })
+        }
+      }
+      document.addEventListener("visibilitychange", handleVisibilityChange)
+      return () => document.removeEventListener("visibilitychange", handleVisibilityChange)
+    }
+  }, [mode, submitted, quizViewState, handleSubmitQuiz])
+
   const toggleSection = (sid: string) =>
     setExpandedSectionId(prev => prev === sid ? null : sid)
 
@@ -679,6 +705,8 @@ export default function StudentCourseViewerPage() {
       setQuizViewState("overview")
       setQuizAttempts(data.attempts)
       setMode("quiz")
+      setViolations(0)
+      setShowViolationWarning(false)
       startTimeRef.current = Date.now()
     }
     setQuizLoading(false)
@@ -693,6 +721,8 @@ export default function StudentCourseViewerPage() {
     setTimeLeft(null)
     setQuizTab("questions")
     setQuizViewState("overview")
+    setViolations(0)
+    setShowViolationWarning(false)
     startTimeRef.current = Date.now()
   }
 
@@ -741,7 +771,18 @@ export default function StudentCourseViewerPage() {
     const sectionMeta = q ? (TYPE_LABELS[q.type] || { label: q.type, color: "slate" }) : null
 
     return (
-      <div className="fixed inset-0 z-[100] bg-[#FDFDFD] flex flex-col">
+      <div 
+        className="fixed inset-0 z-[100] bg-[#FDFDFD] flex flex-col select-none"
+        onContextMenu={e => { e.preventDefault(); setShowViolationWarning(true); setTimeout(() => setShowViolationWarning(false), 3000); }}
+        onCopy={e => { e.preventDefault(); setShowViolationWarning(true); setTimeout(() => setShowViolationWarning(false), 3000); }}
+        onPaste={e => { e.preventDefault(); setShowViolationWarning(true); setTimeout(() => setShowViolationWarning(false), 3000); }}
+      >
+        {showViolationWarning && !submitted && (
+           <div className="absolute top-0 inset-x-0 z-[150] bg-red-500 text-white px-6 py-4 font-bold text-sm flex items-center justify-center gap-3 shadow-2xl animate-in slide-in-from-top-10 fade-in duration-300">
+             <AlertCircle className="h-6 w-6 animate-pulse" />
+             Anti-Cheat Warning: Suspicious activity detected! Please stay on the page and do not use clipboard tools. {3 - violations} attempt(s) remaining before auto-submit.
+           </div>
+        )}
         <header className="h-20 bg-white border-b border-slate-100 flex items-center px-4 md:px-10 gap-4 shrink-0">
           <Button variant="ghost" size="icon" onClick={() => setMode("overview")} className="h-11 w-11 rounded-2xl text-slate-400 hover:text-slate-700 shrink-0 bg-slate-50">
             <X className="h-5 w-5" />
@@ -1061,11 +1102,6 @@ export default function StudentCourseViewerPage() {
                       </div>
 
                       <div className="flex gap-4 pt-6">
-                        {currentQ > 0 && (
-                          <Button variant="ghost" className="h-16 px-10 rounded-[20px] text-slate-400 font-bold hover:bg-slate-50 gap-3" onClick={() => setCurrentQ(q => q - 1)}>
-                            <ArrowRight className="h-4 w-4 rotate-180" /> Back
-                          </Button>
-                        )}
                         <Button
                           onClick={() => {
                              if (isLast) {
