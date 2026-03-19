@@ -52,17 +52,22 @@ export default function GradingInterfacePage() {
   }
 
   const handleInputChange = (idx: number, field: string, value: any) => {
-    const next = [...editedResults]
-    next[idx] = { ...next[idx], [field]: value }
-    // If they assign points greater than 0, maybe considered correct?
-    // Let's just update the value. For earned, we map to parseFloat so it's a number.
-    if (field === 'earned') {
-      next[idx].earned = parseFloat(value) || 0
-      if (next[idx].earned > 0) {
+    setEditedResults(prev => {
+      const next = [...prev]
+      let processedValue = value
+      
+      if (field === 'earned') {
+        processedValue = parseFloat(value) || 0
+      }
+
+      next[idx] = { ...next[idx], [field]: processedValue }
+      
+      if (field === 'earned' && processedValue > 0) {
         next[idx].isCorrect = true
       }
-    }
-    setEditedResults(next)
+      
+      return next
+    })
   }
 
   const markGraded = (idx: number) => {
