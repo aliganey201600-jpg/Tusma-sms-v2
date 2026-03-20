@@ -36,7 +36,8 @@ import {
   Check,
   AlertCircle,
   Search,
-  Filter
+  Filter,
+  GraduationCap as ClassIcon
 } from "lucide-react"
 import { toast } from "sonner"
 import { format } from "date-fns"
@@ -89,7 +90,7 @@ export default function GradingInterfacePage() {
   const navigateToSubmissions = async (quiz: any) => {
     setLoading(true)
     setSelectedQuiz(quiz)
-    const data = await getQuizSubmissions(quiz.id)
+    const data = await getQuizSubmissions(quiz.id, selectedCourse.classId)
     setSubmissions(data)
     setView('SUBMISSIONS')
     setLoading(false)
@@ -210,7 +211,7 @@ export default function GradingInterfacePage() {
     const res = await submitGradeUpdate(selectedAttempt.id, editedResults)
     if (res.success) {
       toast.success("Si guul leh ayaa loo keydiyay!")
-      const updatedData = await getQuizSubmissions(selectedQuiz.id)
+      const updatedData = await getQuizSubmissions(selectedQuiz.id, selectedCourse.classId)
       setSubmissions(updatedData)
       setView('SUBMISSIONS')
     } else {
@@ -222,7 +223,7 @@ export default function GradingInterfacePage() {
     return courses.filter(course => {
       const matchesSearch = course.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                             course.teacher.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesClass = classFilter === "all" || course.className.includes(classFilter);
+      const matchesClass = classFilter === "all" || course.className === classFilter;
       return matchesSearch && matchesClass;
     });
   }, [courses, searchTerm, classFilter]);
@@ -230,9 +231,7 @@ export default function GradingInterfacePage() {
   const uniqueClasses = React.useMemo(() => {
     const classes = new Set<string>();
     courses.forEach(c => {
-      c.className.split(", ").forEach((cls: string) => {
-         if(cls) classes.add(cls);
-      });
+      if(c.className) classes.add(c.className);
     });
     return Array.from(classes).sort();
   }, [courses]);
@@ -261,7 +260,7 @@ export default function GradingInterfacePage() {
             )}
             <Badge variant="outline" className="border-indigo-200 text-indigo-600 px-3 py-1 bg-indigo-50/30 font-black text-[10px] tracking-widest">
               {view === 'COURSES' ? 'MASTER REGISTRY' : 
-               view === 'QUIZZES' ? selectedCourse?.name : 
+               view === 'QUIZZES' ? `${selectedCourse?.name} (${selectedCourse?.className})` : 
                view === 'SUBMISSIONS' ? selectedQuiz?.title : 
                'EVALUATION MODE'}
             </Badge>
@@ -291,7 +290,6 @@ export default function GradingInterfacePage() {
 
       {view === 'COURSES' && (
         <div className="space-y-6">
-           {/* Filters */}
            <div className="flex flex-col md:flex-row gap-4">
               <div className="relative flex-1 group">
                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
@@ -303,73 +301,75 @@ export default function GradingInterfacePage() {
                  />
               </div>
               <Select value={classFilter} onValueChange={setClassFilter}>
-                 <SelectTrigger className="w-full md:w-64 h-14 bg-white border-2 border-slate-100 rounded-2xl text-lg font-medium focus:border-indigo-500 transition-all shadow-sm">
+                 <SelectTrigger className="w-full md:w-64 h-14 bg-white border-2 border-slate-100 rounded-2xl text-lg font-medium shadow-sm">
                     <div className="flex items-center gap-2">
                        <Filter className="h-4 w-4 text-slate-400" />
                        <SelectValue placeholder="All Classes" />
                     </div>
                  </SelectTrigger>
-                 <SelectContent className="rounded-2xl border-2 border-slate-100">
-                    <SelectItem value="all" className="font-bold">All Classes</SelectItem>
+                 <SelectContent className="rounded-2xl border-2">
+                    <SelectItem value="all" className="font-bold text-slate-600">All Classes</SelectItem>
                     {uniqueClasses.map(cls => (
-                       <SelectItem key={cls} value={cls} className="font-bold">{cls}</SelectItem>
+                       <SelectItem key={cls} value={cls} className="font-bold text-indigo-600">{cls}</SelectItem>
                     ))}
                  </SelectContent>
               </Select>
            </div>
 
            <div className="bg-white rounded-[2.5rem] border-2 border-slate-50 shadow-sm overflow-hidden">
-              <table className="w-full text-left">
+              <table className="w-full text-left border-collapse">
                  <thead>
                     <tr className="border-b border-slate-100 bg-slate-50/30">
-                       <th className="px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest">Course Name</th>
-                       <th className="px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest">Instructor</th>
-                       <th className="px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest text-center">Enrolled</th>
-                       <th className="px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest text-center">Quizzes</th>
-                       <th className="px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest text-right">Action</th>
+                       <th className="px-8 py-6 text-[11px] font-black uppercase text-slate-400 tracking-[0.1em]">Class Assignment</th>
+                       <th className="px-8 py-6 text-[11px] font-black uppercase text-slate-400 tracking-[0.1em]">Instructor</th>
+                       <th className="px-8 py-6 text-[11px] font-black uppercase text-slate-400 tracking-[0.1em] text-center">Size</th>
+                       <th className="px-8 py-6 text-[11px] font-black uppercase text-slate-400 tracking-[0.1em] text-center">Quizzes</th>
+                       <th className="px-8 py-6 text-[11px] font-black uppercase text-slate-400 tracking-[0.1em] text-right">View</th>
                     </tr>
                  </thead>
                  <tbody className="divide-y divide-slate-100">
-                    {filteredCourses.map(course => (
-                       <tr key={course.id} className="hover:bg-indigo-50/20 transition-all group">
+                    {filteredCourses.map((row, idx) => (
+                       <tr key={`${row.id}-${row.classId}-${idx}`} className="hover:bg-slate-50/80 transition-all group">
                           <td className="px-8 py-6">
-                             <div className="flex items-center gap-4">
-                                <div className="h-12 w-12 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-indigo-600 group-hover:text-white transition-all shadow-sm">
-                                   <BookOpen className="h-6 w-6" />
+                             <div className="flex items-center gap-5">
+                                <div className="h-14 w-14 rounded-2xl bg-white border-2 border-slate-100 text-slate-300 group-hover:bg-indigo-600 group-hover:text-white group-hover:border-indigo-600 transition-all shadow-sm flex items-center justify-center">
+                                   <BookOpen className="h-7 w-7" />
                                 </div>
                                 <div>
-                                   <p className="font-black text-slate-900 group-hover:text-indigo-600 transition-colors uppercase tracking-tight">{course.name}</p>
-                                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{course.className}</p>
+                                   <p className="font-black text-slate-900 text-lg uppercase tracking-tight group-hover:text-indigo-600 transition-colors leading-none mb-1.5">{row.name}</p>
+                                   <div className="flex items-center gap-1.5">
+                                      <ClassIcon className="h-3 w-3 text-indigo-500" />
+                                      <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">{row.className}</p>
+                                   </div>
                                 </div>
                              </div>
                           </td>
-                          <td className="px-8 py-6">
-                             <p className="text-sm font-bold text-slate-600">{course.teacher}</p>
-                          </td>
+                          <td className="px-8 py-6 font-bold text-slate-600 text-sm">{row.teacher}</td>
                           <td className="px-8 py-6 text-center">
-                             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-100 text-slate-600 font-bold group-hover:bg-white transition-colors">
+                             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-xl bg-slate-100 text-slate-500 font-bold group-hover:bg-white border group-hover:border-slate-200 transition-all">
                                 <Users className="h-3.5 w-3.5" />
-                                <span className="text-xs">{course.studentsCount}</span>
+                                <span className="text-sm font-black">{row.studentsCount}</span>
                              </div>
                           </td>
                           <td className="px-8 py-6 text-center">
-                             <p className="text-sm font-black text-slate-900">{course.quizCount}</p>
+                             <Badge className="bg-slate-900 text-white font-black rounded-lg px-3 uppercase text-[10px]">{row.quizCount}</Badge>
                           </td>
                           <td className="px-8 py-6 text-right">
-                             <Button onClick={() => navigateToQuizzes(course)} variant="ghost" className="h-10 w-10 p-0 rounded-full hover:bg-slate-900 hover:text-white transition-all">
-                                <ChevronRight className="h-5 w-5" />
+                             <Button onClick={() => navigateToQuizzes(row)} variant="ghost" className="h-12 w-12 p-0 rounded-2xl hover:bg-slate-900 hover:text-white transition-all">
+                                <ChevronRight className="h-6 w-6" />
                              </Button>
                           </td>
                        </tr>
                     ))}
                     {filteredCourses.length === 0 && (
                        <tr>
-                          <td colSpan={5} className="px-8 py-20 text-center">
+                          <td colSpan={5} className="px-8 py-32 text-center bg-slate-50/10">
                              <div className="flex flex-col items-center gap-4">
-                                <div className="h-20 w-20 rounded-full bg-slate-50 flex items-center justify-center text-slate-200">
-                                   <BookOpen className="h-10 w-10" />
+                                <div className="h-24 w-24 rounded-full bg-slate-50 flex items-center justify-center text-slate-100">
+                                   <Search className="h-12 w-12" />
                                 </div>
-                                <p className="text-lg font-black text-slate-300 uppercase tracking-widest">No assigned courses found</p>
+                                <p className="text-xl font-black text-slate-300 uppercase tracking-widest">No matching results found</p>
+                                <Button onClick={() => { setSearchTerm(""); setClassFilter("all"); }} variant="link" className="text-indigo-600 font-black uppercase text-xs tracking-widest">Clear all filters</Button>
                              </div>
                           </td>
                        </tr>
@@ -426,9 +426,9 @@ export default function GradingInterfacePage() {
               <table className="w-full text-left">
                  <thead>
                     <tr className="border-b border-slate-100 bg-slate-50/30">
-                       <th className="px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest">Student Name</th>
-                       <th className="px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest text-center">Taken On</th>
-                       <th className="px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest text-center">Score</th>
+                       <th className="px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest">Student Information</th>
+                       <th className="px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest text-center">Completion</th>
+                       <th className="px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest text-center">Result</th>
                        <th className="px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest text-right">Action</th>
                     </tr>
                  </thead>
@@ -440,12 +440,12 @@ export default function GradingInterfacePage() {
                           <tr key={attempt.id} className="hover:bg-indigo-50/20 transition-all group">
                              <td className="px-8 py-6">
                                 <div className="flex items-center gap-4">
-                                   <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center font-black text-xs text-slate-400 group-hover:bg-white group-hover:text-indigo-600 transition-all shadow-sm">
+                                   <div className="h-11 w-11 rounded-xl bg-slate-100 flex items-center justify-center font-black text-xs text-slate-400 group-hover:bg-white group-hover:text-indigo-600 transition-all shadow-sm">
                                       {attempt.student?.firstName?.[0]}{attempt.student?.lastName?.[0]}
                                    </div>
                                    <div>
                                       <p className="font-black text-slate-900 uppercase tracking-tight">{attempt.student?.firstName} {attempt.student?.lastName}</p>
-                                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em]">ID: {attempt.student?.studentId}</p>
+                                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em]">{attempt.student?.studentId}</p>
                                    </div>
                                 </div>
                              </td>
@@ -454,13 +454,13 @@ export default function GradingInterfacePage() {
                              </td>
                              <td className="px-8 py-6 text-center">
                                 <div className="space-y-1">
-                                   <p className="text-2xl font-black text-slate-900">{attempt.score}%</p>
-                                   {pendingCount > 0 && <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100 text-[8px] font-black px-2 tracking-widest">PENDING REVIEW</Badge>}
+                                   <p className="text-2xl font-black text-slate-900 group-hover:text-indigo-600 transition-colors">{attempt.score}%</p>
+                                   {pendingCount > 0 && <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100 text-[8px] font-black px-2 tracking-widest border-none">UNSANCTIONED</Badge>}
                                 </div>
                              </td>
                              <td className="px-8 py-6 text-right">
-                                <Button onClick={() => openAttempt(attempt)} className="h-12 px-8 rounded-xl bg-indigo-600 text-white font-black hover:bg-slate-900 transition-all shadow-xl shadow-indigo-100">
-                                   {pendingCount > 0 ? 'Evaluate Now' : 'Edit Evaluation'}
+                                <Button onClick={() => openAttempt(attempt)} className="h-12 px-8 rounded-2xl bg-indigo-600 text-white font-black hover:bg-slate-900 transition-all shadow-xl shadow-indigo-100 active:scale-95">
+                                   {pendingCount > 0 ? 'SANCTION GRADE' : 'REVise ASSESSMENT'}
                                 </Button>
                              </td>
                           </tr>
@@ -475,19 +475,26 @@ export default function GradingInterfacePage() {
       {view === 'GRADE' && (
         <div className="space-y-8 animate-in slide-in-from-bottom-5 duration-500">
            {/* Attempt Summary */}
-           <div className="bg-white p-10 rounded-[3rem] border-2 border-slate-50 shadow-sm flex flex-col md:flex-row items-center justify-between gap-8">
-              <div className="flex items-center gap-8">
-                 <div className="h-20 w-20 rounded-[28px] bg-indigo-50 flex items-center justify-center text-indigo-500 shadow-sm">
-                    <GraduationCap className="h-10 w-10" />
+           <div className="bg-white p-10 rounded-[3rem] border-2 border-slate-50 shadow-sm flex flex-col md:flex-row items-center justify-between gap-8 relative overflow-hidden">
+              <div className="absolute top-0 right-0 h-full w-40 bg-indigo-600/5 -skew-x-12 translate-x-10" />
+              <div className="flex items-center gap-8 relative">
+                 <div className="h-24 w-24 rounded-[2rem] bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-100">
+                    <GraduationCap className="h-12 w-12" />
                  </div>
                  <div>
-                    <h2 className="text-4xl font-black text-slate-900 tracking-tighter uppercase">{selectedAttempt.student?.firstName} {selectedAttempt.student?.lastName}</h2>
-                    <p className="text-sm font-bold text-slate-400 mt-1 uppercase tracking-widest">{selectedQuiz?.title} • {format(new Date(selectedAttempt.createdAt), "MMMM dd, yyyy")}</p>
+                    <h2 className="text-4xl font-black text-slate-900 tracking-tighter uppercase leading-none mb-2">{selectedAttempt.student?.firstName} {selectedAttempt.student?.lastName}</h2>
+                    <div className="flex items-center gap-3">
+                       <Badge className="bg-slate-100 text-slate-500 border-none font-black text-[10px] tracking-widest">{selectedCourse?.className}</Badge>
+                       <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">{selectedQuiz?.title}</p>
+                    </div>
                  </div>
               </div>
-              <div className="text-right bg-slate-50 px-10 py-6 rounded-[2rem] border border-slate-100">
-                 <p className="text-[10px] font-black uppercase text-indigo-500 tracking-[0.2em] mb-2">FINAL SCORE</p>
-                 <h3 className="text-6xl font-black text-slate-900 leading-none">{selectedAttempt.score}%</h3>
+              <div className="text-right bg-white p-8 rounded-[2rem] border-2 border-indigo-50 shadow-xl shadow-indigo-50/40 relative min-w-[200px]">
+                 <p className="text-[10px] font-black uppercase text-indigo-500 tracking-[0.2em] mb-2">SCORE CARRIER</p>
+                 <div className="flex items-baseline justify-end gap-1">
+                    <h3 className="text-7xl font-black text-slate-900 leading-none tracking-tighter">{selectedAttempt.score}</h3>
+                    <span className="text-2xl font-black text-slate-300">%</span>
+                 </div>
               </div>
            </div>
 
@@ -500,54 +507,57 @@ export default function GradingInterfacePage() {
                        <div className="flex flex-col lg:flex-row gap-12">
                           <div className="flex-1 space-y-8">
                              <div className="flex items-center gap-4">
-                                <span className={`h-14 w-14 rounded-2xl flex items-center justify-center font-black text-2xl ${isUnapproved ? 'bg-amber-100 text-amber-600' : 'bg-emerald-100 text-emerald-600 shadow-sm'}`}>{idx + 1}</span>
-                                <Badge className={`text-[10px] font-black uppercase px-5 py-2 rounded-xl shadow-sm ${isUnapproved ? 'bg-amber-100 text-amber-600 hover:bg-amber-100' : 'bg-emerald-100 text-emerald-600 hover:bg-emerald-100'}`}>
-                                   {isUnapproved ? "Awaiting Instructor Sanction" : "Approved & Finalized"}
+                                <span className={`h-14 w-14 rounded-2xl flex items-center justify-center font-black text-2xl ${isUnapproved ? 'bg-amber-100 text-amber-600 shadow-sm' : 'bg-emerald-100 text-emerald-600 shadow-sm'}`}>{idx + 1}</span>
+                                <Badge className={`text-[10px] font-black uppercase px-5 py-2 rounded-xl shadow-sm border-none ${isUnapproved ? 'bg-white text-amber-600' : 'bg-white text-emerald-600'}`}>
+                                   {isUnapproved ? "In-Decision / Manual Review Required" : "Sanctioned & Archived"}
                                 </Badge>
                              </div>
                              <div className="space-y-4">
                                 <h4 className="text-3xl font-black text-slate-900 leading-tight uppercase tracking-tight">{r.question}</h4>
-                                <div className="p-10 rounded-[2.5rem] bg-white border-2 border-slate-50 space-y-4 shadow-sm relative group overflow-hidden">
-                                   <div className="absolute top-0 left-0 w-2 h-full bg-slate-100 group-hover:bg-indigo-500 transition-colors" />
-                                   <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">STUDENT'S RESPONSE</p>
-                                   <p className="text-xl font-bold text-slate-700 leading-relaxed italic">"{r.studentAnswer || "No Response"}"</p>
+                                <div className="p-10 rounded-[2.5rem] bg-white border border-slate-100 space-y-5 relative group overflow-hidden shadow-sm">
+                                   <div className="absolute top-0 left-0 w-2 h-full bg-slate-100 group-hover:bg-indigo-600 transition-colors" />
+                                   <div className="flex items-center gap-2">
+                                      <RotateCcw className="h-3.5 w-3.5 text-slate-400" />
+                                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Student Submission</p>
+                                   </div>
+                                   <p className="text-xl font-bold text-slate-700 leading-relaxed italic group-hover:text-slate-900 transition-colors">"{r.studentAnswer || "No Response"}"</p>
                                 </div>
                              </div>
                           </div>
 
-                          <div className="w-full lg:w-96 space-y-8 shrink-0 bg-white/60 p-10 rounded-[3rem] border-2 border-slate-50 shadow-sm backdrop-blur-sm">
+                          <div className="w-full lg:w-96 space-y-8 shrink-0 bg-white/70 p-10 rounded-[3rem] border-2 border-slate-50 shadow-sm backdrop-blur-xl">
                              <div className="space-y-2">
-                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex justify-between px-1">Assignment Points <span>MAX: {r.total}</span></label>
-                                <Input type="number" max={r.total} min={0} value={r.earned} onChange={(e) => handleInputChange(idx, 'earned', e.target.value)} className="h-16 rounded-2xl text-2xl font-black focus:ring-4 focus:ring-indigo-100 border-2" />
+                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex justify-between px-1">Evaluation Score <span>MAX: {r.total}</span></label>
+                                <Input type="number" max={r.total} min={0} value={r.earned} onChange={(e) => handleInputChange(idx, 'earned', e.target.value)} className="h-16 rounded-22xl text-3xl font-black focus:ring-4 focus:ring-indigo-100 border-2 transition-all" />
                              </div>
                              <div className="space-y-2">
-                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Evaluation Commentary</label>
-                                <Textarea placeholder="Explain the grade to the student..." value={r.feedback || ""} onChange={(e) => handleInputChange(idx, 'feedback', e.target.value)} className="rounded-2xl resize-none text-base h-40 focus:ring-4 focus:ring-indigo-100 border-2 leading-relaxed" />
+                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Constructive Feedback</label>
+                                <Textarea placeholder="Share insights..." value={r.feedback || ""} onChange={(e) => handleInputChange(idx, 'feedback', e.target.value)} className="rounded-2xl resize-none text-base h-40 focus:ring-4 focus:ring-indigo-100 border-2 leading-relaxed" />
                              </div>
-                             <div className="space-y-3 pt-4">
+                             <div className="space-y-4 pt-4">
                                 {isUnapproved ? (
                                    <div className="grid grid-cols-1 gap-3">
-                                      <Button onClick={() => approveQuestion(idx)} className="h-16 rounded-2xl bg-emerald-600 text-white font-black hover:bg-emerald-700 gap-3 shadow-lg shadow-emerald-100 text-lg transition-all active:scale-95">
+                                      <Button onClick={() => approveQuestion(idx)} className="h-16 rounded-2xl bg-emerald-600 text-white font-black hover:bg-emerald-700 gap-3 shadow-lg shadow-emerald-100 flex items-center justify-center text-lg active:scale-95 transition-all">
                                          <Check className="h-6 w-6" /> Sanction Grade
                                       </Button>
-                                      <Button onClick={() => handleAIGrade(idx, r)} disabled={aiLoading === idx} variant="outline" className="h-16 rounded-2xl border-2 border-indigo-100 text-indigo-700 font-black gap-3 hover:bg-indigo-50 transition-all text-lg">
-                                         {aiLoading === idx ? <Loader2 className="h-6 w-6 animate-spin" /> : <Sparkles className="h-6 w-6 text-indigo-500" />} 
+                                      <Button onClick={() => handleAIGrade(idx, r)} disabled={aiLoading === idx} variant="outline" className="h-16 rounded-2xl border-2 border-indigo-100 text-indigo-700 font-black gap-3 hover:bg-indigo-50 transition-all text-lg group">
+                                         {aiLoading === idx ? <Loader2 className="h-6 w-6 animate-spin" /> : <Sparkles className="h-6 w-6 text-indigo-500 group-hover:scale-110 transition-transform" />} 
                                          AI Proposal
                                       </Button>
                                    </div>
                                 ) : (
                                    <div className="space-y-4">
-                                      <Button disabled variant="outline" className="w-full h-16 rounded-2xl border-2 border-emerald-200 text-emerald-700 bg-emerald-50 font-black text-lg gap-3">
-                                         <CheckCircle2 className="h-6 w-6" /> GRADE SANCTIONED
-                                      </Button>
+                                      <div className="w-full h-16 rounded-2xl border-2 border-emerald-200 text-emerald-700 bg-white shadow-inner flex items-center justify-center gap-3 font-black text-lg">
+                                         <CheckCircle2 className="h-6 w-6" /> SANCTIONED
+                                      </div>
                                       <Button onClick={() => {
                                          setEditedResults(prev => {
                                             const next = [...prev];
                                             next[idx].manual = true;
                                             return next;
                                          });
-                                      }} variant="ghost" className="w-full h-10 text-[10px] font-black uppercase text-slate-400 hover:text-slate-600 tracking-widest">
-                                         <RotateCcw className="h-3 w-3 mr-2" /> Revoke Sanction
+                                      }} variant="ghost" className="w-full h-10 text-[9px] font-black uppercase text-slate-400 hover:text-indigo-600 tracking-widest transition-colors">
+                                         <RotateCcw className="h-3 w-3 mr-2" /> Revoke Decision
                                       </Button>
                                    </div>
                                 )}

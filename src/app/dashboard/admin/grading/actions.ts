@@ -35,21 +35,23 @@ export async function getGradingCourses() {
     // Filter: Only courses that are actually assigned to a class/teacher via TeacherAssignment
     const assignedCourses = courses.filter(c => c.teacherAssignments.length > 0)
 
-    return assignedCourses.map(c => {
-      // Calculate students: sum of class students across all assignments + explicit enrollments
-      const classStudents = c.teacherAssignments.reduce((acc, ta) => acc + (ta.class?._count.students || 0), 0)
-      const totalEnrolled = Math.max(c._count.enrollments, classStudents)
-
-      return {
-        id: c.id,
-        name: c.name,
-        teacher: `${c.teacher.firstName} ${c.teacher.lastName}`,
-        className: c.teacherAssignments.map(ta => ta.class?.name).filter(Boolean).join(", "),
-        studentsCount: totalEnrolled,
-        quizCount: c.sections.reduce((acc, s) => acc + s._count.quizzes, 0),
-        category: c.category || "General"
-      }
+    const flattened: any[] = []
+    assignedCourses.forEach(c => {
+      c.teacherAssignments.forEach(ta => {
+        flattened.push({
+          id: c.id,
+          name: c.name,
+          teacher: `${c.teacher.firstName} ${c.teacher.lastName}`,
+          className: ta.class?.name || "N/A",
+          studentsCount: ta.class?._count.students || 0,
+          quizCount: c.sections.reduce((acc, s) => acc + s._count.quizzes, 0),
+          category: c.category || "General",
+          classId: ta.classId
+        })
+      })
     })
+
+    return flattened
   } catch (error) {
     console.error("Error fetching grading courses:", error)
     return []
@@ -71,18 +73,19 @@ export async function getCourseQuizzes(courseId: string) {
   }
 }
 
-export async function getQuizSubmissions(quizId: string) {
+export async function getQuizSubmissions(quizId: string, classId?: string) {
   try {
     const attempts = await prisma.quizAttempt.findMany({
-      where: { quizId },
+      where: { 
+        quizId,
+        ...(classId ? { student: { classId } } : {})
+      },
       include: {
         student: { select: { firstName: true, lastName: true, studentId: true } }
       },
       orderBy: { createdAt: 'desc' }
     })
     
-    // Grouping attempts by student if needed, or just showing latest. 
-    // Usually, we show all attempts so they can be graded.
     return attempts
   } catch (error) {
     console.error("Error fetching quiz submissions:", error)
