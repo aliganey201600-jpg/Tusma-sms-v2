@@ -75,7 +75,7 @@ const mockGradeData = [
 ]
 
 export default function StudentGradesPage() {
-  const { user } = useCurrentUser()
+  const { user, loading: userLoading } = useCurrentUser()
   const [data, setData] = React.useState<any[]>([])
   const [loading, setLoading] = React.useState(true)
   const [expanded, setExpanded] = React.useState<number | null>(0)
@@ -88,10 +88,13 @@ export default function StudentGradesPage() {
       }
       setLoading(false)
     }
-    loadData()
-  }, [user?.studentId])
+    
+    if (!userLoading) {
+      loadData()
+    }
+  }, [user?.studentId, userLoading])
 
-  if (loading) {
+  if (loading || userLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="flex flex-col items-center gap-4">
