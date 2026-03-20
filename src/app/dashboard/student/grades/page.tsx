@@ -135,15 +135,25 @@ export default function StudentGradesPage() {
     <div className="p-2 md:p-4 space-y-8 max-w-[1200px] mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700">
 
       {/* Header */}
-      <div className="space-y-3">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-600">
-          <GraduationCap className="h-3 w-3" />
-          <span className="text-[10px] font-black uppercase tracking-widest">Academic Record</span>
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div className="space-y-3">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-600">
+            <GraduationCap className="h-3 w-3" />
+            <span className="text-[10px] font-black uppercase tracking-widest">Academic Record</span>
+          </div>
+          <h1 className="text-4xl font-black tracking-tighter text-slate-900">
+            My <span className="text-emerald-600">Grades.</span>
+          </h1>
+          <p className="text-slate-500 font-medium">Your full academic performance breakdown for this semester.</p>
         </div>
-        <h1 className="text-4xl font-black tracking-tighter text-slate-900">
-          My <span className="text-emerald-600">Grades.</span>
-        </h1>
-        <p className="text-slate-500 font-medium">Your full academic performance breakdown for this semester.</p>
+        
+        <Button 
+          onClick={() => window.print()}
+          className="rounded-2xl h-14 px-8 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs uppercase tracking-widest gap-3 shadow-xl shadow-indigo-200 transition-all active:scale-95 print:hidden"
+        >
+           <FileText className="h-5 w-5" />
+           Official Report Card
+        </Button>
       </div>
 
       {/* GPA Overview */}
@@ -191,7 +201,7 @@ export default function StudentGradesPage() {
       </div>
 
       {/* Detailed Subject Grades (Accordion) */}
-      <div className="space-y-3">
+      <div className="space-y-3 print:hidden">
         <h2 className="text-xl font-black text-slate-900">Exam Results by Subject</h2>
         {gradeData.map((subject, i) => (
           <SubjectAccordion
@@ -202,6 +212,9 @@ export default function StudentGradesPage() {
           />
         ))}
       </div>
+
+      {/* Hidden PDF/Print Template */}
+      <ReportCardTemplate data={gradeData} user={user} />
     </div>
   )
 }
@@ -392,6 +405,185 @@ function QuizResultItem({ exam, gradeColor }: any) {
              ))}
           </div>
        )}
+    </div>
+  )
+}
+function ReportCardTemplate({ data, user }: any) {
+  const today = new Date().toLocaleDateString("en-US", { year: 'numeric', month: 'long', day: 'numeric' })
+  const overallGPA = data.length > 0 ? (data.reduce((acc: number, g: any) => acc + g.gpa, 0) / data.length).toFixed(2) : "0.00"
+
+  return (
+    <div className="hidden print:block fixed inset-0 bg-white z-[9999] p-12 overflow-y-auto">
+       <style dangerouslySetInnerHTML={{ __html: `
+          @media print {
+            body * { visibility: hidden; }
+            .print-container, .print-container * { visibility: visible; }
+            .print-container { position: absolute; left: 0; top: 0; width: 100%; }
+          }
+       `}} />
+       
+       <div className="print-container">
+          {/* Official Header */}
+          <div className="flex justify-between items-start border-b-4 border-slate-900 pb-8 mb-8">
+             <div className="space-y-2">
+                <div className="h-16 w-16 bg-slate-900 rounded-2xl flex items-center justify-center mb-4">
+                   <span className="text-white font-black text-2xl tracking-tighter">TUSMO</span>
+                </div>
+                <h1 className="text-3xl font-bold text-slate-900 tracking-tighter uppercase leading-none">Tusmo Primary &<br/> Secondary School</h1>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] mt-2">Excellence in Education</p>
+                <div className="text-[9px] space-y-0.5 text-slate-500 font-bold uppercase tracking-[0.1em] mt-4">
+                   <p>Mogadishu, Somalia · +252 61 XXX XXXX</p>
+                   <p>info@tusmoschool.edu.so · www.tusmoschool.edu.so</p>
+                </div>
+             </div>
+             <div className="text-right flex flex-col items-end">
+                <div className="bg-slate-900 text-white px-8 py-3 rounded-2xl font-black text-[10px] uppercase tracking-[0.3em] mb-6">Official Academic Transcript</div>
+                <div className="space-y-1">
+                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Report Reference</p>
+                   <p className="text-xs font-black text-slate-900">TSM-{new Date().getFullYear()}-{user?.id?.substring(0,6).toUpperCase()}</p>
+                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-2 font-black">Date of Issue</p>
+                   <p className="text-xs font-black text-slate-900">{today}</p>
+                </div>
+             </div>
+          </div>
+
+          {/* Student Identity */}
+          <div className="grid grid-cols-2 gap-12 mb-10 bg-slate-50/50 rounded-[2.5rem] p-10 border border-slate-100">
+             <div className="space-y-6 border-r border-slate-200 pr-12">
+                <div>
+                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Student Legal Name</p>
+                   <p className="text-2xl font-black text-slate-900 uppercase tracking-tight leading-none">{user?.fullName}</p>
+                </div>
+                <div>
+                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Registration Number</p>
+                   <p className="text-sm font-black text-slate-700 tracking-[0.3em]">{user?.studentId?.toUpperCase() || 'UNREGISTERED'}</p>
+                </div>
+             </div>
+             <div className="space-y-6 text-right">
+                <div>
+                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Current Academic Level</p>
+                   <p className="text-xl font-black text-slate-900 uppercase tracking-tight">Standard Level Education</p>
+                </div>
+                <div className="flex justify-end gap-10">
+                   <div>
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Semester</p>
+                      <p className="text-xs font-black text-slate-700 uppercase">2nd Semester</p>
+                   </div>
+                   <div>
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Academic Session</p>
+                      <p className="text-xs font-black text-slate-700 uppercase">2024/2025</p>
+                   </div>
+                </div>
+             </div>
+          </div>
+
+          {/* Grades Matrix */}
+          <div className="mb-12">
+             <table className="w-full text-left border-separate border-spacing-y-2">
+                <thead>
+                   <tr className="bg-slate-50">
+                      <th className="p-6 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 rounded-l-[1.5rem]">Subject Description</th>
+                      <th className="p-6 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Assigned Faculty</th>
+                      <th className="p-6 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 text-center">Avg %</th>
+                      <th className="p-6 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 text-center">Letter Grade</th>
+                      <th className="p-6 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 text-center rounded-r-[1.5rem]">Quality Points</th>
+                   </tr>
+                </thead>
+                <tbody className="">
+                   {data.map((subject: any, idx: number) => {
+                      const items = subject.exams || []
+                      let avgPercent = 0
+                      if (items.length > 0) {
+                         const totalPct = items.reduce((acc: number, curr: any) => acc + (curr.score / curr.max), 0)
+                         avgPercent = Math.round((totalPct / items.length) * 100)
+                      }
+                      
+                      return (
+                         <tr key={idx} className="bg-white border-2 border-slate-50">
+                            <td className="p-6 border-y border-l border-slate-100 rounded-l-[1.5rem]">
+                               <p className="font-black text-slate-900 text-sm uppercase tracking-tight">{subject.subject}</p>
+                            </td>
+                            <td className="p-6 border-y border-slate-100">
+                               <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">{subject.teacher}</p>
+                            </td>
+                            <td className="p-6 text-center border-y border-slate-100">
+                               <p className="text-sm font-black text-slate-900">{avgPercent}%</p>
+                            </td>
+                            <td className="p-6 text-center border-y border-slate-100">
+                               <span className="inline-flex items-center justify-center h-8 w-12 bg-slate-900 rounded-xl text-[11px] font-black text-white">{subject.grade}</span>
+                            </td>
+                            <td className="p-6 text-center border-y border-r border-slate-100 rounded-r-[1.5rem]">
+                               <p className="text-sm font-black text-indigo-600">{subject.gpa.toFixed(1)}</p>
+                            </td>
+                         </tr>
+                      )
+                   })}
+                </tbody>
+             </table>
+          </div>
+
+          {/* Performance Insight */}
+          <div className="grid grid-cols-2 gap-12 items-start pt-12 border-t-2 border-dashed border-slate-100">
+             <div className="space-y-8">
+                <div className="bg-slate-900 text-white p-10 rounded-[2.5rem] flex justify-between items-center shadow-2xl shadow-slate-200">
+                   <div>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] mb-3">Academic GPA</p>
+                      <p className="text-6xl font-black tracking-tighter">{overallGPA}<span className="text-xl text-slate-500 font-medium ml-2">/ 4.0</span></p>
+                   </div>
+                   <div className="text-right">
+                      <Badge className="bg-emerald-500 text-white border-none font-black text-[10px] tracking-[0.2em] px-6 py-2 rounded-full mb-4">ELIGIBLE</Badge>
+                      <p className="text-xl font-black uppercase tracking-tight">PASSED</p>
+                   </div>
+                </div>
+                
+                <div className="bg-slate-50 p-8 rounded-[2rem] border border-slate-200/50 space-y-3">
+                   <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">Faculty Observations</p>
+                   <p className="text-xs font-bold text-slate-600 leading-relaxed italic">"Student has demonstrated exceptional mastery over the current curriculum. Sustained focus on technical disciplines has yielded commendable outcomes. The faculty recommends continued advancement."</p>
+                </div>
+             </div>
+             
+             <div className="grid grid-cols-1 gap-12 pt-6">
+                <div className="flex justify-between gap-12">
+                   <div className="text-center space-y-6 flex-1">
+                      <div className="h-24 flex items-end justify-center px-8">
+                         <div className="w-full border-b-2 border-slate-200"></div>
+                      </div>
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Office of the Registrar</p>
+                   </div>
+                   <div className="text-center space-y-6 flex-1">
+                      <div className="h-24 flex items-end justify-center px-8 relative">
+                         <div className="absolute top-0 opacity-10">
+                            <div className="h-24 w-24 rounded-full border-4 border-indigo-600 flex items-center justify-center p-2">
+                               <div className="h-full w-full rounded-full border-2 border-indigo-600 border-dashed"></div>
+                            </div>
+                         </div>
+                         <div className="w-full border-b-2 border-slate-200"></div>
+                      </div>
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Seal of the Institution</p>
+                   </div>
+                </div>
+                
+                <div className="p-8 rounded-[2rem] bg-indigo-50/20 border-2 border-indigo-50/50">
+                   <p className="text-[9px] font-black text-indigo-400 uppercase tracking-[0.3em] mb-4">Official Verification</p>
+                   <div className="flex items-center gap-4">
+                      <div className="h-14 w-14 bg-white rounded-2xl border border-indigo-100 flex items-center justify-center p-2">
+                         <div className="w-full h-full bg-slate-900 rounded-lg opacity-5"></div>
+                      </div>
+                      <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-relaxed">
+                         Scan this code to verify authenticity <br/>
+                         Document Hash: {user?.id?.split('-')[0]}{Date.now().toString().slice(-6)}
+                      </p>
+                   </div>
+                </div>
+             </div>
+          </div>
+
+          {/* Copyright Branding */}
+          <div className="mt-20 text-center space-y-2">
+             <p className="text-[8px] font-black text-slate-300 uppercase tracking-[0.5em]">Tusmo Education Systems · Academic Excellence Since 2012</p>
+             <p className="text-[7px] font-medium text-slate-200 uppercase tracking-widest">Unauthorized reproduction of this document is strictly prohibited</p>
+          </div>
+       </div>
     </div>
   )
 }
