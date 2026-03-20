@@ -3,10 +3,33 @@
 import prisma from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { GoogleGenerativeAI } from "@google/generative-ai"
+import { createClient } from "@/utils/supabase/server"
 
 export async function getGradingCourses() {
   try {
+    const supabase = await createClient()
+    const { data: { user: authUser } } = await supabase.auth.getUser()
+    if (!authUser) return []
+
+    const user = await prisma.user.findUnique({
+      where: { id: authUser.id },
+      include: { teacher: true, student: true }
+    })
+
+    if (!user) return []
+
+    const where: any = {}
+    
+    if (user.role === 'TEACHER' && user.teacher) {
+      where.teacherId = user.teacher.id
+    } else if (user.role === 'STUDENT' && user.student) {
+      where.enrollments = { some: { studentId: user.student.id } }
+    } else if (user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN') {
+      return [] // Other roles shouldn't see this for now
+    }
+
     const courses = await prisma.course.findMany({
+      where,
       include: {
         teacher: { select: { firstName: true, lastName: true } },
         teacherAssignments: { 
@@ -343,6 +366,17 @@ export async function generateGlobalQuizAIGrades(quizId: string, classId?: strin
 
 export async function getCourseGradebookData(courseId: string, classId: string) {
   try {
+    const supabase = await createClient()
+    const { data: { user: authUser } } = await supabase.auth.getUser()
+    const studentFilter: any = { classId }
+    if (authUser) {
+       const user = await prisma.user.findUnique({ where: { id: authUser.id } })
+       if (user?.role === 'STUDENT') {
+         const studentProfile = await prisma.student.findUnique({ where: { userId: user.id } })
+         if (studentProfile) studentFilter.id = studentProfile.id
+       }
+    }
+
     // 1. Get all quizzes for this course
     const quizzes = await prisma.quiz.findMany({
       where: { section: { courseId } },
@@ -352,7 +386,7 @@ export async function getCourseGradebookData(courseId: string, classId: string) 
 
     // 2. Get all students in this class
     const students = await prisma.student.findMany({
-      where: { classId },
+      where: studentFilter,
       select: { 
         id: true, 
         firstName: true, 
@@ -361,7 +395,6 @@ export async function getCourseGradebookData(courseId: string, classId: string) 
       },
       orderBy: { firstName: 'asc' }
     })
-
     // 3. Get all quiz attempts for these students and these quizzes
     const attempts = await prisma.quizAttempt.findMany({
       where: {
@@ -419,10 +452,22 @@ export async function getCourseGradebookData(courseId: string, classId: string) 
 
 export async function getClassOverallGradebook(classId: string) {
   try {
+    const supabase = await createClient()
+    const { data: { user: authUser } } = await supabase.auth.getUser()
+    const studentQuery: any = { classId }
+    if (authUser) {
+       const user = await prisma.user.findUnique({ where: { id: authUser.id } })
+       if (user?.role === 'STUDENT') {
+         const studentProfile = await prisma.student.findUnique({ where: { userId: user.id } })
+         if (studentProfile) studentQuery.id = studentProfile.id
+       }
+    }
+
     const targetClass = await prisma.class.findUnique({
       where: { id: classId },
       include: {
         students: {
+          where: { id: studentQuery.id }, // Correctly filter students within the class
           select: {
             id: true,
             firstName: true,
@@ -521,7 +566,29 @@ export async function getClassOverallGradebook(classId: string) {
 
 export async function getGradingClasses() {
   try {
+    const supabase = await createClient()
+    const { data: { user: authUser } } = await supabase.auth.getUser()
+    if (!authUser) return []
+
+    const user = await prisma.user.findUnique({
+      where: { id: authUser.id },
+      include: { teacher: true, student: true }
+    })
+
+    if (!user) return []
+
+    const where: any = {}
+
+    if (user.role === 'TEACHER' && user.teacher) {
+      where.subjectAssignments = { some: { teacherId: user.teacher.id } }
+    } else if (user.role === 'STUDENT' && user.student) {
+      where.id = user.student.classId
+    } else if (user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN') {
+      return []
+    }
+
     const classes = await prisma.class.findMany({
+      where,
       include: {
         _count: {
           select: {

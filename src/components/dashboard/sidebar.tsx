@@ -92,6 +92,7 @@ export function Sidebar({ className, role }: SidebarProps) {
       { label: "Materials", icon: BookOpen, href: "/dashboard/teacher/materials" },
       { label: "Assignments", icon: LayoutDashboard, href: "/dashboard/teacher/assignments" },
       { label: "Attendance", icon: CalendarDays, href: "/dashboard/teacher/attendance" },
+      { label: "Gradebook", icon: FileText, href: "/dashboard/teacher/grading?view=gradebook" },
       { label: "Messages", icon: Bell, href: "/dashboard/messages" },
     ],
     STUDENT: [
@@ -100,6 +101,7 @@ export function Sidebar({ className, role }: SidebarProps) {
       { label: "Leaderboard", icon: Trophy, href: "/dashboard/student/leaderboard" },
       { label: "Assignments", icon: LayoutDashboard, href: "/dashboard/student/assignments" },
       { label: "My Grades", icon: GraduationCap, href: "/dashboard/student/grades" },
+      { label: "Gradebook", icon: FileText, href: "/dashboard/student/grading?view=gradebook" },
       { label: "Attendance", icon: CalendarDays, href: "/dashboard/student/attendance" },
       { label: "Messages", icon: Bell, href: "/dashboard/messages" },
     ],
