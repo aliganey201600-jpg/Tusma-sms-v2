@@ -5,12 +5,21 @@ import { revalidatePath } from "next/cache";
 
 export async function fetchExams() {
   try {
-    return await prisma.$queryRawUnsafe(`
-      SELECT e.*, c.name as "courseName"
-      FROM "Exam" e
-      JOIN "Course" c ON e."courseId" = c.id
-      ORDER BY e."examDate" DESC
-    `);
+    const exams = await prisma.exam.findMany({
+      include: {
+        course: { select: { name: true } },
+        class: { select: { name: true } }
+      },
+      orderBy: { examDate: 'desc' }
+    });
+    
+    return exams.map(e => ({
+      ...e,
+      courseName: e.course.name,
+      className: e.class.name,
+      // Format date for the client
+      examDate: e.examDate.toISOString()
+    }));
   } catch (error) {
     console.error("Error fetching exams:", error);
     return [];
@@ -19,9 +28,21 @@ export async function fetchExams() {
 
 export async function fetchCoursesForExams() {
   try {
-    return await prisma.$queryRawUnsafe(`
-      SELECT id, name FROM "Course" ORDER BY name ASC
-    `);
+    // Return all specific class-course combinations that actually exist
+    const assignments = await prisma.teacherAssignment.findMany({
+      include: {
+        course: { select: { id: true, name: true } },
+        class: { select: { id: true, name: true } }
+      },
+      orderBy: { class: { name: 'asc' } }
+    });
+
+    return assignments.map(a => ({
+      id: a.course.id,
+      name: `${a.course.name} (${a.class.name})`,
+      courseId: a.courseId,
+      classId: a.classId
+    }));
   } catch (error) {
     console.error("Error fetching courses for exams:", error);
     return [];
@@ -31,49 +52,62 @@ export async function fetchCoursesForExams() {
 export async function createExam(data: {
   title: string;
   description: string;
-  type: string;
+  type: any; // ExamType enum
   courseId: string;
+  classId: string;
   maxMarks: number;
   examDate: string;
 }) {
   try {
-    const id = crypto.randomUUID();
-    await prisma.$executeRawUnsafe(
-      `INSERT INTO "Exam" (id, title, description, type, "courseId", "maxMarks", "examDate", status)
-       VALUES ($1, $2, $3, $4::"ExamType", $5, $6, $7, $8)`,
-      id, data.title, data.description, data.type, data.courseId, data.maxMarks, new Date(data.examDate), 'SCHEDULED'
-    );
+    await prisma.exam.create({
+      data: {
+        title: data.title,
+        description: data.description,
+        type: data.type,
+        courseId: data.courseId,
+        classId: data.classId,
+        maxMarks: data.maxMarks,
+        examDate: new Date(data.examDate),
+        status: 'SCHEDULED'
+      }
+    });
+
     revalidatePath("/dashboard/admin/exams");
     return { success: true };
   } catch (error) {
     console.error("Error creating exam:", error);
-    return { success: false, error: "Failed to create exam" };
+    return { success: false, error: "Waa laygu guuldareystay inaan abuuro imtixaanka" };
   }
 }
 
 export async function fetchExamStudents(examId: string) {
   try {
-    // Get the courseId for this exam first
-    const exam: any[] = await prisma.$queryRawUnsafe(`SELECT "courseId" FROM "Exam" WHERE id = $1`, examId);
-    if (!exam.length) return [];
+    const exam = await prisma.exam.findUnique({
+      where: { id: examId },
+      select: { classId: true }
+    });
 
-    const courseId = exam[0].courseId;
+    if (!exam) return [];
 
-    // Fetch students enrolled in this course plus their existing results for this exam
-    return await prisma.$queryRawUnsafe(`
-      SELECT 
-        s.id as "studentId", 
-        s."firstName", 
-        s."lastName", 
-        s."studentId" as "manualId",
-        er."marksObtained",
-        er.remarks
-      FROM "Student" s
-      JOIN "Enrollment" en ON s.id = en."studentId"
-      LEFT JOIN "ExamResult" er ON s.id = er."studentId" AND er."examId" = $2
-      WHERE en."courseId" = $1
-      ORDER BY s."firstName" ASC
-    `, courseId, examId);
+    const students = await prisma.student.findMany({
+      where: { classId: exam.classId },
+      include: {
+        results: {
+          where: { examId: examId },
+          select: { marksObtained: true, remarks: true }
+        }
+      },
+      orderBy: { firstName: 'asc' }
+    });
+
+    return students.map(s => ({
+      studentId: s.id,
+      firstName: s.firstName,
+      lastName: s.lastName,
+      manualId: s.studentId,
+      marksObtained: s.results[0]?.marksObtained?.toString() || "",
+      remarks: s.results[0]?.remarks || ""
+    }));
   } catch (error) {
     console.error("Error fetching exam students:", error);
     return [];
@@ -83,35 +117,57 @@ export async function fetchExamStudents(examId: string) {
 export async function saveExamResults(examId: string, results: any[]) {
   try {
     for (const res of results) {
-      const resultId = crypto.randomUUID();
-      await prisma.$executeRawUnsafe(`
-        INSERT INTO "ExamResult" (id, "examId", "studentId", "marksObtained", remarks, "updatedAt")
-        VALUES ($1, $2, $3, $4, $5, NOW())
-        ON CONFLICT ("examId", "studentId") 
-        DO UPDATE SET "marksObtained" = EXCLUDED."marksObtained", remarks = EXCLUDED.remarks, "updatedAt" = NOW()
-      `, resultId, examId, res.studentId, parseFloat(res.marksObtained), res.remarks || "");
+       await prisma.examResult.upsert({
+         where: {
+            examId_studentId: {
+               examId: examId,
+               studentId: res.studentId
+            }
+         },
+         create: {
+            examId,
+            studentId: res.studentId,
+            marksObtained: parseFloat(res.marksObtained) || 0,
+            remarks: res.remarks || ""
+         },
+         update: {
+            marksObtained: parseFloat(res.marksObtained) || 0,
+            remarks: res.remarks || ""
+         }
+       });
     }
+
+    // Update exam status if marks are saved
+    await prisma.exam.update({
+       where: { id: examId },
+       data: { status: 'COMPLETED' }
+    });
+
     revalidatePath("/dashboard/admin/exams");
     return { success: true };
   } catch (error) {
     console.error("Error saving exam results:", error);
-    return { success: false, error: "Failed to save results" };
+    return { success: false, error: "Waa laygu guuldareystay inaan keydiyo dhibcaha" };
   }
 }
 
 export async function fetchExamStats() {
   try {
-    const totalExams: any[] = await prisma.$queryRawUnsafe(`SELECT COUNT(*) as count FROM "Exam"`);
-    const totalResults: any[] = await prisma.$queryRawUnsafe(`SELECT COUNT(*) as count FROM "ExamResult"`);
-    const avgScore: any[] = await prisma.$queryRawUnsafe(`SELECT AVG("marksObtained") as avg FROM "ExamResult"`);
+    const [totalExams, totalGraded, avgScore] = await Promise.all([
+      prisma.exam.count(),
+      prisma.examResult.count(),
+      prisma.examResult.aggregate({
+         _avg: { marksObtained: true }
+      })
+    ]);
     
     return {
-      totalExams: Number(totalExams[0]?.count || 0),
-      totalGraded: Number(totalResults[0]?.count || 0),
-      averageScore: parseFloat(avgScore[0]?.avg || 0).toFixed(1)
+      totalExams,
+      totalGraded,
+      averageScore: (avgScore._avg.marksObtained || 0).toFixed(1)
     };
   } catch (error) {
     console.error("Error fetching exam stats:", error);
-    return { totalExams: 0, totalGraded: 0, averageScore: 0 };
+    return { totalExams: 0, totalGraded: 0, averageScore: "0" };
   }
 }

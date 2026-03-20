@@ -947,7 +947,9 @@ export function GradingInterfaceContent({ userRole }: { userRole: 'ADMIN' | 'TEA
                              </div>
                           </td>
                           {classReportData.courses.map(courseName => {
-                             const score = student.courseGrades[courseName]
+                             const courseData = student.courseGrades[courseName]
+                             const score = courseData?.grade ?? null
+                             
                              return (
                                 <td key={courseName} className="px-4 py-4 text-center">
                                    {score !== null ? (
@@ -957,7 +959,7 @@ export function GradingInterfaceContent({ userRole }: { userRole: 'ADMIN' | 'TEA
                                          </p>
                                       </div>
                                    ) : (
-                                      <span className="text-[10px] font-bold text-slate-300">N/A</span>
+                                      <span className="text-[10px] font-bold text-slate-300">—</span>
                                    )}
                                 </td>
                              )

@@ -94,11 +94,15 @@ export default function ExamsPage() {
   const handleCreateExam = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     const formData = new FormData(e.currentTarget)
+    const assignmentValue = formData.get("assignment") as string
+    const [cId, clsId] = assignmentValue.split("|")
+
     const data = {
       title: formData.get("title") as string,
       description: formData.get("description") as string,
-      type: formData.get("type") as string,
-      courseId: formData.get("courseId") as string,
+      type: formData.get("type") as any,
+      courseId: cId,
+      classId: clsId,
       maxMarks: parseFloat(formData.get("maxMarks") as string),
       examDate: formData.get("examDate") as string,
     }
@@ -203,14 +207,16 @@ export default function ExamsPage() {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="courseId">Subject/Course</Label>
-                  <Select name="courseId" required>
+                  <Label htmlFor="assignment">Subject & Class</Label>
+                  <Select name="assignment" required>
                     <SelectTrigger className="rounded-xl h-11">
-                      <SelectValue placeholder="Choose a course" />
+                      <SelectValue placeholder="Choose a course & class" />
                     </SelectTrigger>
                     <SelectContent>
-                      {courses.map(course => (
-                        <SelectItem key={course.id} value={course.id}>{course.name}</SelectItem>
+                      {courses.map((course, idx) => (
+                        <SelectItem key={`${course.id}-${idx}`} value={`${course.courseId}|${course.classId}`}>
+                          {course.name}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -376,7 +382,7 @@ export default function ExamsPage() {
                           <td className="px-6 py-4">
                             <div>
                               <p className="font-bold text-slate-900">{exam.title}</p>
-                              <p className="text-xs text-indigo-600 font-medium">{exam.courseName}</p>
+                              <p className="text-xs text-indigo-600 font-black uppercase tracking-widest">{exam.courseName} • {exam.className}</p>
                             </div>
                           </td>
                           <td className="px-6 py-4 text-center">

@@ -176,6 +176,7 @@ model Class {
   teacher       Teacher? @relation(fields: [teacherId], references: [id])
   students      Student[]
   subjectAssignments TeacherAssignment[]
+  exams         Exam[]
 
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -535,6 +536,8 @@ model Exam {
   type          ExamType @default(MIDTERM)
   courseId      String
   course        Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  classId       String
+  class         Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
   maxMarks      Float    @default(100)
   examDate      DateTime @default(now())
   status        String   @default("SCHEDULED")

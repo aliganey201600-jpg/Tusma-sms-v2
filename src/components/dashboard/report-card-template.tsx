@@ -91,25 +91,32 @@ export function ReportCardTemplate({ data, user, className }: ReportCardProps) {
             <table className="w-full text-left border-collapse border border-slate-900">
               <thead>
                 <tr className="bg-slate-900 text-white">
-                  <th className="p-3 uppercase text-[10px] font-black tracking-widest border border-slate-700">Subject / Module</th>
-                  <th className="p-3 uppercase text-[10px] font-black tracking-widest border border-slate-700 text-center">Instructor</th>
-                  <th className="p-3 uppercase text-[10px] font-black tracking-widest border border-slate-700 text-center w-[100px]">Score (%)</th>
-                  <th className="p-3 uppercase text-[10px] font-black tracking-widest border border-slate-700 text-center w-[100px]">GPA</th>
+                  <th className="p-3 uppercase text-[9px] font-black tracking-widest border border-slate-700">Subject / Module</th>
+                  <th className="p-3 uppercase text-[9px] font-black tracking-widest border border-slate-700 text-center w-[80px]">Quizzes</th>
+                  <th className="p-3 uppercase text-[9px] font-black tracking-widest border border-slate-700 text-center w-[80px]">Midterm</th>
+                  <th className="p-3 uppercase text-[9px] font-black tracking-widest border border-slate-700 text-center w-[80px]">Final</th>
+                  <th className="p-3 uppercase text-[9px] font-black tracking-widest border border-slate-700 text-center w-[90px]">Total (%)</th>
+                  <th className="p-3 uppercase text-[9px] font-black tracking-widest border border-slate-700 text-center w-[70px]">GPA</th>
                 </tr>
               </thead>
               <tbody>
                 {data.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="p-8 text-center text-slate-400 font-bold text-sm italic border border-slate-200">
+                    <td colSpan={6} className="p-8 text-center text-slate-400 font-bold text-sm italic border border-slate-200">
                       No academic records available for this period.
                     </td>
                   </tr>
                 ) : (
                   data.map((item: any, idx: number) => (
                     <tr key={idx} className={idx % 2 === 0 ? "bg-white" : "bg-slate-50/40"}>
-                      <td className="p-3 font-black text-slate-900 uppercase text-xs border border-slate-200">{item.subject || item.name || "—"}</td>
-                      <td className="p-3 font-bold text-slate-500 text-[10px] text-center border border-slate-200">{item.teacher || "—"}</td>
-                      <td className="p-3 text-center border border-slate-200 font-black text-base">
+                      <td className="p-3 font-black text-slate-900 uppercase text-xs border border-slate-200">
+                         {item.subject || item.name || "—"}
+                         <p className="text-[8px] font-normal text-slate-400 mt-0.5 italic">{item.teacher || "Staff Member"}</p>
+                      </td>
+                      <td className="p-3 text-center border border-slate-200 font-bold text-slate-600 text-sm">{item.quizzes ?? 0}</td>
+                      <td className="p-3 text-center border border-slate-200 font-bold text-slate-600 text-sm">{item.midterm ?? 0}</td>
+                      <td className="p-3 text-center border border-slate-200 font-bold text-slate-600 text-sm">{item.final ?? 0}</td>
+                      <td className="p-3 text-center border border-slate-200 font-black text-base bg-indigo-50/30">
                         <span className={
                           (item.grade || 0) >= 70 ? "text-emerald-600"
                           : (item.grade || 0) >= 50 ? "text-amber-600"
@@ -118,7 +125,7 @@ export function ReportCardTemplate({ data, user, className }: ReportCardProps) {
                           {item.grade || 0}%
                         </span>
                       </td>
-                      <td className="p-3 text-center border border-slate-200 font-black bg-slate-50 text-indigo-950">
+                      <td className="p-3 text-center border border-slate-200 font-black bg-slate-100/50 text-slate-900">
                         {(item.gpa || 0).toFixed(2)}
                       </td>
                     </tr>

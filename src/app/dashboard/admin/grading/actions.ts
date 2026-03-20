@@ -517,47 +517,55 @@ export async function getClassOverallGradebook(classId: string) {
     const courseNames = Array.from(new Set(courses.map(c => c.name)))
 
     const matrix = await Promise.all(targetClass.students.map(async (student) => {
-      const courseGrades: Record<string, number | null> = {}
+      const courseGrades: Record<string, any> = {}
       let totalValidGrades = 0
       let sumOfAverages = 0
 
       for (const courseName of courseNames) {
         const matchingCourses = courses.filter(c => c.name === courseName)
+        const courseIds = matchingCourses.map(c => c.id)
         const quizIds = matchingCourses.flatMap(c => c.sections.flatMap(s => s.quizzes.map(q => q.id)))
 
-        if (quizIds.length === 0) {
-          courseGrades[courseName] = null
-          continue
-        }
-
-        const attempts = await prisma.quizAttempt.findMany({
-          where: {
-            studentId: student.id,
-            quizId: { in: quizIds }
-          },
-          select: {
-            quizId: true,
-            score: true
-          }
+        // Fetch Quizzes average
+        const quizAttempts = await prisma.quizAttempt.findMany({
+          where: { studentId: student.id, quizId: { in: quizIds } },
+          select: { quizId: true, score: true }
         })
-
-        const bestScores: Record<string, number> = {}
-        attempts.forEach(a => {
+        const bestQuizScores: Record<string, number> = {}
+        quizAttempts.forEach(a => {
            const s = parseFloat(a.score.toString())
-           if (!bestScores[a.quizId] || s > bestScores[a.quizId]) {
-              bestScores[a.quizId] = s
-           }
+           if (!bestQuizScores[a.quizId] || s > bestQuizScores[a.quizId]) bestQuizScores[a.quizId] = s
+        })
+        const quizAvg = quizIds.length > 0 ? Math.round(Object.values(bestQuizScores).reduce((a, b) => a + b, 0) / quizIds.length) : 0
+
+        // Fetch Exam results (Midterm & Final)
+        const examResults = await prisma.examResult.findMany({
+          where: { 
+            studentId: student.id, 
+            exam: { courseId: { in: courseIds }, classId: classId } 
+          },
+          include: { exam: true }
         })
 
-        const scores = Object.values(bestScores)
-        if (scores.length > 0) {
-           const avg = Math.round(scores.reduce((a, b) => a + b, 0) / quizIds.length)
-           courseGrades[courseName] = avg
-           sumOfAverages += avg
-           totalValidGrades++
-        } else {
-           courseGrades[courseName] = 0
+        const midterm = examResults.find(r => r.exam.type === 'MIDTERM')?.marksObtained || 0
+        const final = examResults.find(r => r.exam.type === 'FINAL')?.marksObtained || 0
+        
+        // Calculate Weighted Grade: e.g. 40% Quizzes, 30% Midterm, 30% Final
+        // If no midterm/final, we can adjust weights or just average
+        const hasExams = examResults.length > 0
+        const weightedGrade = hasExams 
+          ? Math.round((quizAvg * 0.4) + (midterm * 0.3) + (final * 0.3))
+          : quizAvg
+
+        courseGrades[courseName] = {
+           grade: weightedGrade,
+           midterm,
+           final,
+           quizzes: quizAvg
         }
+        
+        sumOfAverages += weightedGrade
+        totalValidGrades++
       }
 
       const overallAverage = totalValidGrades > 0 ? Math.round(sumOfAverages / totalValidGrades) : 0
@@ -667,33 +675,41 @@ export async function getBulkReportData(classId: string) {
       for (const course of courses) {
         const quizIds = course.sections.flatMap(s => s.quizzes.map(q => q.id))
         
-        if (quizIds.length === 0) continue
-
-        const attempts = await prisma.quizAttempt.findMany({
+        // 1. Quizzes
+        const quizAttempts = await prisma.quizAttempt.findMany({
           where: { studentId: student.id, quizId: { in: quizIds } },
           select: { quizId: true, score: true }
         })
-
-        const bestScores: Record<string, number> = {}
-        attempts.forEach(a => {
+        const bestQuizScores: Record<string, number> = {}
+        quizAttempts.forEach(a => {
            const s = parseFloat(a.score.toString())
-           if (!bestScores[a.quizId] || s > bestScores[a.quizId]) {
-              bestScores[a.quizId] = s
-           }
+           if (!bestQuizScores[a.quizId] || s > bestQuizScores[a.quizId]) bestQuizScores[a.quizId] = s
         })
+        const quizAvg = quizIds.length > 0 ? Math.round(Object.values(bestQuizScores).reduce((a, b) => a + b, 0) / quizIds.length) : 0
 
-        const scores = Object.values(bestScores)
-        const avg = scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / quizIds.length) : 0
+        // 2. Exams
+        const examResults = await prisma.examResult.findMany({
+          where: { studentId: student.id, exam: { courseId: course.id, classId: classId } },
+          include: { exam: true }
+        })
+        const midterm = examResults.find(r => r.exam.type === 'MIDTERM')?.marksObtained || 0
+        const final = examResults.find(r => r.exam.type === 'FINAL')?.marksObtained || 0
         
-        // Simple GPA mapping
-        const gpa = avg >= 90 ? 4.0 : avg >= 80 ? 3.5 : avg >= 70 ? 3.0 : avg >= 60 ? 2.5 : avg >= 50 ? 2.0 : 0.0
+        // 3. Weighting (40% Q, 30% M, 30% F)
+        const finalGrade = examResults.length > 0 
+           ? Math.round((quizAvg * 0.4) + (midterm * 0.3) + (final * 0.3))
+           : quizAvg
+
+        const gpa = finalGrade >= 90 ? 4.0 : finalGrade >= 80 ? 3.5 : finalGrade >= 70 ? 3.0 : finalGrade >= 60 ? 2.5 : finalGrade >= 50 ? 2.0 : 0.0
 
         studentGrades.push({
           subject: course.name,
           teacher: `${course.teacher.firstName} ${course.teacher.lastName}`,
-          grade: avg,
-          gpa,
-          exams: scores.map(s => ({ score: s, max: 100 })) // Map quizzes as mini-exams for template
+          grade: finalGrade,
+          quizzes: quizAvg,
+          midterm,
+          final,
+          gpa
         })
       }
 
