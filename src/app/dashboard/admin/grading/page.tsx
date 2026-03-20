@@ -8,7 +8,8 @@ import {
   submitGradeUpdate, 
   generateAIGrade,
   generateBatchAIGrades,
-  generateGlobalQuizAIGrades
+  generateGlobalQuizAIGrades,
+  getCourseGradebookData
 } from "./actions"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -44,7 +45,7 @@ import {
 import { toast } from "sonner"
 import { format } from "date-fns"
 
-type ViewState = 'COURSES' | 'QUIZZES' | 'SUBMISSIONS' | 'GRADE'
+type ViewState = 'COURSES' | 'QUIZZES' | 'SUBMISSIONS' | 'GRADE' | 'GRADEBOOK'
 
 export default function GradingInterfacePage() {
   const [view, setView] = React.useState<ViewState>('COURSES')
@@ -54,6 +55,7 @@ export default function GradingInterfacePage() {
   const [courses, setCourses] = React.useState<any[]>([])
   const [quizzes, setQuizzes] = React.useState<any[]>([])
   const [submissions, setSubmissions] = React.useState<any[]>([])
+  const [gradebookData, setGradebookData] = React.useState<{quizzes: any[], gradebook: any[]}>({ quizzes: [], gradebook: [] })
   
   // Search/Filter States
   const [searchTerm, setSearchTerm] = React.useState("")
@@ -107,10 +109,20 @@ export default function GradingInterfacePage() {
     setView('GRADE')
   }
 
+  const navigateToGradebook = async (course: any) => {
+    setLoading(true)
+    setSelectedCourse(course)
+    const data = await getCourseGradebookData(course.id, course.classId)
+    setGradebookData(data)
+    setView('GRADEBOOK')
+    setLoading(false)
+  }
+
   const goBack = () => {
     if (view === 'GRADE') setView('SUBMISSIONS')
     else if (view === 'SUBMISSIONS') setView('QUIZZES')
     else if (view === 'QUIZZES') setView('COURSES')
+    else if (view === 'GRADEBOOK') setView('COURSES')
   }
 
   const handleInputChange = (idx: number, field: string, value: any) => {
@@ -300,6 +312,7 @@ export default function GradingInterfacePage() {
             {view === 'COURSES' ? 'Course Grading.' : 
              view === 'QUIZZES' ? 'Quizzes List.' : 
              view === 'SUBMISSIONS' ? 'Submissions.' : 
+             view === 'GRADEBOOK' ? 'Mark Sheet / Gradebook.' :
              'Assignment Review.'}
           </h1>
         </div>
@@ -369,7 +382,7 @@ export default function GradingInterfacePage() {
                        <th className="px-6 md:px-8 py-6 text-[11px] font-black uppercase text-slate-400 tracking-[0.1em]">Instructor</th>
                        <th className="px-6 md:px-8 py-6 text-[11px] font-black uppercase text-slate-400 tracking-[0.1em] text-center">Size</th>
                        <th className="px-6 md:px-8 py-6 text-[11px] font-black uppercase text-slate-400 tracking-[0.1em] text-center">Quizzes</th>
-                       <th className="px-6 md:px-8 py-6 text-[11px] font-black uppercase text-slate-400 tracking-[0.1em] text-right">View</th>
+                       <th className="px-6 md:px-8 py-6 text-[11px] font-black uppercase text-slate-400 tracking-[0.1em] text-right">Actions</th>
                     </tr>
                  </thead>
                  <tbody className="divide-y divide-slate-100">
@@ -400,7 +413,7 @@ export default function GradingInterfacePage() {
                              <Badge className="bg-slate-900 text-white font-black rounded-lg px-3 uppercase text-[10px]">{row.quizCount}</Badge>
                           </td>
                           <td className="px-6 md:px-8 py-6 text-right">
-                             <Button onClick={() => navigateToQuizzes(row)} variant="ghost" className="h-10 md:h-12 w-10 md:w-12 p-0 rounded-2xl hover:bg-slate-900 hover:text-white transition-all">
+                             <Button onClick={() => navigateToGradebook(row)}>Gradebook</Button><Button onClick={() => navigateToQuizzes(row)} variant="ghost" className="h-10 md:h-12 w-10 md:w-12 p-0 rounded-2xl hover:bg-slate-900 hover:text-white transition-all">
                                 <ChevronRight className="h-5 md:h-6 w-5 md:w-6" />
                              </Button>
                           </td>
@@ -631,6 +644,106 @@ export default function GradingInterfacePage() {
                     </div>
                  )
               })}
+           </div>
+        </div>
+      )}
+
+      {view === 'GRADEBOOK' && (
+        <div className="space-y-6 animate-in slide-in-from-bottom-5 duration-500">
+           {/* Course Header Summary */}
+           <div className="bg-white p-6 md:p-8 rounded-[2rem] border-2 border-slate-50 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6 overflow-hidden relative">
+              <div className="absolute top-0 right-0 h-full w-32 bg-indigo-600/5 -skew-x-12 translate-x-10" />
+              <div className="flex items-center gap-6 relative">
+                 <div className="h-16 w-16 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-100 shrink-0">
+                    <BookOpen className="h-8 w-8" />
+                 </div>
+                 <div>
+                    <h2 className="text-2xl font-black text-slate-900 tracking-tight uppercase leading-none mb-2">{selectedCourse?.name}</h2>
+                    <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">{selectedCourse?.className} • MARK SHEET</p>
+                 </div>
+              </div>
+              <div className="flex items-center gap-3 relative">
+                 <div className="text-right">
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Total Quizzes</p>
+                    <p className="text-2xl font-black text-slate-900 leading-none">{gradebookData.quizzes.length}</p>
+                 </div>
+                 <div className="h-10 w-[1px] bg-slate-100 mx-2" />
+                 <div className="text-right">
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Total Students</p>
+                    <p className="text-2xl font-black text-slate-900 leading-none">{gradebookData.gradebook.length}</p>
+                 </div>
+              </div>
+           </div>
+
+           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+              <div className="relative group w-full md:max-w-md">
+                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
+                 <input 
+                    placeholder="Search student by name or ID..." 
+                    value={submissionSearch}
+                    onChange={(e) => setSubmissionSearch(e.target.value)}
+                    className="pl-12 h-12 w-full bg-white border-2 border-slate-100 rounded-xl text-sm font-medium focus:border-indigo-500 transition-all shadow-sm outline-none"
+                 />
+              </div>
+              <Button 
+                onClick={() => window.print()} 
+                variant="outline" 
+                className="w-full md:w-auto h-12 rounded-xl border-slate-200 gap-2 font-black text-xs uppercase tracking-widest bg-white"
+              >
+                  <FileText className="h-4 w-4" />
+                  Print / Save PDF
+              </Button>
+           </div>
+
+           <div className="bg-white rounded-[1.5rem] md:rounded-[2.5rem] border-2 border-slate-50 shadow-sm overflow-x-auto print:shadow-none print:border-none">
+              <table className="w-full text-left border-collapse min-w-[1000px]">
+                 <thead>
+                    <tr className="border-b border-slate-100 bg-slate-50/80 backdrop-blur-md">
+                       <th className="px-6 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest w-[250px] sticky left-0 bg-slate-50/80 z-10 backdrop-blur-md">Student Information</th>
+                       {gradebookData.quizzes.map((q, i) => (
+                          <th key={q.id} className="px-4 py-6 text-[10px] font-black uppercase text-indigo-500 tracking-tighter text-center">
+                             <div className="truncate max-w-[120px] mx-auto" title={q.title}>Q{i+1}: {q.title}</div>
+                          </th>
+                       ))}
+                       <th className="px-6 py-6 text-[10px] font-black uppercase text-slate-900 tracking-widest w-[120px] text-center bg-slate-100/50">Grand Total</th>
+                    </tr>
+                 </thead>
+                 <tbody className="divide-y divide-slate-100">
+                    {gradebookData.gradebook
+                      .filter(s => s.name.toLowerCase().includes(submissionSearch.toLowerCase()) || s.manualId?.toLowerCase().includes(submissionSearch.toLowerCase()))
+                      .map(student => (
+                       <tr key={student.studentId} className="hover:bg-indigo-50/10 transition-all group">
+                          <td className="px-6 py-4 sticky left-0 bg-white group-hover:bg-slate-50 transition-all z-10">
+                             <div className="flex flex-col">
+                                <p className="font-black text-slate-900 uppercase text-xs tracking-tight truncate">{student.name}</p>
+                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{student.manualId || student.studentId?.substring(0,8)}</p>
+                             </div>
+                          </td>
+                          {gradebookData.quizzes.map(quiz => {
+                             const score = student.quizScores[quiz.id]
+                             return (
+                                <td key={quiz.id} className="px-4 py-4 text-center">
+                                   {score !== null ? (
+                                      <div className="inline-flex items-center justify-center p-2 rounded-lg bg-white border border-slate-100 shadow-sm min-w-[60px]">
+                                         <p className={`text-xs font-black ${score >= 70 ? 'text-emerald-600' : score >= 50 ? 'text-amber-600' : 'text-rose-600'}`}>
+                                            {score}%
+                                         </p>
+                                      </div>
+                                   ) : (
+                                      <span className="text-[10px] font-bold text-slate-300">N/A</span>
+                                   )}
+                                </td>
+                             )
+                          })}
+                          <td className="px-6 py-4 text-center bg-indigo-50/30">
+                             <div className={`text-base font-black ${student.average >= 70 ? 'text-indigo-600' : student.average >= 50 ? 'text-slate-700' : 'text-rose-700'}`}>
+                                {student.average}%
+                             </div>
+                          </td>
+                       </tr>
+                    ))}
+                 </tbody>
+              </table>
            </div>
         </div>
       )}

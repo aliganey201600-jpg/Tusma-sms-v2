@@ -340,3 +340,79 @@ export async function generateGlobalQuizAIGrades(quizId: string, classId?: strin
   }
 }
 
+
+export async function getCourseGradebookData(courseId: string, classId: string) {
+  try {
+    // 1. Get all quizzes for this course
+    const quizzes = await prisma.quiz.findMany({
+      where: { section: { courseId } },
+      orderBy: { order: 'asc' },
+      select: { id: true, title: true }
+    })
+
+    // 2. Get all students in this class
+    const students = await prisma.student.findMany({
+      where: { classId },
+      select: { 
+        id: true, 
+        firstName: true, 
+        lastName: true, 
+        studentId: true 
+      },
+      orderBy: { firstName: 'asc' }
+    })
+
+    // 3. Get all quiz attempts for these students and these quizzes
+    const attempts = await prisma.quizAttempt.findMany({
+      where: {
+        quizId: { in: quizzes.map(q => q.id) },
+        studentId: { in: students.map(s => s.id) }
+      },
+      select: {
+        id: true,
+        quizId: true,
+        studentId: true,
+        score: true
+      }
+    })
+
+    // 4. Transform into a matrix
+    const gradebook = students.map(student => {
+      const studentAttempts = attempts.filter(a => a.studentId === student.id)
+      const quizScores: Record<string, number | null> = {}
+      let totalScore = 0
+      let attemptedQuizzes = 0
+
+      quizzes.forEach(quiz => {
+        // Find the best score for this quiz
+        const quizAttempt = studentAttempts
+          .filter(a => a.quizId === quiz.id)
+          .sort((a, b) => b.score - a.score)[0]
+        
+        quizScores[quiz.id] = quizAttempt ? quizAttempt.score : null
+        if (quizAttempt) {
+            totalScore += quizAttempt.score
+            attemptedQuizzes++
+        }
+      })
+
+      // The user asked for "grand total". Let's provide average of weighted total.
+      // Sum of scores / number of quizzes
+      const average = quizzes.length > 0 ? (totalScore / quizzes.length) : 0
+
+      return {
+        studentId: student.id,
+        manualId: student.studentId,
+        name: `${student.firstName} ${student.lastName}`,
+        quizScores,
+        totalScore,
+        average: parseFloat(average.toFixed(2))
+      }
+    })
+
+    return { quizzes, gradebook }
+  } catch (error) {
+    console.error("Error fetching gradebook data:", error)
+    return { quizzes: [], gradebook: [] }
+  }
+}
