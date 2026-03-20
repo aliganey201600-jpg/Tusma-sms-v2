@@ -92,7 +92,7 @@ export async function getStudentGrades(studentId: string) {
                 count: studentAttempts.length,
                 min: parseFloat(Math.min(...scores).toFixed(1)),
                 max: parseFloat(Math.max(...scores).toFixed(1)),
-                avg: parseFloat((scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1))
+                avg: parseFloat((scores.reduce((a: number, b: number) => a + b, 0) / scores.length).toFixed(1))
               },
               results: bestAttempt.results // Array of { question, studentAnswer, correctAnswer, earned, total, feedback, isCorrect }
             })
