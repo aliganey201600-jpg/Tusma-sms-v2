@@ -11,6 +11,7 @@ import {
   generateGlobalQuizAIGrades,
   getCourseGradebookData
 } from "./actions"
+import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -48,6 +49,8 @@ import { format } from "date-fns"
 type ViewState = 'COURSES' | 'QUIZZES' | 'SUBMISSIONS' | 'GRADE' | 'GRADEBOOK'
 
 export default function GradingInterfacePage() {
+  const searchParams = useSearchParams()
+  const isGradebookMode = searchParams.get('view') === 'gradebook'
   const [view, setView] = React.useState<ViewState>('COURSES')
   const [loading, setLoading] = React.useState(true)
   
@@ -302,17 +305,18 @@ export default function GradingInterfacePage() {
               </Button>
             )}
             <Badge variant="outline" className="border-indigo-200 text-indigo-600 px-3 py-1 bg-indigo-50/30 font-black text-[10px] tracking-widest whitespace-nowrap overflow-hidden text-ellipsis max-w-[250px]">
-              {view === 'COURSES' ? 'MASTER REGISTRY' : 
+              {view === 'COURSES' ? (isGradebookMode ? 'GRADEBOOK REGISTRY' : 'MASTER REGISTRY') : 
                view === 'QUIZZES' ? `${selectedCourse?.name} (${selectedCourse?.className})` : 
                view === 'SUBMISSIONS' ? selectedQuiz?.title : 
+               view === 'GRADEBOOK' ? `${selectedCourse?.name} MATRIX` :
                'EVALUATION MODE'}
             </Badge>
           </div>
           <h1 className="text-3xl md:text-5xl font-black tracking-tighter text-slate-900 leading-none break-words">
-            {view === 'COURSES' ? 'Course Grading.' : 
+            {view === 'COURSES' ? (isGradebookMode ? 'Academic Gradebook.' : 'Course Grading.') : 
              view === 'QUIZZES' ? 'Quizzes List.' : 
              view === 'SUBMISSIONS' ? 'Submissions.' : 
-             view === 'GRADEBOOK' ? 'Mark Sheet / Gradebook.' :
+             view === 'GRADEBOOK' ? 'Mark Sheet / Matrix.' :
              'Assignment Review.'}
           </h1>
         </div>
@@ -412,11 +416,7 @@ export default function GradingInterfacePage() {
                           <td className="px-6 md:px-8 py-6 text-center">
                              <Badge className="bg-slate-900 text-white font-black rounded-lg px-3 uppercase text-[10px]">{row.quizCount}</Badge>
                           </td>
-                          <td className="px-6 md:px-8 py-6 text-right">
-                             <Button onClick={() => navigateToGradebook(row)}>Gradebook</Button><Button onClick={() => navigateToQuizzes(row)} variant="ghost" className="h-10 md:h-12 w-10 md:w-12 p-0 rounded-2xl hover:bg-slate-900 hover:text-white transition-all">
-                                <ChevronRight className="h-5 md:h-6 w-5 md:w-6" />
-                             </Button>
-                          </td>
+                          <td className="px-6 md:px-8 py-6 text-right whitespace-nowrap"><div className="flex items-center justify-end gap-2">{isGradebookMode ? (<Button onClick={() => navigateToGradebook(row)} className="h-11 px-5 rounded-2xl bg-indigo-600 text-white font-black hover:bg-slate-900 transition-all shadow-lg shadow-indigo-100 gap-2 text-xs"><FileText className="h-4 w-4" />View Gradebook</Button>) : (<Button onClick={() => navigateToQuizzes(row)} variant="ghost" className="h-10 md:h-12 w-10 md:w-12 p-0 rounded-2xl hover:bg-slate-900 hover:text-white transition-all shrink-0"><ChevronRight className="h-5 md:h-6 w-5 md:w-6" /></Button>)}</div></td>
                        </tr>
                     ))}
                  </tbody>
@@ -750,3 +750,4 @@ export default function GradingInterfacePage() {
     </div>
   )
 }
+

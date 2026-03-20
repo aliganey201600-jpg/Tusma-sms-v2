@@ -23,6 +23,7 @@ import {
   Briefcase,
   RefreshCcw,
   Trophy,
+  FileText,
 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
@@ -79,6 +80,7 @@ export function Sidebar({ className, role }: SidebarProps) {
       { label: "Finance", icon: CreditCard, href: "/dashboard/admin/finance" },
       { label: "Exams", icon: GraduationCap, href: "/dashboard/admin/exams" },
       { label: "Grading", icon: BookOpen, href: "/dashboard/admin/grading" },
+      { label: "Gradebook", icon: FileText, href: "/dashboard/admin/grading?view=gradebook" },
       { label: "Assignments", icon: Briefcase, href: "/dashboard/admin/teachers/assignments" },
       { label: "Imports", icon: RefreshCcw, href: "/dashboard/admin/imports" },
       { label: "Messages", icon: Bell, href: "/dashboard/messages" },
