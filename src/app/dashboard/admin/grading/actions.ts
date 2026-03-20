@@ -23,7 +23,10 @@ export async function getGradingCourses() {
     if (user.role === 'TEACHER' && user.teacher) {
       where.teacherId = user.teacher.id
     } else if (user.role === 'STUDENT' && user.student) {
-      where.enrollments = { some: { studentId: user.student.id } }
+      where.OR = [
+        { enrollments: { some: { studentId: user.student.id } } },
+        { teacherAssignments: { some: { classId: user.student.classId } } }
+      ]
     } else if (user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN') {
       return [] // Other roles shouldn't see this for now
     }

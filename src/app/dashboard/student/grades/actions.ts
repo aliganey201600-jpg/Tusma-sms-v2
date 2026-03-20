@@ -20,50 +20,57 @@ const scoreToGPA = (score: number) => {
 
 export async function getStudentGrades(studentId: string) {
   try {
-    const enrollments = await prisma.enrollment.findMany({
-      where: { studentId },
+    const student = await prisma.student.findUnique({
+      where: { id: studentId },
+      select: { classId: true }
+    })
+    
+    if (!student) return []
+
+    const courses = await prisma.course.findMany({
+      where: {
+        OR: [
+          { enrollments: { some: { studentId } } },
+          { teacherAssignments: { some: { classId: student.classId || "none" } } }
+        ]
+      },
       include: {
-        course: {
+        teacher: { select: { firstName: true, lastName: true } },
+        sections: {
           include: {
-            teacher: { select: { firstName: true, lastName: true } },
-            sections: {
+            quizzes: {
               include: {
-                quizzes: {
-                  include: {
-                    attempts: {
-                      where: { studentId },
-                      orderBy: { score: 'desc' },
-                      take: 1
-                    }
-                  }
+                attempts: {
+                  where: { studentId },
+                  orderBy: { score: 'desc' },
+                  take: 1
                 }
               }
-            },
-            exams: {
-               include: {
-                 results: {
-                   where: { studentId },
-                   take: 1
-                 }
-               }
-            },
-            assignments: {
-               include: {
-                 grades: {
-                   where: { studentId },
-                   take: 1
-                 }
-               }
+            }
+          }
+        },
+        exams: {
+          include: {
+            results: {
+              where: { studentId },
+              take: 1
+            }
+          }
+        },
+        assignments: {
+          include: {
+            grades: {
+              where: { studentId },
+              take: 1
             }
           }
         }
       }
     })
     
-    if (enrollments.length === 0) return []
+    if (courses.length === 0) return []
 
-    const formatted = enrollments.map((en: any) => {
-      const course = en.course
+    const formatted = courses.map((course: any) => {
       const items: any[] = []
       
       // 1. Quizzes
