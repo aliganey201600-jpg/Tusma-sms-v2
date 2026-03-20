@@ -416,3 +416,105 @@ export async function getCourseGradebookData(courseId: string, classId: string) 
     return { quizzes: [], gradebook: [] }
   }
 }
+
+export async function getClassOverallGradebook(classId: string) {
+  try {
+    const targetClass = await prisma.class.findUnique({
+      where: { id: classId },
+      include: {
+        students: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            studentId: true,
+          }
+        }
+      }
+    })
+
+    if (!targetClass) throw new Error("Fasalka lama helin.")
+
+    const teacherAssignments = await prisma.teacherAssignment.findMany({
+      where: { classId },
+      include: {
+        course: {
+          include: {
+            sections: {
+              include: {
+                quizzes: true
+              }
+            }
+          }
+        }
+      }
+    })
+
+    const courses = teacherAssignments.map(ta => ta.course)
+    const courseNames = Array.from(new Set(courses.map(c => c.name)))
+
+    const matrix = await Promise.all(targetClass.students.map(async (student) => {
+      const courseGrades: Record<string, number | null> = {}
+      let totalValidGrades = 0
+      let sumOfAverages = 0
+
+      for (const courseName of courseNames) {
+        const matchingCourses = courses.filter(c => c.name === courseName)
+        const quizIds = matchingCourses.flatMap(c => c.sections.flatMap(s => s.quizzes.map(q => q.id)))
+
+        if (quizIds.length === 0) {
+          courseGrades[courseName] = null
+          continue
+        }
+
+        const attempts = await prisma.quizAttempt.findMany({
+          where: {
+            studentId: student.id,
+            quizId: { in: quizIds }
+          },
+          select: {
+            quizId: true,
+            score: true
+          }
+        })
+
+        const bestScores: Record<string, number> = {}
+        attempts.forEach(a => {
+           const s = parseFloat(a.score.toString())
+           if (!bestScores[a.quizId] || s > bestScores[a.quizId]) {
+              bestScores[a.quizId] = s
+           }
+        })
+
+        const scores = Object.values(bestScores)
+        if (scores.length > 0) {
+           const avg = Math.round(scores.reduce((a, b) => a + b, 0) / quizIds.length)
+           courseGrades[courseName] = avg
+           sumOfAverages += avg
+           totalValidGrades++
+        } else {
+           courseGrades[courseName] = 0
+        }
+      }
+
+      const overallAverage = totalValidGrades > 0 ? Math.round(sumOfAverages / totalValidGrades) : 0
+
+      return {
+        studentId: student.id,
+        manualId: student.studentId,
+        name: `${student.firstName} ${student.lastName}`,
+        courseGrades,
+        overallAverage
+      }
+    }))
+
+    return {
+      className: targetClass.name,
+      courses: courseNames,
+      students: matrix
+    }
+  } catch (error) {
+    console.error("getClassOverallGradebook error:", error)
+    return { className: "", courses: [], students: [] }
+  }
+}
