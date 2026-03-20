@@ -518,3 +518,28 @@ export async function getClassOverallGradebook(classId: string) {
     return { className: "", courses: [], students: [] }
   }
 }
+
+export async function getGradingClasses() {
+  try {
+    const classes = await prisma.class.findMany({
+      include: {
+        _count: {
+          select: {
+            students: true,
+            subjectAssignments: true
+          }
+        }
+      }
+    })
+    
+    return classes.map(c => ({
+      id: c.id,
+      name: c.name,
+      studentsCount: (c as any)._count.students,
+      coursesCount: (c as any)._count.subjectAssignments
+    }))
+  } catch (error) {
+    console.error("getGradingClasses error:", error)
+    return []
+  }
+}

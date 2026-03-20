@@ -11,7 +11,8 @@ import {
   generateBatchAIGrades,
   generateGlobalQuizAIGrades,
   getCourseGradebookData,
-  getClassOverallGradebook
+  getClassOverallGradebook,
+  getGradingClasses
 } from "./actions"
 import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -55,6 +56,7 @@ function GradingInterfaceContent() {
   const isGradebookMode = searchParams.get('view') === 'gradebook'
   const [view, setView] = React.useState<ViewState>('COURSES')
   const [loading, setLoading] = React.useState(true)
+  const [activeTab, setActiveTab] = React.useState<'COURSES' | 'CLASSES'>('COURSES')
   
   // Data States
   const [courses, setCourses] = React.useState<any[]>([])
@@ -62,6 +64,7 @@ function GradingInterfaceContent() {
   const [submissions, setSubmissions] = React.useState<any[]>([])
   const [gradebookData, setGradebookData] = React.useState<{quizzes: any[], gradebook: any[]}>({ quizzes: [], gradebook: [] })
   const [classReportData, setClassReportData] = React.useState<{className: string, courses: string[], students: any[]}>({ className: "", courses: [], students: [] })
+  const [classesList, setClassesList] = React.useState<any[]>([])
   
   // Search/Filter States
   const [searchTerm, setSearchTerm] = React.useState("")
@@ -82,8 +85,12 @@ function GradingInterfaceContent() {
 
   const loadInitialData = React.useCallback(async () => {
     setLoading(true)
-    const data = await getGradingCourses()
-    setCourses(data)
+    const [coursesData, classesData] = await Promise.all([
+      getGradingCourses(),
+      getGradingClasses()
+    ])
+    setCourses(coursesData)
+    setClassesList(classesData)
     setLoading(false)
   }, [])
 
@@ -366,76 +373,136 @@ function GradingInterfaceContent() {
 
       {view === 'COURSES' && (
         <div className="space-y-6">
-           <div className="flex flex-col md:flex-row gap-4">
-              <div className="relative flex-1 group">
-                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
-                 <Input 
-                    placeholder="Search by course or teacher..." 
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-12 h-14 bg-white border-2 border-slate-100 rounded-2xl text-lg font-medium focus:border-indigo-500 transition-all shadow-sm"
-                 />
-              </div>
-              <Select value={classFilter} onValueChange={setClassFilter}>
-                 <SelectTrigger className="w-full md:w-64 h-14 bg-white border-2 border-slate-100 rounded-2xl text-lg font-medium shadow-sm">
-                    <div className="flex items-center gap-2">
-                       <Filter className="h-4 w-4 text-slate-400" />
-                       <SelectValue placeholder="All Classes" />
-                    </div>
-                 </SelectTrigger>
-                 <SelectContent className="rounded-2xl border-2">
-                    <SelectItem value="all" className="font-bold text-slate-600">All Classes</SelectItem>
-                    {uniqueClasses.map(cls => (
-                       <SelectItem key={cls} value={cls} className="font-bold text-indigo-600">{cls}</SelectItem>
-                    ))}
-                 </SelectContent>
-              </Select>
-           </div>
+            {/* TABS Navigation */}
+            <div className="flex bg-slate-100/80 p-1.5 rounded-2xl w-full md:w-fit mb-8 border border-white shadow-inner">
+              <button 
+                onClick={() => setActiveTab('COURSES')}
+                className={`px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'COURSES' ? "bg-white text-indigo-600 shadow-md scale-[1.02]" : "text-slate-400 hover:text-slate-600"}`}
+              >
+                Course Gradebook
+              </button>
+              <button 
+                onClick={() => setActiveTab('CLASSES')}
+                className={`px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'CLASSES' ? "bg-white text-indigo-600 shadow-md scale-[1.02]" : "text-slate-400 hover:text-slate-600"}`}
+              >
+                Class Master Sheet
+              </button>
+            </div>
 
-           <div className="bg-white rounded-[1.5rem] md:rounded-[2.5rem] border-2 border-slate-50 shadow-sm overflow-x-auto">
-              <table className="w-full text-left border-collapse min-w-[800px]">
-                 <thead>
-                    <tr className="border-b border-slate-100 bg-slate-50/30">
-                       <th className="px-6 md:px-8 py-6 text-[11px] font-black uppercase text-slate-400 tracking-[0.1em]">Class Assignment</th>
-                       <th className="px-6 md:px-8 py-6 text-[11px] font-black uppercase text-slate-400 tracking-[0.1em]">Instructor</th>
-                       <th className="px-6 md:px-8 py-6 text-[11px] font-black uppercase text-slate-400 tracking-[0.1em] text-center">Size</th>
-                       <th className="px-6 md:px-8 py-6 text-[11px] font-black uppercase text-slate-400 tracking-[0.1em] text-center">Quizzes</th>
-                       <th className="px-6 md:px-8 py-6 text-[11px] font-black uppercase text-slate-400 tracking-[0.1em] text-right">Actions</th>
-                    </tr>
-                 </thead>
-                 <tbody className="divide-y divide-slate-100">
-                    {filteredCourses.map((row, idx) => (
-                       <tr key={`${row.id}-${row.classId}-${idx}`} className="hover:bg-slate-50/80 transition-all group">
-                          <td className="px-6 md:px-8 py-6">
-                             <div className="flex items-center gap-5">
-                                <div className="h-12 md:h-14 w-12 md:w-14 rounded-2xl bg-white border-2 border-slate-100 text-slate-300 group-hover:bg-indigo-600 group-hover:text-white group-hover:border-indigo-600 transition-all shadow-sm flex items-center justify-center shrink-0">
-                                   <BookOpen className="h-6 md:h-7 w-6 md:w-7" />
-                                </div>
-                                <div>
-                                   <p className="font-black text-slate-900 text-base md:text-lg uppercase tracking-tight group-hover:text-indigo-600 transition-colors leading-none mb-1.5">{row.name}</p>
-                                   <div className="flex items-center gap-1.5">
-                                      <ClassIcon className="h-3 w-3 text-indigo-500" />
-                                      <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">{row.className}</p>
-                                   </div>
-                                </div>
-                             </div>
-                          </td>
-                          <td className="px-6 md:px-8 py-6 font-bold text-slate-600 text-sm">{row.teacher}</td>
-                          <td className="px-6 md:px-8 py-6 text-center">
-                             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-100 text-slate-500 font-bold group-hover:bg-white border group-hover:border-slate-200 transition-all">
-                                <Users className="h-3.5 w-3.5" />
-                                <span className="text-sm font-black">{row.studentsCount}</span>
-                             </div>
-                          </td>
-                          <td className="px-6 md:px-8 py-6 text-center">
-                             <Badge className="bg-slate-900 text-white font-black rounded-lg px-3 uppercase text-[10px]">{row.quizCount}</Badge>
-                          </td>
-                          <td className="px-6 md:px-8 py-6 text-right whitespace-nowrap"><div className="flex items-center justify-end gap-2">{isGradebookMode ? (<Button onClick={() => navigateToGradebook(row)} className="h-11 px-5 rounded-2xl bg-indigo-600 text-white font-black hover:bg-slate-900 transition-all shadow-lg shadow-indigo-100 gap-2 text-xs"><FileText className="h-4 w-4" />View Gradebook</Button>) : (<Button onClick={() => navigateToQuizzes(row)} variant="ghost" className="h-10 md:h-12 w-10 md:w-12 p-0 rounded-2xl hover:bg-slate-900 hover:text-white transition-all shrink-0"><ChevronRight className="h-5 md:h-6 w-5 md:w-6" /></Button>)}</div></td>
-                       </tr>
-                    ))}
-                 </tbody>
-              </table>
-           </div>
+            {activeTab === 'COURSES' ? (
+              <>
+                <div className="flex flex-col md:flex-row gap-4">
+                  <div className="relative flex-1 group">
+                      <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
+                      <Input 
+                        placeholder="Search by course or teacher..." 
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-12 h-14 bg-white border-2 border-slate-100 rounded-2xl text-lg font-medium focus:border-indigo-500 transition-all shadow-sm"
+                      />
+                  </div>
+                  <Select value={classFilter} onValueChange={setClassFilter}>
+                      <SelectTrigger className="w-full md:w-64 h-14 bg-white border-2 border-slate-100 rounded-2xl text-lg font-medium shadow-sm">
+                        <div className="flex items-center gap-2">
+                           <Filter className="h-4 w-4 text-slate-400" />
+                           <SelectValue placeholder="All Classes" />
+                        </div>
+                      </SelectTrigger>
+                      <SelectContent className="rounded-2xl border-2">
+                        <SelectItem value="all" className="font-bold text-slate-600">All Classes</SelectItem>
+                        {uniqueClasses.map(cls => (
+                           <SelectItem key={cls} value={cls} className="font-bold text-indigo-600">{cls}</SelectItem>
+                        ))}
+                      </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="bg-white rounded-[1.5rem] md:rounded-[2.5rem] border-2 border-slate-50 shadow-sm overflow-x-auto">
+                  <table className="w-full text-left border-collapse min-w-[800px]">
+                      <thead>
+                        <tr className="border-b border-slate-100 bg-slate-50/30">
+                            <th className="px-6 md:px-8 py-6 text-[11px] font-black uppercase text-slate-400 tracking-[0.1em]">Class Assignment</th>
+                            <th className="px-6 md:px-8 py-6 text-[11px] font-black uppercase text-slate-400 tracking-[0.1em]">Instructor</th>
+                            <th className="px-6 md:px-8 py-6 text-[11px] font-black uppercase text-slate-400 tracking-[0.1em] text-center">Size</th>
+                            <th className="px-6 md:px-8 py-6 text-[11px] font-black uppercase text-slate-400 tracking-[0.1em] text-center">Quizzes</th>
+                            <th className="px-6 md:px-8 py-6 text-[11px] font-black uppercase text-slate-400 tracking-[0.1em] text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {filteredCourses.map((row, idx) => (
+                            <tr key={`${row.id}-${row.classId}-${idx}`} className="hover:bg-slate-50/80 transition-all group">
+                              <td className="px-6 md:px-8 py-6">
+                                  <div className="flex items-center gap-5">
+                                    <div className="h-12 md:h-14 w-12 md:w-14 rounded-2xl bg-white border-2 border-slate-100 text-slate-300 group-hover:bg-indigo-600 group-hover:text-white group-hover:border-indigo-600 transition-all shadow-sm flex items-center justify-center shrink-0">
+                                        <BookOpen className="h-6 md:h-7 w-6 md:w-7" />
+                                    </div>
+                                    <div>
+                                        <p className="font-black text-slate-900 text-base md:text-lg uppercase tracking-tight group-hover:text-indigo-600 transition-colors leading-none mb-1.5">{row.name}</p>
+                                        <div className="flex items-center gap-1.5">
+                                          <ClassIcon className="h-3 w-3 text-indigo-500" />
+                                          <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">{row.className}</p>
+                                        </div>
+                                    </div>
+                                  </div>
+                              </td>
+                              <td className="px-6 md:px-8 py-6 font-bold text-slate-600 text-sm">{row.teacher}</td>
+                              <td className="px-6 md:px-8 py-6 text-center">
+                                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-100 text-slate-500 font-bold group-hover:bg-white border group-hover:border-slate-200 transition-all">
+                                    <Users className="h-3.5 w-3.5" />
+                                    <span className="text-sm font-black">{row.studentsCount}</span>
+                                  </div>
+                              </td>
+                              <td className="px-6 md:px-8 py-6 text-center">
+                                  <Badge className="bg-slate-900 text-white font-black rounded-lg px-3 uppercase text-[10px]">{row.quizCount}</Badge>
+                              </td>
+                              <td className="px-6 md:px-8 py-6 text-right whitespace-nowrap"><div className="flex items-center justify-end gap-2">{isGradebookMode ? (<Button onClick={() => navigateToGradebook(row)} className="h-11 px-5 rounded-2xl bg-indigo-600 text-white font-black hover:bg-slate-900 transition-all shadow-lg shadow-indigo-100 gap-2 text-xs"><FileText className="h-4 w-4" />View Gradebook</Button>) : (<Button onClick={() => navigateToQuizzes(row)} variant="ghost" className="h-10 md:h-12 w-10 md:w-12 p-0 rounded-2xl hover:bg-slate-900 hover:text-white transition-all shrink-0"><ChevronRight className="h-5 md:h-6 w-5 md:w-6" /></Button>)}</div></td>
+                            </tr>
+                        ))}
+                      </tbody>
+                  </table>
+                </div>
+              </>
+            ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {classesList
+                  .filter(c => c.name.toLowerCase().includes(searchTerm.toLowerCase()))
+                  .map((cls) => (
+                  <Card key={cls.id} className="group overflow-hidden rounded-[2.5rem] border-2 border-slate-50 hover:border-indigo-100 hover:shadow-2xl hover:shadow-indigo-50/50 transition-all duration-500 bg-white">
+                    <div className="p-8">
+                       <div className="flex justify-between items-start mb-6">
+                          <div className="h-14 w-14 rounded-2xl bg-slate-900 text-white flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-500">
+                             <ClassIcon className="h-7 w-7" />
+                          </div>
+                          <Badge variant="outline" className="rounded-full bg-slate-50 border-slate-100 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                             ACTIVE
+                          </Badge>
+                       </div>
+                       
+                       <h3 className="text-2xl font-black text-slate-900 mb-2 group-hover:text-indigo-600 transition-colors uppercase tracking-tight">{cls.name}</h3>
+                       
+                       <div className="flex items-center gap-4 mb-8">
+                          <div className="flex items-center gap-2">
+                             <div className="h-2 w-2 rounded-full bg-emerald-500" />
+                             <span className="text-[11px] font-bold text-slate-500">{cls.studentsCount} Students</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                             <div className="h-2 w-2 rounded-full bg-indigo-500" />
+                             <span className="text-[11px] font-bold text-slate-500">{cls.coursesCount} Subjects</span>
+                          </div>
+                       </div>
+                       
+                       <Button 
+                          onClick={() => navigateToClassReport(cls.id)}
+                          className="w-full h-14 rounded-2xl bg-indigo-600 hover:bg-slate-900 text-white font-black text-xs uppercase tracking-widest shadow-lg shadow-indigo-100 hover:shadow-slate-200 transition-all group-active:scale-95 gap-3"
+                       >
+                          View Master Report
+                          <ChevronRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                       </Button>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            )}
         </div>
       )}
 
