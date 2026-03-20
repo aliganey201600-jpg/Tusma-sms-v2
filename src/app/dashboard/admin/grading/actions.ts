@@ -60,23 +60,39 @@ export async function getGradingCourses() {
       }
     })
 
-    // Restore original mapping without flattening or filtering by assignment count
-    return courses.map(c => {
-      // Calculate students: sum of class students across all assignments + explicit enrollments
-      const classStudents = c.teacherAssignments.reduce((acc, ta) => acc + (ta.class?._count.students || 0), 0)
-      const totalEnrolled = Math.max(c._count.enrollments, classStudents)
-
-      return {
-        id: c.id,
-        name: c.name,
-        teacher: `${c.teacher.firstName} ${c.teacher.lastName}`,
-        className: c.teacherAssignments.map(ta => ta.class?.name).filter(Boolean).join(", "),
-        studentsCount: totalEnrolled,
-        quizCount: c.sections.reduce((acc, s) => acc + s._count.quizzes, 0),
-        category: c.category || "General",
-        classId: c.teacherAssignments[0]?.classId || null // Pick first for gradebook logic if needed
-      }
+    const flattened: any[] = []
+    
+    courses.forEach(c => {
+       const quizCount = c.sections.reduce((acc, s) => acc + s._count.quizzes, 0)
+       
+       if (c.teacherAssignments.length === 0) {
+          flattened.push({
+            id: c.id,
+            name: c.name,
+            teacher: `${c.teacher.firstName} ${c.teacher.lastName}`,
+            className: "Unassigned",
+            studentsCount: c._count.enrollments || 0,
+            quizCount,
+            category: c.category || "General",
+            classId: null
+          })
+       } else {
+          c.teacherAssignments.forEach(ta => {
+            flattened.push({
+              id: c.id,
+              name: c.name,
+              teacher: `${c.teacher.firstName} ${c.teacher.lastName}`,
+              className: ta.class?.name || "Unassigned",
+              studentsCount: ta.class?._count.students || 0,
+              quizCount,
+              category: c.category || "General",
+              classId: ta.classId
+            })
+          })
+       }
     })
+
+    return flattened
   } catch (error) {
     console.error("Error fetching grading courses:", error)
     return []
