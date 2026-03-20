@@ -43,7 +43,6 @@ export async function getStudentGrades(studentId: string) {
                 attempts: {
                   where: { studentId },
                   orderBy: { score: 'desc' },
-                  take: 1
                 }
               }
             }
@@ -76,15 +75,26 @@ export async function getStudentGrades(studentId: string) {
       // 1. Quizzes
       course.sections.forEach((section: any) => {
         section.quizzes.forEach((quiz: any) => {
-          const attempt = quiz.attempts[0]
-          if (attempt) {
+          const studentAttempts = quiz.attempts
+          if (studentAttempts.length > 0) {
+            const scores = studentAttempts.map((a: any) => parseFloat(a.score.toString()))
+            const bestAttempt = studentAttempts[0] // ordered by score desc
+            
             items.push({
+              id: quiz.id,
               name: quiz.title,
-              score: attempt.score,
+              score: bestAttempt.score,
               max: 100,
-              date: new Date(attempt.createdAt).toLocaleDateString("en-US", { month: 'short', day: 'numeric' }),
-              grade: scoreToGrade(attempt.score),
-              type: 'QUIZ'
+              date: new Date(bestAttempt.createdAt).toLocaleDateString("en-US", { month: 'short', day: 'numeric' }),
+              grade: scoreToGrade(bestAttempt.score),
+              type: 'QUIZ',
+              stats: {
+                count: studentAttempts.length,
+                min: parseFloat(Math.min(...scores).toFixed(1)),
+                max: parseFloat(Math.max(...scores).toFixed(1)),
+                avg: parseFloat((scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1))
+              },
+              results: bestAttempt.results // Array of { question, studentAnswer, correctAnswer, earned, total, feedback, isCorrect }
             })
           }
         })
