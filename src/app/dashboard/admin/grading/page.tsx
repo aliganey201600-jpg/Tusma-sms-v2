@@ -754,9 +754,6 @@ function GradingInterfaceContent() {
            </div>
         </div>
       )}
-    </div>
-  )
-}
       {view === 'CLASS_REPORT' && (
         <div className="space-y-6 animate-in slide-in-from-bottom-5 duration-500 max-w-full">
            {/* Class Header Summary */}
@@ -856,6 +853,9 @@ function GradingInterfaceContent() {
            </div>
         </div>
       )}
+    </div>
+  )
+}
 
 export default function GradingInterfacePage() {
   return (
