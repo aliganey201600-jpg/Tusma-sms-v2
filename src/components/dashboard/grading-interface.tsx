@@ -399,22 +399,24 @@ export function GradingInterfaceContent({ userRole }: { userRole: 'ADMIN' | 'TEA
       {view === 'COURSES' && (
         <div className="space-y-6">
             {/* TABS Navigation */}
-            <div className="flex bg-slate-100/80 p-1.5 rounded-2xl w-full md:w-fit mb-8 border border-white shadow-inner">
-              <button 
-                onClick={() => setActiveTab('COURSES')}
-                className={`px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'COURSES' ? "bg-white text-indigo-600 shadow-md scale-[1.02]" : "text-slate-400 hover:text-slate-600"}`}
-              >
-                Course Gradebook
-              </button>
-              <button 
-                onClick={() => setActiveTab('CLASSES')}
-                className={`px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'CLASSES' ? "bg-white text-indigo-600 shadow-md scale-[1.02]" : "text-slate-400 hover:text-slate-600"}`}
-              >
-                Class Master Sheet
-              </button>
-            </div>
+            {isGradebookMode && (
+              <div className="flex bg-slate-100/80 p-1.5 rounded-2xl w-full md:w-fit mb-8 border border-white shadow-inner">
+                <button 
+                  onClick={() => setActiveTab('COURSES')}
+                  className={`px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'COURSES' ? "bg-white text-indigo-600 shadow-md scale-[1.02]" : "text-slate-400 hover:text-slate-600"}`}
+                >
+                  Course Gradebook
+                </button>
+                <button 
+                  onClick={() => setActiveTab('CLASSES')}
+                  className={`px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'CLASSES' ? "bg-white text-indigo-600 shadow-md scale-[1.02]" : "text-slate-400 hover:text-slate-600"}`}
+                >
+                  Class Master Sheet
+                </button>
+              </div>
+            )}
 
-            {activeTab === 'COURSES' ? (
+            {!isGradebookMode || activeTab === 'COURSES' ? (
               <>
                 <div className="flex flex-col md:flex-row gap-4">
                   <div className="relative flex-1 group">
