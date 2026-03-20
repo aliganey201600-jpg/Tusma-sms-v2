@@ -248,24 +248,24 @@ export default function GradingInterfacePage() {
   }
 
   return (
-    <div className="p-8 space-y-10 max-w-[1200px] mx-auto animate-in fade-in duration-700">
+    <div className="p-4 md:p-8 space-y-6 md:space-y-10 max-w-[1200px] mx-auto animate-in fade-in duration-700 overflow-x-hidden">
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-        <div>
-          <div className="flex items-center gap-3 mb-2">
+        <div className="max-w-full overflow-hidden">
+          <div className="flex items-center gap-3 mb-2 flex-wrap">
             {view !== 'COURSES' && (
-              <Button onClick={goBack} variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-slate-100 transition-all">
+              <Button onClick={goBack} variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-slate-100 transition-all shrink-0">
                 <ArrowLeft className="h-4 w-4" />
               </Button>
             )}
-            <Badge variant="outline" className="border-indigo-200 text-indigo-600 px-3 py-1 bg-indigo-50/30 font-black text-[10px] tracking-widest">
+            <Badge variant="outline" className="border-indigo-200 text-indigo-600 px-3 py-1 bg-indigo-50/30 font-black text-[10px] tracking-widest whitespace-nowrap overflow-hidden text-ellipsis max-w-[250px]">
               {view === 'COURSES' ? 'MASTER REGISTRY' : 
                view === 'QUIZZES' ? `${selectedCourse?.name} (${selectedCourse?.className})` : 
                view === 'SUBMISSIONS' ? selectedQuiz?.title : 
                'EVALUATION MODE'}
             </Badge>
           </div>
-          <h1 className="text-5xl font-black tracking-tighter text-slate-900 leading-none">
+          <h1 className="text-3xl md:text-5xl font-black tracking-tighter text-slate-900 leading-none break-words">
             {view === 'COURSES' ? 'Course Grading.' : 
              view === 'QUIZZES' ? 'Quizzes List.' : 
              view === 'SUBMISSIONS' ? 'Submissions.' : 
@@ -273,16 +273,19 @@ export default function GradingInterfacePage() {
           </h1>
         </div>
         {view === 'GRADE' && (
-          <div className="flex items-center gap-4">
-            <Button onClick={handleBulkAIGrade} disabled={bulkAiLoading} variant="outline" className="h-14 px-6 rounded-2xl border-2 border-indigo-100 text-indigo-700 font-black hover:bg-indigo-50 gap-2 shadow-sm">
-               {bulkAiLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Sparkles className="h-5 w-5 text-indigo-500" />}
-               Bulk AI Evaluation
+          <div className="flex items-center gap-2 md:gap-4 w-full md:w-auto flex-wrap sm:flex-nowrap">
+            <Button onClick={handleBulkAIGrade} disabled={bulkAiLoading} variant="outline" className="flex-1 md:flex-none h-12 md:h-14 px-4 md:px-6 rounded-2xl border-2 border-indigo-100 text-indigo-700 font-black hover:bg-indigo-50 gap-2 shadow-sm text-sm">
+               {bulkAiLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4 text-indigo-500" />}
+               <span className="hidden sm:inline">Bulk AI Evaluation</span>
+               <span className="sm:hidden">AI Bulk</span>
             </Button>
-            <Button onClick={approveAll} variant="outline" className="h-14 px-6 rounded-2xl border-2 border-emerald-100 text-emerald-700 font-black hover:bg-emerald-50 gap-2 shadow-sm">
-               <CheckCircle2 className="h-5 w-5" /> Approve All
+            <Button onClick={approveAll} variant="outline" className="flex-1 md:flex-none h-12 md:h-14 px-4 md:px-6 rounded-2xl border-2 border-emerald-100 text-emerald-700 font-black hover:bg-emerald-50 gap-2 shadow-sm text-sm">
+               <CheckCircle2 className="h-4 w-4" />
+               <span className="hidden sm:inline">Approve All</span>
+               <span className="sm:hidden">Approve All</span>
             </Button>
-            <Button onClick={saveGrade} className="bg-slate-900 hover:bg-black text-white font-black px-8 h-14 rounded-2xl shadow-xl shadow-slate-200 gap-2">
-              <Check className="h-5 w-5" /> Save Results
+            <Button onClick={saveGrade} className="w-full sm:w-auto bg-slate-900 hover:bg-black text-white font-black px-6 md:px-8 h-12 md:h-14 rounded-2xl shadow-xl shadow-slate-200 gap-2 text-sm">
+              <Check className="h-4 w-4" /> Save
             </Button>
           </div>
         )}
@@ -316,27 +319,27 @@ export default function GradingInterfacePage() {
               </Select>
            </div>
 
-           <div className="bg-white rounded-[2.5rem] border-2 border-slate-50 shadow-sm overflow-hidden">
-              <table className="w-full text-left border-collapse">
+           <div className="bg-white rounded-[1.5rem] md:rounded-[2.5rem] border-2 border-slate-50 shadow-sm overflow-x-auto">
+              <table className="w-full text-left border-collapse min-w-[800px]">
                  <thead>
                     <tr className="border-b border-slate-100 bg-slate-50/30">
-                       <th className="px-8 py-6 text-[11px] font-black uppercase text-slate-400 tracking-[0.1em]">Class Assignment</th>
-                       <th className="px-8 py-6 text-[11px] font-black uppercase text-slate-400 tracking-[0.1em]">Instructor</th>
-                       <th className="px-8 py-6 text-[11px] font-black uppercase text-slate-400 tracking-[0.1em] text-center">Size</th>
-                       <th className="px-8 py-6 text-[11px] font-black uppercase text-slate-400 tracking-[0.1em] text-center">Quizzes</th>
-                       <th className="px-8 py-6 text-[11px] font-black uppercase text-slate-400 tracking-[0.1em] text-right">View</th>
+                       <th className="px-6 md:px-8 py-6 text-[11px] font-black uppercase text-slate-400 tracking-[0.1em]">Class Assignment</th>
+                       <th className="px-6 md:px-8 py-6 text-[11px] font-black uppercase text-slate-400 tracking-[0.1em]">Instructor</th>
+                       <th className="px-6 md:px-8 py-6 text-[11px] font-black uppercase text-slate-400 tracking-[0.1em] text-center">Size</th>
+                       <th className="px-6 md:px-8 py-6 text-[11px] font-black uppercase text-slate-400 tracking-[0.1em] text-center">Quizzes</th>
+                       <th className="px-6 md:px-8 py-6 text-[11px] font-black uppercase text-slate-400 tracking-[0.1em] text-right">View</th>
                     </tr>
                  </thead>
                  <tbody className="divide-y divide-slate-100">
                     {filteredCourses.map((row, idx) => (
                        <tr key={`${row.id}-${row.classId}-${idx}`} className="hover:bg-slate-50/80 transition-all group">
-                          <td className="px-8 py-6">
+                          <td className="px-6 md:px-8 py-6">
                              <div className="flex items-center gap-5">
-                                <div className="h-14 w-14 rounded-2xl bg-white border-2 border-slate-100 text-slate-300 group-hover:bg-indigo-600 group-hover:text-white group-hover:border-indigo-600 transition-all shadow-sm flex items-center justify-center">
-                                   <BookOpen className="h-7 w-7" />
+                                <div className="h-12 md:h-14 w-12 md:w-14 rounded-2xl bg-white border-2 border-slate-100 text-slate-300 group-hover:bg-indigo-600 group-hover:text-white group-hover:border-indigo-600 transition-all shadow-sm flex items-center justify-center shrink-0">
+                                   <BookOpen className="h-6 md:h-7 w-6 md:w-7" />
                                 </div>
                                 <div>
-                                   <p className="font-black text-slate-900 text-lg uppercase tracking-tight group-hover:text-indigo-600 transition-colors leading-none mb-1.5">{row.name}</p>
+                                   <p className="font-black text-slate-900 text-base md:text-lg uppercase tracking-tight group-hover:text-indigo-600 transition-colors leading-none mb-1.5">{row.name}</p>
                                    <div className="flex items-center gap-1.5">
                                       <ClassIcon className="h-3 w-3 text-indigo-500" />
                                       <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">{row.className}</p>
@@ -344,19 +347,19 @@ export default function GradingInterfacePage() {
                                 </div>
                              </div>
                           </td>
-                          <td className="px-8 py-6 font-bold text-slate-600 text-sm">{row.teacher}</td>
-                          <td className="px-8 py-6 text-center">
-                             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-xl bg-slate-100 text-slate-500 font-bold group-hover:bg-white border group-hover:border-slate-200 transition-all">
+                          <td className="px-6 md:px-8 py-6 font-bold text-slate-600 text-sm">{row.teacher}</td>
+                          <td className="px-6 md:px-8 py-6 text-center">
+                             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-100 text-slate-500 font-bold group-hover:bg-white border group-hover:border-slate-200 transition-all">
                                 <Users className="h-3.5 w-3.5" />
                                 <span className="text-sm font-black">{row.studentsCount}</span>
                              </div>
                           </td>
-                          <td className="px-8 py-6 text-center">
+                          <td className="px-6 md:px-8 py-6 text-center">
                              <Badge className="bg-slate-900 text-white font-black rounded-lg px-3 uppercase text-[10px]">{row.quizCount}</Badge>
                           </td>
-                          <td className="px-8 py-6 text-right">
-                             <Button onClick={() => navigateToQuizzes(row)} variant="ghost" className="h-12 w-12 p-0 rounded-2xl hover:bg-slate-900 hover:text-white transition-all">
-                                <ChevronRight className="h-6 w-6" />
+                          <td className="px-6 md:px-8 py-6 text-right">
+                             <Button onClick={() => navigateToQuizzes(row)} variant="ghost" className="h-10 md:h-12 w-10 md:w-12 p-0 rounded-2xl hover:bg-slate-900 hover:text-white transition-all">
+                                <ChevronRight className="h-5 md:h-6 w-5 md:w-6" />
                              </Button>
                           </td>
                        </tr>
@@ -369,28 +372,28 @@ export default function GradingInterfacePage() {
 
       {view === 'QUIZZES' && (
         <div className="grid gap-6">
-           <div className="bg-white rounded-[2.5rem] border-2 border-slate-50 shadow-sm overflow-hidden">
-              <table className="w-full text-left">
+           <div className="bg-white rounded-[1.5rem] md:rounded-[2.5rem] border-2 border-slate-50 shadow-sm overflow-x-auto">
+              <table className="w-full text-left border-collapse min-w-[700px]">
                  <thead>
                     <tr className="border-b border-slate-100 bg-slate-50/30">
-                       <th className="px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest">Quiz Title</th>
-                       <th className="px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest text-center">Students Worked</th>
-                       <th className="px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest text-center">Total Attempts</th>
-                       <th className="px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest text-right">Action</th>
+                       <th className="px-6 md:px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest">Quiz Title</th>
+                       <th className="px-6 md:px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest text-center">Students Worked</th>
+                       <th className="px-6 md:px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest text-center">Total Attempts</th>
+                       <th className="px-6 md:px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest text-right">Action</th>
                     </tr>
                  </thead>
                  <tbody className="divide-y divide-slate-100">
                     {quizzes.map(quiz => (
                        <tr key={quiz.id} className="hover:bg-emerald-50/20 transition-all group">
-                          <td className="px-8 py-6">
+                          <td className="px-6 md:px-8 py-6">
                              <div className="flex items-center gap-4">
-                                <div className="h-12 w-12 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-emerald-600 group-hover:text-white shadow-sm transition-all">
+                                <div className="h-12 w-12 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-emerald-600 group-hover:text-white shadow-sm transition-all shrink-0">
                                    <FileText className="h-6 w-6" />
                                 </div>
                                 <p className="font-black text-slate-900 text-lg uppercase tracking-tight">{quiz.title}</p>
                              </div>
                           </td>
-                          <td className="px-8 py-6 text-center">
+                          <td className="px-6 md:px-8 py-6 text-center">
                              <div className="flex flex-col items-center">
                                 <div className="flex items-center gap-2">
                                    <Users className="h-4 w-4 text-emerald-500" />
@@ -399,13 +402,13 @@ export default function GradingInterfacePage() {
                                 <p className="text-[9px] font-black text-slate-400 uppercase">Unique Students</p>
                              </div>
                           </td>
-                          <td className="px-8 py-6 text-center">
+                          <td className="px-6 md:px-8 py-6 text-center">
                              <Badge variant="outline" className="text-xs font-black rounded-lg border-slate-200 px-3 py-1 bg-slate-50">
                                 {quiz.totalAttempts} Attempts
                              </Badge>
                           </td>
-                          <td className="px-8 py-6 text-right">
-                             <Button onClick={() => navigateToSubmissions(quiz)} className="h-12 px-8 rounded-xl bg-slate-100 text-slate-600 font-black hover:bg-emerald-600 hover:text-white transition-all shadow-sm">
+                          <td className="px-6 md:px-8 py-6 text-right">
+                             <Button onClick={() => navigateToSubmissions(quiz)} className="h-10 md:h-12 px-4 md:px-8 rounded-xl bg-slate-100 text-slate-600 font-black hover:bg-emerald-600 hover:text-white transition-all shadow-sm text-xs md:text-sm">
                                 View Submissions
                              </Button>
                           </td>
@@ -419,14 +422,14 @@ export default function GradingInterfacePage() {
 
       {view === 'SUBMISSIONS' && (
         <div className="grid gap-6">
-           <div className="bg-white rounded-[2.5rem] border-2 border-slate-50 shadow-sm overflow-hidden">
-              <table className="w-full text-left">
+           <div className="bg-white rounded-[1.5rem] md:rounded-[2.5rem] border-2 border-slate-50 shadow-sm overflow-x-auto">
+              <table className="w-full text-left border-collapse min-w-[900px]">
                  <thead>
                     <tr className="border-b border-slate-100 bg-slate-50/30">
-                       <th className="px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest">Student Information</th>
-                       <th className="px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest text-center">Completion</th>
-                       <th className="px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest text-center">Result</th>
-                       <th className="px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest text-right">Action</th>
+                       <th className="px-6 md:px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest">Student Information</th>
+                       <th className="px-6 md:px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest text-center">Completion</th>
+                       <th className="px-6 md:px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest text-center">Result</th>
+                       <th className="px-6 md:px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest text-right">Action</th>
                     </tr>
                  </thead>
                  <tbody className="divide-y divide-slate-100">
@@ -435,28 +438,30 @@ export default function GradingInterfacePage() {
                        const pendingCount = results.filter(r => r.manual).length
                        return (
                           <tr key={attempt.id} className="hover:bg-indigo-50/20 transition-all group">
-                             <td className="px-8 py-6">
+                             <td className="px-6 md:px-8 py-6">
                                 <div className="flex items-center gap-4">
-                                   <div className="h-11 w-11 rounded-xl bg-slate-100 flex items-center justify-center font-black text-xs text-slate-400 group-hover:bg-white group-hover:text-indigo-600 transition-all shadow-sm">
+                                   <div className="h-10 md:h-11 w-10 md:w-11 rounded-xl bg-slate-100 flex items-center justify-center font-black text-xs text-slate-400 group-hover:bg-white group-hover:text-indigo-600 transition-all shadow-sm shrink-0">
                                       {attempt.student?.firstName?.[0]}{attempt.student?.lastName?.[0]}
                                    </div>
-                                   <div>
-                                      <p className="font-black text-slate-900 uppercase tracking-tight">{attempt.student?.firstName} {attempt.student?.lastName}</p>
+                                   <div className="min-w-0">
+                                      <p className="font-black text-slate-900 uppercase tracking-tight truncate max-w-[150px] md:max-w-none">{attempt.student?.firstName} {attempt.student?.lastName}</p>
                                       <p className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em]">{attempt.student?.studentId}</p>
                                    </div>
                                 </div>
                              </td>
-                             <td className="px-8 py-6 text-center">
+                             <td className="px-6 md:px-8 py-6 text-center whitespace-nowrap">
                                 <p className="text-sm font-bold text-slate-500">{format(new Date(attempt.createdAt), "MMM dd, hh:mm a")}</p>
                              </td>
-                             <td className="px-8 py-6 text-center">
+                             <td className="px-6 md:px-8 py-6 text-center">
                                 <div className="space-y-1">
-                                   <p className="text-2xl font-black text-slate-900 group-hover:text-indigo-600 transition-colors">{attempt.score}%</p>
-                                   {pendingCount > 0 && <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100 text-[8px] font-black px-2 tracking-widest border-none">UNSANCTIONED</Badge>}
+                                   <p className="text-xl md:text-2xl font-black text-slate-900 group-hover:text-indigo-600 transition-colors">
+                                      {parseFloat(attempt.score).toFixed(1)}%
+                                   </p>
+                                   {pendingCount > 0 && <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100 text-[8px] font-black px-2 tracking-widest border-none whitespace-nowrap">UNSANCTIONED</Badge>}
                                 </div>
                              </td>
-                             <td className="px-8 py-6 text-right">
-                                <Button onClick={() => openAttempt(attempt)} className="h-12 px-8 rounded-2xl bg-indigo-600 text-white font-black hover:bg-slate-900 transition-all shadow-xl shadow-indigo-100 active:scale-95">
+                             <td className="px-6 md:px-8 py-6 text-right">
+                                <Button onClick={() => openAttempt(attempt)} className="h-10 md:h-12 px-4 md:px-8 rounded-2xl bg-indigo-600 text-white font-black hover:bg-slate-900 transition-all shadow-xl shadow-indigo-100 active:scale-95 text-xs md:text-sm whitespace-nowrap">
                                    {pendingCount > 0 ? 'SANCTION GRADE' : 'REVise ASSESSMENT'}
                                 </Button>
                              </td>
@@ -470,82 +475,82 @@ export default function GradingInterfacePage() {
       )}
 
       {view === 'GRADE' && (
-        <div className="space-y-8 animate-in slide-in-from-bottom-5 duration-500">
+        <div className="space-y-6 md:space-y-8 animate-in slide-in-from-bottom-5 duration-500">
            {/* Attempt Summary */}
-           <div className="bg-white p-10 rounded-[3rem] border-2 border-slate-50 shadow-sm flex flex-col md:flex-row items-center justify-between gap-8 relative overflow-hidden">
+           <div className="bg-white p-6 md:p-10 rounded-[2rem] md:rounded-[3rem] border-2 border-slate-50 shadow-sm flex flex-col md:flex-row items-center justify-between gap-8 relative overflow-hidden">
               <div className="absolute top-0 right-0 h-full w-40 bg-indigo-600/5 -skew-x-12 translate-x-10" />
-              <div className="flex items-center gap-8 relative">
-                 <div className="h-24 w-24 rounded-[2rem] bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-100">
-                    <GraduationCap className="h-12 w-12" />
+              <div className="flex items-center gap-6 md:gap-8 relative w-full md:w-auto">
+                 <div className="h-16 md:h-24 w-16 md:w-24 rounded-[1.5rem] md:rounded-[2rem] bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-100 shrink-0">
+                    <GraduationCap className="h-8 md:h-12 w-8 md:w-12" />
                  </div>
-                 <div>
-                    <h2 className="text-4xl font-black text-slate-900 tracking-tighter uppercase leading-none mb-2">{selectedAttempt.student?.firstName} {selectedAttempt.student?.lastName}</h2>
-                    <div className="flex items-center gap-3">
-                       <Badge className="bg-slate-100 text-slate-500 border-none font-black text-[10px] tracking-widest">{selectedCourse?.className}</Badge>
-                       <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">{selectedQuiz?.title}</p>
+                 <div className="min-w-0">
+                    <h2 className="text-2xl md:text-4xl font-black text-slate-900 tracking-tighter uppercase leading-none mb-2 overflow-hidden text-ellipsis">{selectedAttempt.student?.firstName} {selectedAttempt.student?.lastName}</h2>
+                    <div className="flex items-center gap-2 md:gap-3 flex-wrap">
+                       <Badge className="bg-slate-100 text-slate-500 border-none font-black text-[9px] md:text-[10px] tracking-widest whitespace-nowrap">{selectedCourse?.className}</Badge>
+                       <p className="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-widest overflow-hidden text-ellipsis line-clamp-1">{selectedQuiz?.title}</p>
                     </div>
                  </div>
               </div>
-              <div className="text-right bg-white p-8 rounded-[2rem] border-2 border-indigo-50 shadow-xl shadow-indigo-50/40 relative min-w-[200px]">
-                 <p className="text-[10px] font-black uppercase text-indigo-500 tracking-[0.2em] mb-2">SCORE CARRIER</p>
-                 <div className="flex items-baseline justify-end gap-1">
-                    <h3 className="text-7xl font-black text-slate-900 leading-none tracking-tighter">{selectedAttempt.score}</h3>
-                    <span className="text-2xl font-black text-slate-300">%</span>
+              <div className="text-center md:text-right bg-white p-6 md:p-8 rounded-[1.5rem] md:rounded-[2rem] border-2 border-indigo-50 shadow-xl shadow-indigo-50/40 relative min-w-full md:min-w-[200px]">
+                 <p className="text-[9px] md:text-[10px] font-black uppercase text-indigo-500 tracking-[0.2em] mb-2 leading-none">SCORE CARRIER</p>
+                 <div className="flex items-baseline justify-center md:justify-end gap-1">
+                    <h3 className="text-5xl md:text-7xl font-black text-slate-900 leading-none tracking-tighter">{parseFloat(selectedAttempt.score).toFixed(1)}</h3>
+                    <span className="text-xl md:text-2xl font-black text-slate-300">%</span>
                  </div>
               </div>
            </div>
 
            {/* Questions */}
-           <div className="space-y-8">
+           <div className="space-y-6 md:space-y-8">
               {editedResults.map((r: any, idx: number) => {
                  const isUnapproved = r.manual === true
                  return (
-                    <div key={idx} className={`p-10 rounded-[3.5rem] border-2 transition-all ${isUnapproved ? "bg-amber-50/20 border-amber-100 shadow-sm shadow-amber-50" : "bg-emerald-50/30 border-emerald-100 shadow-sm shadow-emerald-50"}`}>
-                       <div className="flex flex-col lg:flex-row gap-12">
-                          <div className="flex-1 space-y-8">
-                             <div className="flex items-center gap-4">
-                                <span className={`h-14 w-14 rounded-2xl flex items-center justify-center font-black text-2xl ${isUnapproved ? 'bg-amber-100 text-amber-600 shadow-sm' : 'bg-emerald-100 text-emerald-600 shadow-sm'}`}>{idx + 1}</span>
-                                <Badge className={`text-[10px] font-black uppercase px-5 py-2 rounded-xl shadow-sm border-none ${isUnapproved ? 'bg-white text-amber-600' : 'bg-white text-emerald-600'}`}>
-                                   {isUnapproved ? "In-Decision / Manual Review Required" : "Sanctioned & Archived"}
+                    <div key={idx} className={`p-6 md:p-10 rounded-[2rem] md:rounded-[3.5rem] border-2 transition-all ${isUnapproved ? "bg-amber-50/20 border-amber-100 shadow-sm" : "bg-emerald-50/30 border-emerald-100 shadow-sm"}`}>
+                       <div className="flex flex-col lg:flex-row gap-8 md:gap-12">
+                          <div className="flex-1 space-y-6 md:space-y-8">
+                             <div className="flex items-center gap-4 flex-wrap">
+                                <span className={`h-11 md:h-14 w-11 md:w-14 rounded-xl md:rounded-2xl flex items-center justify-center font-black text-xl md:text-2xl shrink-0 ${isUnapproved ? 'bg-amber-100 text-amber-600 shadow-sm' : 'bg-emerald-100 text-emerald-600 shadow-sm'}`}>{idx + 1}</span>
+                                <Badge className={`text-[9px] md:text-[10px] font-black uppercase px-4 md:px-5 py-1.5 md:py-2 rounded-lg md:rounded-xl shadow-sm border-none ${isUnapproved ? 'bg-white text-amber-600' : 'bg-white text-emerald-600'}`}>
+                                   {isUnapproved ? "Review Required" : "Sanctioned & Archived"}
                                 </Badge>
                              </div>
                              <div className="space-y-4">
-                                <h4 className="text-3xl font-black text-slate-900 leading-tight uppercase tracking-tight">{r.question}</h4>
-                                <div className="p-10 rounded-[2.5rem] bg-white border border-slate-100 space-y-5 relative group overflow-hidden shadow-sm">
-                                   <div className="absolute top-0 left-0 w-2 h-full bg-slate-100 group-hover:bg-indigo-600 transition-colors" />
+                                <h4 className="text-xl md:text-3xl font-black text-slate-900 leading-tight uppercase tracking-tight break-words">{r.question}</h4>
+                                <div className="p-6 md:p-10 rounded-[1.5rem] md:rounded-[2.5rem] bg-white border border-slate-100 space-y-4 md:space-y-5 relative group overflow-hidden shadow-sm">
+                                   <div className="absolute top-0 left-0 w-1.5 md:w-2 h-full bg-slate-100 group-hover:bg-indigo-600 transition-colors" />
                                    <div className="flex items-center gap-2">
-                                      <RotateCcw className="h-3.5 w-3.5 text-slate-400" />
-                                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Student Submission</p>
+                                      <RotateCcw className="h-3 w-3 text-slate-400" />
+                                      <p className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400">Student Response</p>
                                    </div>
-                                   <p className="text-xl font-bold text-slate-700 leading-relaxed italic group-hover:text-slate-900 transition-colors">"{r.studentAnswer || "No Response"}"</p>
+                                   <p className="text-lg md:text-xl font-bold text-slate-700 leading-relaxed italic group-hover:text-slate-900 transition-colors break-words">"{r.studentAnswer || "No Response"}"</p>
                                 </div>
                              </div>
                           </div>
 
-                          <div className="w-full lg:w-96 space-y-8 shrink-0 bg-white/70 p-10 rounded-[3rem] border-2 border-slate-50 shadow-sm backdrop-blur-xl">
+                          <div className="w-full lg:w-96 space-y-6 md:space-y-8 shrink-0 bg-white/70 p-6 md:p-10 rounded-[2rem] md:rounded-[3rem] border-2 border-slate-50 shadow-sm backdrop-blur-xl">
                              <div className="space-y-2">
-                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex justify-between px-1">Evaluation Score <span>MAX: {r.total}</span></label>
-                                <Input type="number" max={r.total} min={0} value={r.earned} onChange={(e) => handleInputChange(idx, 'earned', e.target.value)} className="h-16 rounded-22xl text-3xl font-black focus:ring-4 focus:ring-indigo-100 border-2 transition-all" />
+                                <label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 flex justify-between px-1">Evaluation Score <span>MAX: {r.total}</span></label>
+                                <Input type="number" max={r.total} min={0} value={r.earned} onChange={(e) => handleInputChange(idx, 'earned', e.target.value)} className="h-14 md:h-16 rounded-xl md:rounded-2xl text-2xl md:text-3xl font-black focus:ring-4 focus:ring-indigo-100 border-2 transition-all" />
                              </div>
                              <div className="space-y-2">
-                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Constructive Feedback</label>
-                                <Textarea placeholder="Share insights..." value={r.feedback || ""} onChange={(e) => handleInputChange(idx, 'feedback', e.target.value)} className="rounded-2xl resize-none text-base h-40 focus:ring-4 focus:ring-indigo-100 border-2 leading-relaxed" />
+                                <label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Constructive Feedback</label>
+                                <Textarea placeholder="Share insights..." value={r.feedback || ""} onChange={(e) => handleInputChange(idx, 'feedback', e.target.value)} className="rounded-xl md:rounded-2xl resize-none text-sm md:text-base h-32 md:h-40 focus:ring-4 focus:ring-indigo-100 border-2 leading-relaxed" />
                              </div>
-                             <div className="space-y-4 pt-4">
+                             <div className="space-y-3 md:space-y-4 pt-4">
                                 {isUnapproved ? (
                                    <div className="grid grid-cols-1 gap-3">
-                                      <Button onClick={() => approveQuestion(idx)} className="h-16 rounded-2xl bg-emerald-600 text-white font-black hover:bg-emerald-700 gap-3 shadow-lg shadow-emerald-100 flex items-center justify-center text-lg active:scale-95 transition-all">
-                                         <Check className="h-6 w-6" /> Sanction Grade
+                                      <Button onClick={() => approveQuestion(idx)} className="h-14 md:h-16 rounded-xl md:rounded-2xl bg-emerald-600 text-white font-black hover:bg-emerald-700 gap-3 shadow-lg shadow-emerald-100 flex items-center justify-center text-base md:text-lg active:scale-95 transition-all">
+                                         <Check className="h-5 md:h-6 w-5 md:w-6" /> Sanction
                                       </Button>
-                                      <Button onClick={() => handleAIGrade(idx, r)} disabled={aiLoading === idx} variant="outline" className="h-16 rounded-2xl border-2 border-indigo-100 text-indigo-700 font-black gap-3 hover:bg-indigo-50 transition-all text-lg group">
-                                         {aiLoading === idx ? <Loader2 className="h-6 w-6 animate-spin" /> : <Sparkles className="h-6 w-6 text-indigo-500 group-hover:scale-110 transition-transform" />} 
+                                      <Button onClick={() => handleAIGrade(idx, r)} disabled={aiLoading === idx} variant="outline" className="h-14 md:h-16 rounded-xl md:rounded-2xl border-2 border-indigo-100 text-indigo-700 font-black gap-3 hover:bg-indigo-50 transition-all text-base md:text-lg group">
+                                         {aiLoading === idx ? <Loader2 className="h-5 md:h-6 w-5 md:w-6 animate-spin" /> : <Sparkles className="h-5 md:h-6 w-5 md:w-6 text-indigo-500 group-hover:scale-110 transition-transform" />} 
                                          AI Proposal
                                       </Button>
                                    </div>
                                 ) : (
-                                   <div className="space-y-4">
-                                      <div className="w-full h-16 rounded-2xl border-2 border-emerald-200 text-emerald-700 bg-white shadow-inner flex items-center justify-center gap-3 font-black text-lg">
-                                         <CheckCircle2 className="h-6 w-6" /> SANCTIONED
+                                   <div className="space-y-3 md:space-y-4">
+                                      <div className="w-full h-14 md:h-16 rounded-xl md:rounded-2xl border-2 border-emerald-200 text-emerald-700 bg-white shadow-inner flex items-center justify-center gap-2 md:gap-3 font-black text-base md:text-lg">
+                                         <CheckCircle2 className="h-5 md:h-6 w-5 md:w-6" /> SANCTIONED
                                       </div>
                                       <Button onClick={() => {
                                          setEditedResults(prev => {
@@ -553,7 +558,7 @@ export default function GradingInterfacePage() {
                                             next[idx].manual = true;
                                             return next;
                                          });
-                                      }} variant="ghost" className="w-full h-10 text-[9px] font-black uppercase text-slate-400 hover:text-indigo-600 tracking-widest transition-colors">
+                                      }} variant="ghost" className="w-full h-10 text-[8px] md:text-[9px] font-black uppercase text-slate-400 hover:text-indigo-600 tracking-widest transition-colors">
                                          <RotateCcw className="h-3 w-3 mr-2" /> Revoke Decision
                                       </Button>
                                    </div>
