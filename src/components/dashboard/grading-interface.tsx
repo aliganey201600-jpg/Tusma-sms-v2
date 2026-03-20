@@ -12,11 +12,12 @@ import {
   generateGlobalQuizAIGrades,
   getCourseGradebookData,
   getClassOverallGradebook,
-  getGradingClasses
+  getGradingClasses,
+  getBulkReportData
 } from "@/app/dashboard/admin/grading/actions"
 import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -44,10 +45,13 @@ import {
   Search,
   Filter,
   GraduationCap as ClassIcon,
-  Zap
+  Zap,
+  Printer
 } from "lucide-react"
 import { toast } from "sonner"
 import { format } from "date-fns"
+import { ReportCardTemplate } from "@/components/dashboard/report-card-template"
+import { cn } from "@/lib/utils"
 
 type ViewState = 'COURSES' | 'QUIZZES' | 'SUBMISSIONS' | 'GRADE' | 'GRADEBOOK' | 'CLASS_REPORT'
 
@@ -63,8 +67,10 @@ export function GradingInterfaceContent({ userRole }: { userRole: 'ADMIN' | 'TEA
   const [quizzes, setQuizzes] = React.useState<any[]>([])
   const [submissions, setSubmissions] = React.useState<any[]>([])
   const [gradebookData, setGradebookData] = React.useState<{quizzes: any[], gradebook: any[]}>({ quizzes: [], gradebook: [] })
-  const [classReportData, setClassReportData] = React.useState<{className: string, courses: string[], students: any[]}>({ className: "", courses: [], students: [] })
+  const [classReportData, setClassReportData] = React.useState<{className: string, courses: string[], students: any[], id?: string}>({ className: "", courses: [], students: [] })
   const [classesList, setClassesList] = React.useState<any[]>([])
+  const [bulkData, setBulkData] = React.useState<any[]>([])
+  const [isBulkPrinting, setIsBulkPrinting] = React.useState(false)
   
   // Search/Filter States
   const [searchTerm, setSearchTerm] = React.useState("")
@@ -134,8 +140,27 @@ export function GradingInterfaceContent({ userRole }: { userRole: 'ADMIN' | 'TEA
   const navigateToClassReport = async (classId: string) => {
     setLoading(true)
     const data = await getClassOverallGradebook(classId)
-    setClassReportData(data)
+    setClassReportData({ ...data, id: classId })
     setView('CLASS_REPORT')
+    setLoading(false)
+  }
+
+  const handleBulkPrintReports = async () => {
+    if (!classReportData.id) return
+    setLoading(true)
+    const res = await getBulkReportData(classReportData.id)
+    if (res.success && res.studentsWithGrades) {
+       setBulkData(res.studentsWithGrades)
+       setIsBulkPrinting(true)
+       toast.info("Generating transcripts for printing...")
+       setTimeout(() => {
+          window.print()
+          setIsBulkPrinting(false)
+          setBulkData([])
+       }, 1500)
+    } else {
+       toast.error(res.error || "Failed to load report data")
+    }
     setLoading(false)
   }
 
@@ -315,7 +340,7 @@ export function GradingInterfaceContent({ userRole }: { userRole: 'ADMIN' | 'TEA
   return (
     <div className="p-4 md:p-8 space-y-6 md:space-y-10 max-w-[1200px] mx-auto animate-in fade-in duration-700 overflow-x-hidden">
       {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 print:hidden">
         <div className="max-w-full overflow-hidden">
           <div className="flex items-center gap-3 mb-2 flex-wrap">
             {view !== 'COURSES' && (
@@ -417,27 +442,27 @@ export function GradingInterfaceContent({ userRole }: { userRole: 'ADMIN' | 'TEA
                   </Select>
                 </div>
 
-                <div className="bg-white rounded-[1.5rem] md:rounded-[2.5rem] border-2 border-slate-50 shadow-sm overflow-x-auto">
+                <div className="bg-white rounded-[2.5rem] border-2 border-slate-50 shadow-sm overflow-x-auto">
                   <table className="w-full text-left border-collapse min-w-[800px]">
                       <thead>
                         <tr className="border-b border-slate-100 bg-slate-50/30">
-                            <th className="px-6 md:px-8 py-6 text-[11px] font-black uppercase text-slate-400 tracking-[0.1em]">Class Assignment</th>
-                            <th className="px-6 md:px-8 py-6 text-[11px] font-black uppercase text-slate-400 tracking-[0.1em]">Instructor</th>
-                            <th className="px-6 md:px-8 py-6 text-[11px] font-black uppercase text-slate-400 tracking-[0.1em] text-center">Size</th>
-                            <th className="px-6 md:px-8 py-6 text-[11px] font-black uppercase text-slate-400 tracking-[0.1em] text-center">Quizzes</th>
-                            <th className="px-6 md:px-8 py-6 text-[11px] font-black uppercase text-slate-400 tracking-[0.1em] text-right">Actions</th>
+                            <th className="px-8 py-6 text-[11px] font-black uppercase text-slate-400 tracking-[0.1em]">Class Assignment</th>
+                            <th className="px-8 py-6 text-[11px] font-black uppercase text-slate-400 tracking-[0.1em]">Instructor</th>
+                            <th className="px-8 py-6 text-[11px] font-black uppercase text-slate-400 tracking-[0.1em] text-center">Size</th>
+                            <th className="px-8 py-6 text-[11px] font-black uppercase text-slate-400 tracking-[0.1em] text-center">Quizzes</th>
+                            <th className="px-8 py-6 text-[11px] font-black uppercase text-slate-400 tracking-[0.1em] text-right">Actions</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100">
                         {filteredCourses.map((row, idx) => (
                             <tr key={`${row.id}-${row.classId}-${idx}`} className="hover:bg-slate-50/80 transition-all group">
-                              <td className="px-6 md:px-8 py-6">
+                              <td className="px-8 py-6">
                                   <div className="flex items-center gap-5">
-                                    <div className="h-12 md:h-14 w-12 md:w-14 rounded-2xl bg-white border-2 border-slate-100 text-slate-300 group-hover:bg-indigo-600 group-hover:text-white group-hover:border-indigo-600 transition-all shadow-sm flex items-center justify-center shrink-0">
-                                        <BookOpen className="h-6 md:h-7 w-6 md:w-7" />
+                                    <div className="h-14 w-14 rounded-2xl bg-white border-2 border-slate-100 text-slate-300 group-hover:bg-indigo-600 group-hover:text-white group-hover:border-indigo-600 transition-all shadow-sm flex items-center justify-center shrink-0">
+                                        <BookOpen className="h-7 w-7" />
                                     </div>
                                     <div>
-                                        <p className="font-black text-slate-900 text-base md:text-lg uppercase tracking-tight group-hover:text-indigo-600 transition-colors leading-none mb-1.5">{row.name}</p>
+                                        <p className="font-black text-slate-900 text-lg uppercase tracking-tight group-hover:text-indigo-600 transition-colors leading-none mb-1.5">{row.name}</p>
                                         <div className="flex items-center gap-1.5">
                                           <ClassIcon className="h-3 w-3 text-indigo-500" />
                                           <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">{row.className}</p>
@@ -445,17 +470,17 @@ export function GradingInterfaceContent({ userRole }: { userRole: 'ADMIN' | 'TEA
                                     </div>
                                   </div>
                               </td>
-                              <td className="px-6 md:px-8 py-6 font-bold text-slate-600 text-sm">{row.teacher}</td>
-                              <td className="px-6 md:px-8 py-6 text-center">
+                              <td className="px-8 py-6 font-bold text-slate-600 text-sm">{row.teacher}</td>
+                              <td className="px-8 py-6 text-center">
                                   <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-100 text-slate-500 font-bold group-hover:bg-white border group-hover:border-slate-200 transition-all">
                                     <Users className="h-3.5 w-3.5" />
                                     <span className="text-sm font-black">{row.studentsCount}</span>
                                   </div>
                               </td>
-                              <td className="px-6 md:px-8 py-6 text-center">
+                              <td className="px-8 py-6 text-center">
                                   <Badge className="bg-slate-900 text-white font-black rounded-lg px-3 uppercase text-[10px]">{row.quizCount}</Badge>
                               </td>
-                                 <td className="px-6 md:px-8 py-6 text-right whitespace-nowrap">
+                                 <td className="px-8 py-6 text-right whitespace-nowrap">
                                 <div className="flex items-center justify-end gap-2">
                                   {isGradebookMode ? (
                                     <Button onClick={() => navigateToGradebook(row)} className="h-11 px-5 rounded-2xl bg-indigo-600 text-white font-black hover:bg-slate-900 transition-all shadow-lg shadow-indigo-100 gap-2 text-xs">
@@ -463,8 +488,8 @@ export function GradingInterfaceContent({ userRole }: { userRole: 'ADMIN' | 'TEA
                                     </Button>
                                   ) : (
                                     userRole !== 'STUDENT' && (
-                                      <Button onClick={() => navigateToQuizzes(row)} variant="ghost" className="h-10 md:h-12 w-10 md:w-12 p-0 rounded-2xl hover:bg-slate-900 hover:text-white transition-all shrink-0">
-                                        <ChevronRight className="h-5 md:h-6 w-5 md:w-6" />
+                                      <Button onClick={() => navigateToQuizzes(row)} variant="ghost" className="h-12 w-12 p-0 rounded-2xl hover:bg-slate-900 hover:text-white transition-all shrink-0">
+                                        <ChevronRight className="h-6 w-6" />
                                       </Button>
                                     )
                                   )}
@@ -532,20 +557,20 @@ export function GradingInterfaceContent({ userRole }: { userRole: 'ADMIN' | 'TEA
               />
            </div>
 
-           <div className="bg-white rounded-[1.5rem] md:rounded-[2.5rem] border-2 border-slate-50 shadow-sm overflow-x-auto">
+           <div className="bg-white rounded-[2.5rem] border-2 border-slate-50 shadow-sm overflow-x-auto">
               <table className="w-full text-left border-collapse min-w-[700px]">
                  <thead>
                     <tr className="border-b border-slate-100 bg-slate-50/30">
-                       <th className="px-6 md:px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest">Quiz Title</th>
-                       <th className="px-6 md:px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest text-center">Students Worked</th>
-                       <th className="px-6 md:px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest text-center">Total Attempts</th>
-                       <th className="px-6 md:px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest text-right">Action</th>
+                       <th className="px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest">Quiz Title</th>
+                       <th className="px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest text-center">Students Worked</th>
+                       <th className="px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest text-center">Total Attempts</th>
+                       <th className="px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest text-right">Action</th>
                     </tr>
                  </thead>
                  <tbody className="divide-y divide-slate-100">
                     {filteredQuizzes.map(quiz => (
                        <tr key={quiz.id} className="hover:bg-emerald-50/20 transition-all group">
-                          <td className="px-6 md:px-8 py-6">
+                          <td className="px-8 py-6">
                              <div className="flex items-center gap-4">
                                 <div className="h-12 w-12 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-emerald-600 group-hover:text-white shadow-sm transition-all shrink-0">
                                    <FileText className="h-6 w-6" />
@@ -553,7 +578,7 @@ export function GradingInterfaceContent({ userRole }: { userRole: 'ADMIN' | 'TEA
                                 <p className="font-black text-slate-900 text-lg uppercase tracking-tight">{quiz.title}</p>
                              </div>
                           </td>
-                          <td className="px-6 md:px-8 py-6 text-center">
+                          <td className="px-8 py-6 text-center">
                              <div className="flex flex-col items-center">
                                 <div className="flex items-center gap-2">
                                    <Users className="h-4 w-4 text-emerald-500" />
@@ -562,13 +587,13 @@ export function GradingInterfaceContent({ userRole }: { userRole: 'ADMIN' | 'TEA
                                 <p className="text-[9px] font-black text-slate-400 uppercase">Unique Students</p>
                              </div>
                           </td>
-                          <td className="px-6 md:px-8 py-6 text-center">
+                          <td className="px-8 py-6 text-center">
                              <Badge variant="outline" className="text-xs font-black rounded-lg border-slate-200 px-3 py-1 bg-slate-50">
                                 {quiz.totalAttempts} Attempts
                              </Badge>
                           </td>
-                          <td className="px-6 md:px-8 py-6 text-right">
-                             <Button onClick={() => navigateToSubmissions(quiz)} className="h-10 md:h-12 px-4 md:px-8 rounded-xl bg-slate-100 text-slate-600 font-black hover:bg-emerald-600 hover:text-white transition-all shadow-sm text-xs md:text-sm">
+                          <td className="px-8 py-6 text-right">
+                             <Button onClick={() => navigateToSubmissions(quiz)} className="h-12 px-8 rounded-xl bg-slate-100 text-slate-600 font-black hover:bg-emerald-600 hover:text-white transition-all shadow-sm">
                                 View Submissions
                              </Button>
                           </td>
@@ -592,14 +617,14 @@ export function GradingInterfaceContent({ userRole }: { userRole: 'ADMIN' | 'TEA
               />
            </div>
 
-           <div className="bg-white rounded-[1.5rem] md:rounded-[2.5rem] border-2 border-slate-50 shadow-sm overflow-x-auto">
+           <div className="bg-white rounded-[2.5rem] border-2 border-slate-50 shadow-sm overflow-x-auto">
               <table className="w-full text-left border-collapse min-w-[900px]">
                  <thead>
                     <tr className="border-b border-slate-100 bg-slate-50/30">
-                       <th className="px-6 md:px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest">Student Information</th>
-                       <th className="px-6 md:px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest text-center">Completion</th>
-                       <th className="px-6 md:px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest text-center">Result</th>
-                       <th className="px-6 md:px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest text-right">Action</th>
+                       <th className="px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest">Student Information</th>
+                       <th className="px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest text-center">Completion</th>
+                       <th className="px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest text-center">Result</th>
+                       <th className="px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest text-right">Action</th>
                     </tr>
                  </thead>
                  <tbody className="divide-y divide-slate-100">
@@ -608,30 +633,30 @@ export function GradingInterfaceContent({ userRole }: { userRole: 'ADMIN' | 'TEA
                        const pendingCount = results.filter(r => r.manual).length
                        return (
                           <tr key={attempt.id} className="hover:bg-indigo-50/20 transition-all group">
-                             <td className="px-6 md:px-8 py-6">
+                             <td className="px-8 py-6">
                                 <div className="flex items-center gap-4">
-                                   <div className="h-10 md:h-11 w-10 md:w-11 rounded-xl bg-slate-100 flex items-center justify-center font-black text-xs text-slate-400 group-hover:bg-white group-hover:text-indigo-600 transition-all shadow-sm shrink-0">
+                                   <div className="h-11 w-11 rounded-xl bg-slate-100 flex items-center justify-center font-black text-xs text-slate-400 group-hover:bg-white group-hover:text-indigo-600 transition-all shadow-sm shrink-0">
                                       {attempt.student?.firstName?.[0]}{attempt.student?.lastName?.[0]}
                                    </div>
-                                   <div className="min-w-0">
-                                      <p className="font-black text-slate-900 uppercase tracking-tight truncate max-w-[150px] md:max-w-none">{attempt.student?.firstName} {attempt.student?.lastName}</p>
+                                   <div>
+                                      <p className="font-black text-slate-900 uppercase tracking-tight">{attempt.student?.firstName} {attempt.student?.lastName}</p>
                                       <p className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em]">{attempt.student?.studentId}</p>
                                    </div>
                                 </div>
                              </td>
-                             <td className="px-6 md:px-8 py-6 text-center whitespace-nowrap">
+                             <td className="px-8 py-6 text-center">
                                 <p className="text-sm font-bold text-slate-500">{format(new Date(attempt.createdAt), "MMM dd, hh:mm a")}</p>
                              </td>
-                             <td className="px-6 md:px-8 py-6 text-center">
+                             <td className="px-8 py-6 text-center">
                                 <div className="space-y-1">
-                                   <p className="text-xl md:text-2xl font-black text-slate-900 group-hover:text-indigo-600 transition-colors">
+                                   <p className="text-2xl font-black text-slate-900 group-hover:text-indigo-600 transition-colors">
                                       {parseFloat(attempt.score).toFixed(1)}%
                                    </p>
-                                   {pendingCount > 0 && <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100 text-[8px] font-black px-2 tracking-widest border-none whitespace-nowrap">UNSANCTIONED</Badge>}
+                                   {pendingCount > 0 && <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100 text-[8px] font-black px-2 tracking-widest border-none">UNSANCTIONED</Badge>}
                                 </div>
                              </td>
-                             <td className="px-6 md:px-8 py-6 text-right">
-                                <Button onClick={() => openAttempt(attempt)} className="h-10 md:h-12 px-4 md:px-8 rounded-2xl bg-indigo-600 text-white font-black hover:bg-slate-900 transition-all shadow-xl shadow-indigo-100 active:scale-95 text-xs md:text-sm whitespace-nowrap">
+                             <td className="px-8 py-6 text-right">
+                                <Button onClick={() => openAttempt(attempt)} className="h-12 px-8 rounded-2xl bg-indigo-600 text-white font-black hover:bg-slate-900 transition-all shadow-xl shadow-indigo-100 active:scale-95">
                                    {pendingCount > 0 ? 'SANCTION GRADE' : 'REVise ASSESSMENT'}
                                 </Button>
                              </td>
@@ -645,82 +670,82 @@ export function GradingInterfaceContent({ userRole }: { userRole: 'ADMIN' | 'TEA
       )}
 
       {view === 'GRADE' && (
-        <div className="space-y-6 md:space-y-8 animate-in slide-in-from-bottom-5 duration-500">
+        <div className="space-y-8 animate-in slide-in-from-bottom-5 duration-500">
            {/* Attempt Summary */}
-           <div className="bg-white p-6 md:p-10 rounded-[2rem] md:rounded-[3rem] border-2 border-slate-50 shadow-sm flex flex-col md:flex-row items-center justify-between gap-8 relative overflow-hidden">
+           <div className="bg-white p-10 rounded-[3rem] border-2 border-slate-50 shadow-sm flex flex-col md:flex-row items-center justify-between gap-8 relative overflow-hidden">
               <div className="absolute top-0 right-0 h-full w-40 bg-indigo-600/5 -skew-x-12 translate-x-10" />
-              <div className="flex items-center gap-6 md:gap-8 relative w-full md:w-auto">
-                 <div className="h-16 md:h-24 w-16 md:w-24 rounded-[1.5rem] md:rounded-[2rem] bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-100 shrink-0">
-                    <GraduationCap className="h-8 md:h-12 w-8 md:w-12" />
+              <div className="flex items-center gap-8 relative">
+                 <div className="h-24 w-24 rounded-[2rem] bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-100 shrink-0">
+                    <GraduationCap className="h-12 w-12" />
                  </div>
-                 <div className="min-w-0">
-                    <h2 className="text-2xl md:text-4xl font-black text-slate-900 tracking-tighter uppercase leading-none mb-2 overflow-hidden text-ellipsis">{selectedAttempt.student?.firstName} {selectedAttempt.student?.lastName}</h2>
-                    <div className="flex items-center gap-2 md:gap-3 flex-wrap">
-                       <Badge className="bg-slate-100 text-slate-500 border-none font-black text-[9px] md:text-[10px] tracking-widest whitespace-nowrap">{selectedCourse?.className}</Badge>
-                       <p className="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-widest overflow-hidden text-ellipsis line-clamp-1">{selectedQuiz?.title}</p>
+                 <div>
+                    <h2 className="text-4xl font-black text-slate-900 tracking-tighter uppercase leading-none mb-2">{selectedAttempt.student?.firstName} {selectedAttempt.student?.lastName}</h2>
+                    <div className="flex items-center gap-3">
+                       <Badge className="bg-slate-100 text-slate-500 border-none font-black text-[10px] tracking-widest">{selectedCourse?.className}</Badge>
+                       <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">{selectedQuiz?.title}</p>
                     </div>
                  </div>
               </div>
-              <div className="text-center md:text-right bg-white p-6 md:p-8 rounded-[1.5rem] md:rounded-[2rem] border-2 border-indigo-50 shadow-xl shadow-indigo-50/40 relative min-w-full md:min-w-[200px]">
-                 <p className="text-[9px] md:text-[10px] font-black uppercase text-indigo-500 tracking-[0.2em] mb-2 leading-none">SCORE CARRIER</p>
-                 <div className="flex items-baseline justify-center md:justify-end gap-1">
-                    <h3 className="text-5xl md:text-7xl font-black text-slate-900 leading-none tracking-tighter">{parseFloat(selectedAttempt.score).toFixed(1)}</h3>
-                    <span className="text-xl md:text-2xl font-black text-slate-300">%</span>
+              <div className="text-right bg-white p-8 rounded-[2rem] border-2 border-indigo-50 shadow-xl shadow-indigo-50/40 relative min-w-[200px]">
+                 <p className="text-[10px] font-black uppercase text-indigo-500 tracking-[0.2em] mb-2 leading-none">SCORE CARRIER</p>
+                 <div className="flex items-baseline justify-end gap-1">
+                    <h3 className="text-7xl font-black text-slate-900 leading-none tracking-tighter">{parseFloat(selectedAttempt.score).toFixed(1)}</h3>
+                    <span className="text-2xl font-black text-slate-300">%</span>
                  </div>
               </div>
            </div>
 
            {/* Questions */}
-           <div className="space-y-6 md:space-y-8">
+           <div className="space-y-8">
               {editedResults.map((r: any, idx: number) => {
                  const isUnapproved = r.manual === true
                  return (
-                    <div key={idx} className={`p-6 md:p-10 rounded-[2rem] md:rounded-[3.5rem] border-2 transition-all ${isUnapproved ? "bg-amber-50/20 border-amber-100 shadow-sm" : "bg-emerald-50/30 border-emerald-100 shadow-sm"}`}>
-                       <div className="flex flex-col lg:flex-row gap-8 md:gap-12">
-                          <div className="flex-1 space-y-6 md:space-y-8">
-                             <div className="flex items-center gap-4 flex-wrap">
-                                <span className={`h-11 md:h-14 w-11 md:w-14 rounded-xl md:rounded-2xl flex items-center justify-center font-black text-xl md:text-2xl shrink-0 ${isUnapproved ? 'bg-amber-100 text-amber-600 shadow-sm' : 'bg-emerald-100 text-emerald-600 shadow-sm'}`}>{idx + 1}</span>
-                                <Badge className={`text-[9px] md:text-[10px] font-black uppercase px-4 md:px-5 py-1.5 md:py-2 rounded-lg md:rounded-xl shadow-sm border-none ${isUnapproved ? 'bg-white text-amber-600' : 'bg-white text-emerald-600'}`}>
+                    <div key={idx} className={`p-10 rounded-[3.5rem] border-2 transition-all ${isUnapproved ? "bg-amber-50/20 border-amber-100 shadow-sm" : "bg-emerald-50/30 border-emerald-100 shadow-sm"}`}>
+                       <div className="flex flex-col lg:flex-row gap-12">
+                          <div className="flex-1 space-y-8">
+                             <div className="flex items-center gap-4">
+                                <span className={`h-14 w-14 rounded-2xl flex items-center justify-center font-black text-2xl shrink-0 ${isUnapproved ? 'bg-amber-100 text-amber-600 shadow-sm' : 'bg-emerald-100 text-emerald-600 shadow-sm'}`}>{idx + 1}</span>
+                                <Badge className={`text-[10px] font-black uppercase px-5 py-2 rounded-xl shadow-sm border-none ${isUnapproved ? 'bg-white text-amber-600' : 'bg-white text-emerald-600'}`}>
                                    {isUnapproved ? "Review Required" : "Sanctioned & Archived"}
                                 </Badge>
                              </div>
                              <div className="space-y-4">
-                                <h4 className="text-xl md:text-3xl font-black text-slate-900 leading-tight uppercase tracking-tight break-words">{r.question}</h4>
-                                <div className="p-6 md:p-10 rounded-[1.5rem] md:rounded-[2.5rem] bg-white border border-slate-100 space-y-4 md:space-y-5 relative group overflow-hidden shadow-sm">
-                                   <div className="absolute top-0 left-0 w-1.5 md:w-2 h-full bg-slate-100 group-hover:bg-indigo-600 transition-colors" />
+                                <h4 className="text-3xl font-black text-slate-900 leading-tight uppercase tracking-tight">{r.question}</h4>
+                                <div className="p-10 rounded-[2.5rem] bg-white border border-slate-100 space-y-5 relative group overflow-hidden shadow-sm">
+                                   <div className="absolute top-0 left-0 w-2 h-full bg-slate-100 group-hover:bg-indigo-600 transition-colors" />
                                    <div className="flex items-center gap-2">
                                       <RotateCcw className="h-3 w-3 text-slate-400" />
-                                      <p className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400">Student Response</p>
+                                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Student Response</p>
                                    </div>
-                                   <p className="text-lg md:text-xl font-bold text-slate-700 leading-relaxed italic group-hover:text-slate-900 transition-colors break-words">"{r.studentAnswer || "No Response"}"</p>
+                                   <p className="text-xl font-bold text-slate-700 leading-relaxed italic group-hover:text-slate-900 transition-colors">"{r.studentAnswer || "No Response"}"</p>
                                 </div>
                              </div>
                           </div>
 
-                          <div className="w-full lg:w-96 space-y-6 md:space-y-8 shrink-0 bg-white/70 p-6 md:p-10 rounded-[2rem] md:rounded-[3rem] border-2 border-slate-50 shadow-sm backdrop-blur-xl">
+                          <div className="w-full lg:w-96 space-y-8 shrink-0 bg-white/70 p-10 rounded-[3rem] border-2 border-slate-50 shadow-sm backdrop-blur-xl">
                              <div className="space-y-2">
-                                <label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 flex justify-between px-1">Evaluation Score <span>MAX: {r.total}</span></label>
-                                <Input type="number" max={r.total} min={0} value={r.earned} onChange={(e) => handleInputChange(idx, 'earned', e.target.value)} className="h-14 md:h-16 rounded-xl md:rounded-2xl text-2xl md:text-3xl font-black focus:ring-4 focus:ring-indigo-100 border-2 transition-all" />
+                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex justify-between px-1">Evaluation Score <span>MAX: {r.total}</span></label>
+                                <Input type="number" max={r.total} min={0} value={r.earned} onChange={(e) => handleInputChange(idx, 'earned', e.target.value)} className="h-16 rounded-2xl text-3xl font-black focus:ring-4 focus:ring-indigo-100 border-2 transition-all" />
                              </div>
                              <div className="space-y-2">
-                                <label className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Constructive Feedback</label>
-                                <Textarea placeholder="Share insights..." value={r.feedback || ""} onChange={(e) => handleInputChange(idx, 'feedback', e.target.value)} className="rounded-xl md:rounded-2xl resize-none text-sm md:text-base h-32 md:h-40 focus:ring-4 focus:ring-indigo-100 border-2 leading-relaxed" />
+                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Constructive Feedback</label>
+                                <Textarea placeholder="Share insights..." value={r.feedback || ""} onChange={(e) => handleInputChange(idx, 'feedback', e.target.value)} className="rounded-2xl resize-none h-40 focus:ring-4 focus:ring-indigo-100 border-2 leading-relaxed" />
                              </div>
-                             <div className="space-y-3 md:space-y-4 pt-4">
+                             <div className="space-y-4 pt-4">
                                 {isUnapproved ? (
                                    <div className="grid grid-cols-1 gap-3">
-                                      <Button onClick={() => approveQuestion(idx)} className="h-14 md:h-16 rounded-xl md:rounded-2xl bg-emerald-600 text-white font-black hover:bg-emerald-700 gap-3 shadow-lg shadow-emerald-100 flex items-center justify-center text-base md:text-lg active:scale-95 transition-all">
-                                         <Check className="h-5 md:h-6 w-5 md:w-6" /> Sanction
+                                      <Button onClick={() => approveQuestion(idx)} className="h-16 rounded-2xl bg-emerald-600 text-white font-black hover:bg-emerald-700 gap-3 shadow-lg shadow-emerald-100 flex items-center justify-center text-lg active:scale-95 transition-all">
+                                         <Check className="h-6 w-6" /> Sanction
                                       </Button>
-                                      <Button onClick={() => handleAIGrade(idx, r)} disabled={aiLoading === idx} variant="outline" className="h-14 md:h-16 rounded-xl md:rounded-2xl border-2 border-indigo-100 text-indigo-700 font-black gap-3 hover:bg-indigo-50 transition-all text-base md:text-lg group">
-                                         {aiLoading === idx ? <Loader2 className="h-5 md:h-6 w-5 md:w-6 animate-spin" /> : <Sparkles className="h-5 md:h-6 w-5 md:w-6 text-indigo-500 group-hover:scale-110 transition-transform" />} 
+                                      <Button onClick={() => handleAIGrade(idx, r)} disabled={aiLoading === idx} variant="outline" className="h-16 rounded-2xl border-2 border-indigo-100 text-indigo-700 font-black gap-3 hover:bg-indigo-50 transition-all text-lg group">
+                                         {aiLoading === idx ? <Loader2 className="h-6 w-6 animate-spin" /> : <Sparkles className="h-6 w-6 text-indigo-500 group-hover:scale-110 transition-transform" />} 
                                          AI Proposal
                                       </Button>
                                    </div>
                                 ) : (
-                                   <div className="space-y-3 md:space-y-4">
-                                      <div className="w-full h-14 md:h-16 rounded-xl md:rounded-2xl border-2 border-emerald-200 text-emerald-700 bg-white shadow-inner flex items-center justify-center gap-2 md:gap-3 font-black text-base md:text-lg">
-                                         <CheckCircle2 className="h-5 md:h-6 w-5 md:w-6" /> SANCTIONED
+                                   <div className="space-y-4">
+                                      <div className="w-full h-16 rounded-2xl border-2 border-emerald-200 text-emerald-700 bg-white shadow-inner flex items-center justify-center gap-3 font-black text-lg">
+                                         <CheckCircle2 className="h-6 w-6" /> SANCTIONED
                                       </div>
                                       <Button onClick={() => {
                                          setEditedResults(prev => {
@@ -728,7 +753,7 @@ export function GradingInterfaceContent({ userRole }: { userRole: 'ADMIN' | 'TEA
                                             next[idx].manual = true;
                                             return next;
                                          });
-                                      }} variant="ghost" className="w-full h-10 text-[8px] md:text-[9px] font-black uppercase text-slate-400 hover:text-indigo-600 tracking-widest transition-colors">
+                                      }} variant="ghost" className="w-full h-10 text-[9px] font-black uppercase text-slate-400 hover:text-indigo-600 tracking-widest transition-colors">
                                          <RotateCcw className="h-3 w-3 mr-2" /> Revoke Decision
                                       </Button>
                                    </div>
@@ -746,7 +771,7 @@ export function GradingInterfaceContent({ userRole }: { userRole: 'ADMIN' | 'TEA
       {view === 'GRADEBOOK' && (
         <div className="space-y-6 animate-in slide-in-from-bottom-5 duration-500">
            {/* Course Header Summary */}
-           <div className="bg-white p-6 md:p-8 rounded-[2rem] border-2 border-slate-50 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6 overflow-hidden relative">
+           <div className="bg-white p-8 rounded-[2rem] border-2 border-slate-50 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6 overflow-hidden relative">
               <div className="absolute top-0 right-0 h-full w-32 bg-indigo-600/5 -skew-x-12 translate-x-10" />
               <div className="flex items-center gap-6 relative">
                  <div className="h-16 w-16 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-100 shrink-0">
@@ -774,16 +799,19 @@ export function GradingInterfaceContent({ userRole }: { userRole: 'ADMIN' | 'TEA
               <div className="relative group w-full md:max-w-md">
                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
                  <input 
-                    placeholder="Search student by name or ID..." 
+                    placeholder="Search student..." 
                     value={submissionSearch}
                     onChange={(e) => setSubmissionSearch(e.target.value)}
                     className="pl-12 h-12 w-full bg-white border-2 border-slate-100 rounded-xl text-sm font-medium focus:border-indigo-500 transition-all shadow-sm outline-none"
                  />
               </div>
-              <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto"><Button onClick={() => navigateToClassReport(selectedCourse.classId)} variant="outline" className="h-12 rounded-xl border-indigo-100 text-indigo-600 gap-2 font-black text-xs uppercase tracking-widest bg-indigo-50/50 hover:bg-indigo-100 transition-all shadow-sm"><Users className="h-4 w-4" />All Subjects Marksheet</Button><Button onClick={() => window.print()} variant="outline" className="h-12 rounded-xl border-slate-200 gap-2 font-black text-xs uppercase tracking-widest bg-white"><FileText className="h-4 w-4" />Print / Save PDF</Button></div>
+              <div className="flex gap-3">
+                <Button onClick={() => navigateToClassReport(selectedCourse.classId)} variant="outline" className="h-12 rounded-xl border-indigo-100 text-indigo-600 gap-2 font-black text-xs uppercase tracking-widest bg-indigo-50/50 hover:bg-indigo-100 shadow-sm"><Users className="h-4 w-4" />All Subjects Marksheet</Button>
+                <Button onClick={() => window.print()} variant="outline" className="h-12 rounded-xl border-slate-200 gap-2 font-black text-xs uppercase tracking-widest bg-white shadow-sm"><Printer className="h-4 w-4" />Print / Save PDF</Button>
+              </div>
            </div>
 
-           <div className="bg-white rounded-[1.5rem] md:rounded-[2.5rem] border-2 border-slate-50 shadow-sm overflow-x-auto print:shadow-none print:border-none">
+           <div className="bg-white rounded-[2.5rem] border-2 border-slate-50 shadow-sm overflow-x-auto print:shadow-none print:border-none">
               <table className="w-full text-left border-collapse min-w-[1000px]">
                  <thead>
                     <tr className="border-b border-slate-100 bg-slate-50/80 backdrop-blur-md">
@@ -835,10 +863,11 @@ export function GradingInterfaceContent({ userRole }: { userRole: 'ADMIN' | 'TEA
            </div>
         </div>
       )}
+
       {view === 'CLASS_REPORT' && (
-        <div className="space-y-6 animate-in slide-in-from-bottom-5 duration-500 max-w-full">
+        <div className="space-y-6 animate-in slide-in-from-bottom-5 duration-500">
            {/* Class Header Summary */}
-           <div className="bg-white p-6 md:p-8 rounded-[2rem] border-2 border-slate-50 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6 overflow-hidden relative">
+           <div className="bg-white p-8 rounded-[2rem] border-2 border-slate-50 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6 overflow-hidden relative print:hidden">
               <div className="absolute top-0 right-0 h-full w-32 bg-slate-900/5 -skew-x-12 translate-x-10" />
               <div className="flex items-center gap-6 relative">
                  <div className="h-16 w-16 rounded-2xl bg-slate-900 text-white flex items-center justify-center shadow-lg shadow-slate-100 shrink-0">
@@ -846,7 +875,7 @@ export function GradingInterfaceContent({ userRole }: { userRole: 'ADMIN' | 'TEA
                  </div>
                  <div>
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Class Master Report</p>
-                    <h2 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight uppercase leading-none">{classReportData.className}</h2>
+                    <h2 className="text-3xl font-black text-slate-900 tracking-tight uppercase leading-none">{classReportData.className}</h2>
                  </div>
               </div>
               <div className="flex items-center gap-3 relative">
@@ -862,7 +891,7 @@ export function GradingInterfaceContent({ userRole }: { userRole: 'ADMIN' | 'TEA
               </div>
            </div>
 
-           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 print:hidden">
               <div className="relative group w-full md:max-w-md">
                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
                  <input 
@@ -872,17 +901,26 @@ export function GradingInterfaceContent({ userRole }: { userRole: 'ADMIN' | 'TEA
                     className="pl-12 h-12 w-full bg-white border-2 border-slate-100 rounded-xl text-sm font-medium focus:border-indigo-500 transition-all shadow-sm outline-none"
                  />
               </div>
-              <Button 
-                onClick={() => window.print()} 
-                variant="outline" 
-                className="w-full md:w-auto h-12 rounded-xl border-slate-200 gap-2 font-black text-xs uppercase tracking-widest bg-white"
-              >
-                  <FileText className="h-4 w-4" />
-                  Print Master Sheet
-              </Button>
+              <div className="flex gap-3 w-full md:w-auto">
+                <Button 
+                  onClick={handleBulkPrintReports} 
+                  className="flex-1 h-12 rounded-xl bg-slate-900 text-white font-black text-xs uppercase tracking-widest gap-2 shadow-xl shadow-slate-200"
+                >
+                    <Printer className="h-4 w-4" />
+                    Generate All Reports
+                </Button>
+                <Button 
+                  onClick={() => window.print()} 
+                  variant="outline" 
+                  className="h-12 rounded-xl border-slate-200 gap-2 font-black text-xs uppercase tracking-widest bg-white shadow-sm"
+                >
+                    <FileText className="h-4 w-4" />
+                    Print Master Sheet
+                </Button>
+              </div>
            </div>
 
-           <div className="bg-white rounded-[1.5rem] md:rounded-[2.5rem] border-2 border-slate-50 shadow-sm overflow-x-auto print:shadow-none print:border-none">
+           <div className="bg-white rounded-[2.5rem] border-2 border-slate-50 shadow-sm overflow-x-auto print:hidden">
               <table className="w-full text-left border-collapse min-w-[1000px]">
                  <thead>
                     <tr className="border-b border-slate-100 bg-slate-50/80 backdrop-blur-md">
@@ -932,10 +970,15 @@ export function GradingInterfaceContent({ userRole }: { userRole: 'ADMIN' | 'TEA
                  </tbody>
               </table>
            </div>
+
+           {/* Bulk Printing Area - Only visible during print */}
+           <div className="hidden print:block">
+              {bulkData.map((item, idx) => (
+                 <ReportCardTemplate key={idx} data={item.grades} user={item.user} className="report-card-page" />
+              ))}
+           </div>
         </div>
       )}
     </div>
   )
 }
-
-

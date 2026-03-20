@@ -1,6 +1,7 @@
 "use server"
 
 import prisma from "@/lib/prisma"
+import { createClient } from "@/utils/supabase/server"
 
 const scoreToGrade = (score: number) => {
   if (score >= 90) return "A"
@@ -12,26 +13,33 @@ const scoreToGrade = (score: number) => {
 
 const scoreToGPA = (score: number) => {
   if (score >= 90) return 4.0
-  if (score >= 80) return 3.0
-  if (score >= 70) return 2.0
-  if (score >= 60) return 1.0
+  if (score >= 80) return 3.5
+  if (score >= 70) return 3.0
+  if (score >= 60) return 2.5
+  if (score >= 50) return 2.0
   return 0.0
 }
 
-export async function getStudentGrades(studentId: string) {
+export async function getStudentGrades() {
   try {
-    const student = await prisma.student.findUnique({
-      where: { id: studentId },
-      select: { classId: true }
+    const supabase = await createClient()
+    const { data: { user: authUser } } = await supabase.auth.getUser()
+    if (!authUser) return { success: false, data: [] }
+
+    const studentProfile = await prisma.student.findUnique({
+      where: { userId: authUser.id },
+      select: { id: true, classId: true }
     })
-    
-    if (!student) return []
+
+    if (!studentProfile) return { success: false, data: [] }
+
+    const studentId = studentProfile.id
 
     const courses = await prisma.course.findMany({
       where: {
         OR: [
           { enrollments: { some: { studentId } } },
-          { teacherAssignments: { some: { classId: student.classId || "none" } } }
+          { teacherAssignments: { some: { classId: studentProfile.classId || "none" } } }
         ]
       },
       include: {
@@ -66,12 +74,12 @@ export async function getStudentGrades(studentId: string) {
         }
       }
     })
-    
-    if (courses.length === 0) return []
+
+    if (courses.length === 0) return { success: true, data: [] }
 
     const formatted = courses.map((course: any) => {
-      const items: any[] = []
-      
+      const quizItems: any[] = []
+
       // 1. Quizzes
       course.sections.forEach((section: any) => {
         section.quizzes.forEach((quiz: any) => {
@@ -79,81 +87,58 @@ export async function getStudentGrades(studentId: string) {
           if (studentAttempts.length > 0) {
             const scores = studentAttempts.map((a: any) => parseFloat(a.score.toString()))
             const bestAttempt = studentAttempts[0] // ordered by score desc
-            
-            items.push({
+
+            quizItems.push({
               id: quiz.id,
-              name: quiz.title,
-              score: bestAttempt.score,
-              max: 100,
-              date: new Date(bestAttempt.createdAt).toLocaleDateString("en-US", { month: 'short', day: 'numeric' }),
-              grade: scoreToGrade(bestAttempt.score),
-              type: 'QUIZ',
-              stats: {
-                count: studentAttempts.length,
-                min: parseFloat(Math.min(...scores).toFixed(1)),
-                max: parseFloat(Math.max(...scores).toFixed(1)),
-                avg: parseFloat((scores.reduce((a: number, b: number) => a + b, 0) / scores.length).toFixed(1))
-              },
-              results: bestAttempt.results // Array of { question, studentAnswer, correctAnswer, earned, total, feedback, isCorrect }
+              title: quiz.title,
+              max: parseFloat(Math.max(...scores).toFixed(1)),
+              avg: parseFloat((scores.reduce((a: number, b: number) => a + b, 0) / scores.length).toFixed(1)),
+              attempts: studentAttempts.length,
+              details: studentAttempts.map((a: any) => ({
+                score: parseFloat(a.score.toString()).toFixed(1),
+                results: a.results || []
+              }))
             })
           }
         })
       })
 
-      // 2. Exams
+      // 2. Exams (for report card template)
+      const examItems: any[] = []
       course.exams.forEach((exam: any) => {
         const result = exam.results[0]
         if (result) {
-          const scorePct = (result.marksObtained / exam.maxMarks) * 100
-          items.push({
-            name: exam.title,
-            score: result.marksObtained,
-            max: exam.maxMarks,
-            date: new Date(result.gradedAt || result.createdAt).toLocaleDateString("en-US", { month: 'short', day: 'numeric' }),
-            grade: scoreToGrade(scorePct),
-            type: 'EXAM'
-          })
+          const scorePct = Math.round((result.marksObtained / exam.maxMarks) * 100)
+          examItems.push({ score: scorePct, max: 100 })
         }
       })
 
-      // 3. Assignments
-      course.assignments.forEach((ass: any) => {
-        const grade = ass.grades[0]
-        if (grade) {
-          items.push({
-            name: ass.title,
-            score: grade.score,
-            max: 100,
-            date: new Date(grade.gradedAt || grade.createdAt).toLocaleDateString("en-US", { month: 'short', day: 'numeric' }),
-            grade: scoreToGrade(grade.score),
-            type: 'ASSIGNMENT'
-          })
-        }
-      })
+      // Calculate course-level grade from all activities
+      const allScores: number[] = [
+        ...quizItems.map(q => q.avg),
+        ...examItems.map(e => e.score)
+      ]
 
-      // Calculate Course Average
-      let avgScore = 0
-      if (items.length > 0) {
-        const totalPct = items.reduce((acc, curr) => acc + (curr.score / curr.max), 0)
-        avgScore = (totalPct / items.length) * 100
-      }
-
-      const colors = ["emerald", "violet", "blue", "amber", "indigo", "lime"]
-      const colorIndex = Math.abs(course.id.split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0)) % colors.length
+      const avgScore = allScores.length > 0
+        ? Math.round(allScores.reduce((a, b) => a + b, 0) / allScores.length)
+        : 0
 
       return {
-        subject: course.name,
+        // For the UI accordion
+        name: course.name,
         teacher: course.teacher ? `${course.teacher.firstName} ${course.teacher.lastName}` : 'Unassigned',
-        grade: scoreToGrade(avgScore),
+        grade: avgScore,
+        quizzes: quizItems,
+        // For the report card template (matches ReportCardTemplate's data prop shape)
+        subject: course.name,
         gpa: scoreToGPA(avgScore),
-        color: colors[colorIndex],
-        exams: items.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        exams: examItems
       }
     })
 
-    return formatted
+    return { success: true, data: formatted }
   } catch (error) {
     console.error("Error fetching student grades:", error)
-    return []
+    return { success: false, data: [] }
   }
 }

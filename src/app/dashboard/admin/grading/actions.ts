@@ -613,3 +613,87 @@ export async function getGradingClasses() {
     return []
   }
 }
+export async function getBulkReportData(classId: string) {
+  try {
+    const targetClass = await prisma.class.findUnique({
+      where: { id: classId },
+      include: {
+        students: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            studentId: true,
+          }
+        }
+      }
+    })
+
+    if (!targetClass) throw new Error("Fasalka lama helin.")
+
+    const teacherAssignments = await prisma.teacherAssignment.findMany({
+      where: { classId },
+      include: {
+        course: {
+          include: {
+            teacher: { select: { firstName: true, lastName: true } },
+            sections: { include: { quizzes: true } }
+          }
+        }
+      }
+    })
+
+    const courses = teacherAssignments.map(ta => ta.course)
+    
+    const studentsFullData = await Promise.all(targetClass.students.map(async (student) => {
+      const studentGrades: any[] = []
+
+      for (const course of courses) {
+        const quizIds = course.sections.flatMap(s => s.quizzes.map(q => q.id))
+        
+        if (quizIds.length === 0) continue
+
+        const attempts = await prisma.quizAttempt.findMany({
+          where: { studentId: student.id, quizId: { in: quizIds } },
+          select: { quizId: true, score: true }
+        })
+
+        const bestScores: Record<string, number> = {}
+        attempts.forEach(a => {
+           const s = parseFloat(a.score.toString())
+           if (!bestScores[a.quizId] || s > bestScores[a.quizId]) {
+              bestScores[a.quizId] = s
+           }
+        })
+
+        const scores = Object.values(bestScores)
+        const avg = scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / quizIds.length) : 0
+        
+        // Simple GPA mapping
+        const gpa = avg >= 90 ? 4.0 : avg >= 80 ? 3.5 : avg >= 70 ? 3.0 : avg >= 60 ? 2.5 : avg >= 50 ? 2.0 : 0.0
+
+        studentGrades.push({
+          subject: course.name,
+          teacher: `${course.teacher.firstName} ${course.teacher.lastName}`,
+          grade: avg,
+          gpa,
+          exams: scores.map(s => ({ score: s, max: 100 })) // Map quizzes as mini-exams for template
+        })
+      }
+
+      return {
+        user: {
+          fullName: `${student.firstName} ${student.lastName}`,
+          studentId: student.studentId,
+          id: student.id
+        },
+        grades: studentGrades
+      }
+    }))
+
+    return { success: true, className: targetClass.name, studentsWithGrades: studentsFullData }
+  } catch (error) {
+    console.error("getBulkReportData error:", error)
+    return { success: false, error: "Cillad ayaa dhacday" }
+  }
+}
