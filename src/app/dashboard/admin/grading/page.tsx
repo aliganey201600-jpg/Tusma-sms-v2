@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { Suspense } from "react"
 import { 
   getGradingCourses, 
   getCourseQuizzes, 
@@ -48,7 +49,7 @@ import { format } from "date-fns"
 
 type ViewState = 'COURSES' | 'QUIZZES' | 'SUBMISSIONS' | 'GRADE' | 'GRADEBOOK'
 
-export default function GradingInterfacePage() {
+function GradingInterfaceContent() {
   const searchParams = useSearchParams()
   const isGradebookMode = searchParams.get('view') === 'gradebook'
   const [view, setView] = React.useState<ViewState>('COURSES')
@@ -751,3 +752,14 @@ export default function GradingInterfacePage() {
   )
 }
 
+export default function GradingInterfacePage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600" />
+      </div>
+    }>
+      <GradingInterfaceContent />
+    </Suspense>
+  )
+}
