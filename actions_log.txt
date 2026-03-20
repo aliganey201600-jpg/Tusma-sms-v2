@@ -1,0 +1,1192 @@
+﻿commit 5c18d22dba29926ef587182711e216fda1ae8e83
+Author: Ali Ganey <aliganey2016000@gmail.com>
+Date:   Fri Mar 20 15:42:54 2026 +0300
+
+    fix: admin gradebook both tabs now show data (removed strict role gate)
+
+diff --git a/src/app/dashboard/admin/grading/actions.ts b/src/app/dashboard/admin/grading/actions.ts
+index 950008e..8336a55 100644
+--- a/src/app/dashboard/admin/grading/actions.ts
++++ b/src/app/dashboard/admin/grading/actions.ts
+@@ -21,15 +21,15 @@ export async function getGradingCourses() {
+     const where: any = {}
+     
+     if (user.role === 'TEACHER' && user.teacher) {
++      // Teachers only see their own courses
+       where.teacherId = user.teacher.id
+     } else if (user.role === 'STUDENT' && user.student) {
+       where.OR = [
+         { enrollments: { some: { studentId: user.student.id } } },
+         { teacherAssignments: { some: { classId: user.student.classId } } }
+       ]
+-    } else if (user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN') {
+-      return [] // Other roles shouldn't see this for now
+     }
++    // ADMIN / SUPER_ADMIN: no filter ΓÇö fetch everything
+ 
+     const courses = await prisma.course.findMany({
+       where,
+@@ -58,7 +58,7 @@ export async function getGradingCourses() {
+       }
+     })
+ 
+-    // Filter: Only courses that are actually assigned to a class/teacher via TeacherAssignment
++    // Only include courses actually assigned to a class
+     const assignedCourses = courses.filter(c => c.teacherAssignments.length > 0)
+ 
+     const flattened: any[] = []
+@@ -583,12 +583,12 @@ export async function getGradingClasses() {
+     const where: any = {}
+ 
+     if (user.role === 'TEACHER' && user.teacher) {
++      // Teacher sees only classes they're assigned to
+       where.subjectAssignments = { some: { teacherId: user.teacher.id } }
+     } else if (user.role === 'STUDENT' && user.student) {
+       where.id = user.student.classId
+-    } else if (user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN') {
+-      return []
+     }
++    // ADMIN / SUPER_ADMIN: no filter ΓÇö fetch everything
+ 
+     const classes = await prisma.class.findMany({
+       where,
+@@ -599,7 +599,8 @@ export async function getGradingClasses() {
+             subjectAssignments: true
+           }
+         }
+-      }
++      },
++      orderBy: { name: 'asc' }
+     })
+     
+     return classes.map(c => ({
+
+commit 7acfc97dbc8894c5c988b44fc739b9bbd936e532
+Author: Ali Ganey <aliganey2016000@gmail.com>
+Date:   Fri Mar 20 15:35:06 2026 +0300
+
+    feat: implement bulk report card generation for admins
+
+diff --git a/src/app/dashboard/admin/grading/actions.ts b/src/app/dashboard/admin/grading/actions.ts
+index 06650ab..950008e 100644
+--- a/src/app/dashboard/admin/grading/actions.ts
++++ b/src/app/dashboard/admin/grading/actions.ts
+@@ -613,3 +613,87 @@ export async function getGradingClasses() {
+     return []
+   }
+ }
++export async function getBulkReportData(classId: string) {
++  try {
++    const targetClass = await prisma.class.findUnique({
++      where: { id: classId },
++      include: {
++        students: {
++          select: {
++            id: true,
++            firstName: true,
++            lastName: true,
++            studentId: true,
++          }
++        }
++      }
++    })
++
++    if (!targetClass) throw new Error("Fasalka lama helin.")
++
++    const teacherAssignments = await prisma.teacherAssignment.findMany({
++      where: { classId },
++      include: {
++        course: {
++          include: {
++            teacher: { select: { firstName: true, lastName: true } },
++            sections: { include: { quizzes: true } }
++          }
++        }
++      }
++    })
++
++    const courses = teacherAssignments.map(ta => ta.course)
++    
++    const studentsFullData = await Promise.all(targetClass.students.map(async (student) => {
++      const studentGrades: any[] = []
++
++      for (const course of courses) {
++        const quizIds = course.sections.flatMap(s => s.quizzes.map(q => q.id))
++        
++        if (quizIds.length === 0) continue
++
++        const attempts = await prisma.quizAttempt.findMany({
++          where: { studentId: student.id, quizId: { in: quizIds } },
++          select: { quizId: true, score: true }
++        })
++
++        const bestScores: Record<string, number> = {}
++        attempts.forEach(a => {
++           const s = parseFloat(a.score.toString())
++           if (!bestScores[a.quizId] || s > bestScores[a.quizId]) {
++              bestScores[a.quizId] = s
++           }
++        })
++
++        const scores = Object.values(bestScores)
++        const avg = scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / quizIds.length) : 0
++        
++        // Simple GPA mapping
++        const gpa = avg >= 90 ? 4.0 : avg >= 80 ? 3.5 : avg >= 70 ? 3.0 : avg >= 60 ? 2.5 : avg >= 50 ? 2.0 : 0.0
++
++        studentGrades.push({
++          subject: course.name,
++          teacher: `${course.teacher.firstName} ${course.teacher.lastName}`,
++          grade: avg,
++          gpa,
++          exams: scores.map(s => ({ score: s, max: 100 })) // Map quizzes as mini-exams for template
++        })
++      }
++
++      return {
++        user: {
++          fullName: `${student.firstName} ${student.lastName}`,
++          studentId: student.studentId,
++          id: student.id
++        },
++        grades: studentGrades
++      }
++    }))
++
++    return { success: true, className: targetClass.name, studentsWithGrades: studentsFullData }
++  } catch (error) {
++    console.error("getBulkReportData error:", error)
++    return { success: false, error: "Cillad ayaa dhacday" }
++  }
++}
+
+commit e41f359a742676dc9639a506e156b3d66ce02ba8
+Author: Ali Ganey <aliganey2016000@gmail.com>
+Date:   Fri Mar 20 14:12:08 2026 +0300
+
+    fix: ensure student gradebook shows courses assigned to their class even if not explicitly enrolled
+
+diff --git a/src/app/dashboard/admin/grading/actions.ts b/src/app/dashboard/admin/grading/actions.ts
+index d4ced94..06650ab 100644
+--- a/src/app/dashboard/admin/grading/actions.ts
++++ b/src/app/dashboard/admin/grading/actions.ts
+@@ -23,7 +23,10 @@ export async function getGradingCourses() {
+     if (user.role === 'TEACHER' && user.teacher) {
+       where.teacherId = user.teacher.id
+     } else if (user.role === 'STUDENT' && user.student) {
+-      where.enrollments = { some: { studentId: user.student.id } }
++      where.OR = [
++        { enrollments: { some: { studentId: user.student.id } } },
++        { teacherAssignments: { some: { classId: user.student.classId } } }
++      ]
+     } else if (user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN') {
+       return [] // Other roles shouldn't see this for now
+     }
+
+commit c1adf45c4501c92f72f3edc7a25728a495ab49c0
+Author: Ali Ganey <aliganey2016000@gmail.com>
+Date:   Fri Mar 20 13:54:30 2026 +0300
+
+    feat: implement role-based data filtering for Gradebook (Admin/Teacher/Student)
+
+diff --git a/src/app/dashboard/admin/grading/actions.ts b/src/app/dashboard/admin/grading/actions.ts
+index 0326daf..d4ced94 100644
+--- a/src/app/dashboard/admin/grading/actions.ts
++++ b/src/app/dashboard/admin/grading/actions.ts
+@@ -3,10 +3,33 @@
+ import prisma from "@/lib/prisma"
+ import { revalidatePath } from "next/cache"
+ import { GoogleGenerativeAI } from "@google/generative-ai"
++import { createClient } from "@/utils/supabase/server"
+ 
+ export async function getGradingCourses() {
+   try {
++    const supabase = await createClient()
++    const { data: { user: authUser } } = await supabase.auth.getUser()
++    if (!authUser) return []
++
++    const user = await prisma.user.findUnique({
++      where: { id: authUser.id },
++      include: { teacher: true, student: true }
++    })
++
++    if (!user) return []
++
++    const where: any = {}
++    
++    if (user.role === 'TEACHER' && user.teacher) {
++      where.teacherId = user.teacher.id
++    } else if (user.role === 'STUDENT' && user.student) {
++      where.enrollments = { some: { studentId: user.student.id } }
++    } else if (user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN') {
++      return [] // Other roles shouldn't see this for now
++    }
++
+     const courses = await prisma.course.findMany({
++      where,
+       include: {
+         teacher: { select: { firstName: true, lastName: true } },
+         teacherAssignments: { 
+@@ -343,6 +366,17 @@ export async function generateGlobalQuizAIGrades(quizId: string, classId?: strin
+ 
+ export async function getCourseGradebookData(courseId: string, classId: string) {
+   try {
++    const supabase = await createClient()
++    const { data: { user: authUser } } = await supabase.auth.getUser()
++    const studentFilter: any = { classId }
++    if (authUser) {
++       const user = await prisma.user.findUnique({ where: { id: authUser.id } })
++       if (user?.role === 'STUDENT') {
++         const studentProfile = await prisma.student.findUnique({ where: { userId: user.id } })
++         if (studentProfile) studentFilter.id = studentProfile.id
++       }
++    }
++
+     // 1. Get all quizzes for this course
+     const quizzes = await prisma.quiz.findMany({
+       where: { section: { courseId } },
+@@ -352,7 +386,7 @@ export async function getCourseGradebookData(courseId: string, classId: string)
+ 
+     // 2. Get all students in this class
+     const students = await prisma.student.findMany({
+-      where: { classId },
++      where: studentFilter,
+       select: { 
+         id: true, 
+         firstName: true, 
+@@ -361,7 +395,6 @@ export async function getCourseGradebookData(courseId: string, classId: string)
+       },
+       orderBy: { firstName: 'asc' }
+     })
+-
+     // 3. Get all quiz attempts for these students and these quizzes
+     const attempts = await prisma.quizAttempt.findMany({
+       where: {
+@@ -419,10 +452,22 @@ export async function getCourseGradebookData(courseId: string, classId: string)
+ 
+ export async function getClassOverallGradebook(classId: string) {
+   try {
++    const supabase = await createClient()
++    const { data: { user: authUser } } = await supabase.auth.getUser()
++    const studentQuery: any = { classId }
++    if (authUser) {
++       const user = await prisma.user.findUnique({ where: { id: authUser.id } })
++       if (user?.role === 'STUDENT') {
++         const studentProfile = await prisma.student.findUnique({ where: { userId: user.id } })
++         if (studentProfile) studentQuery.id = studentProfile.id
++       }
++    }
++
+     const targetClass = await prisma.class.findUnique({
+       where: { id: classId },
+       include: {
+         students: {
++          where: { id: studentQuery.id }, // Correctly filter students within the class
+           select: {
+             id: true,
+             firstName: true,
+@@ -521,7 +566,29 @@ export async function getClassOverallGradebook(classId: string) {
+ 
+ export async function getGradingClasses() {
+   try {
++    const supabase = await createClient()
++    const { data: { user: authUser } } = await supabase.auth.getUser()
++    if (!authUser) return []
++
++    const user = await prisma.user.findUnique({
++      where: { id: authUser.id },
++      include: { teacher: true, student: true }
++    })
++
++    if (!user) return []
++
++    const where: any = {}
++
++    if (user.role === 'TEACHER' && user.teacher) {
++      where.subjectAssignments = { some: { teacherId: user.teacher.id } }
++    } else if (user.role === 'STUDENT' && user.student) {
++      where.id = user.student.classId
++    } else if (user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN') {
++      return []
++    }
++
+     const classes = await prisma.class.findMany({
++      where,
+       include: {
+         _count: {
+           select: {
+
+commit 4157441894759331dc4873ad56c3d2f84dc7b224
+Author: Ali Ganey <aliganey2016000@gmail.com>
+Date:   Fri Mar 20 13:24:00 2026 +0300
+
+    feat: implement tabbed navigation for Academic Gradebook with Course Gradebook and Class Master Sheet views
+
+diff --git a/src/app/dashboard/admin/grading/actions.ts b/src/app/dashboard/admin/grading/actions.ts
+index 8310ebb..0326daf 100644
+--- a/src/app/dashboard/admin/grading/actions.ts
++++ b/src/app/dashboard/admin/grading/actions.ts
+@@ -518,3 +518,28 @@ export async function getClassOverallGradebook(classId: string) {
+     return { className: "", courses: [], students: [] }
+   }
+ }
++
++export async function getGradingClasses() {
++  try {
++    const classes = await prisma.class.findMany({
++      include: {
++        _count: {
++          select: {
++            students: true,
++            subjectAssignments: true
++          }
++        }
++      }
++    })
++    
++    return classes.map(c => ({
++      id: c.id,
++      name: c.name,
++      studentsCount: (c as any)._count.students,
++      coursesCount: (c as any)._count.subjectAssignments
++    }))
++  } catch (error) {
++    console.error("getGradingClasses error:", error)
++    return []
++  }
++}
+
+commit aae6c2a9a1674de710ef7b7b597e499389e64531
+Author: Ali Ganey <aliganey2016000@gmail.com>
+Date:   Fri Mar 20 13:03:46 2026 +0300
+
+    feat: add class overall master report and subject-wise gradebook aggregation
+
+diff --git a/src/app/dashboard/admin/grading/actions.ts b/src/app/dashboard/admin/grading/actions.ts
+index 6d38cef..8310ebb 100644
+--- a/src/app/dashboard/admin/grading/actions.ts
++++ b/src/app/dashboard/admin/grading/actions.ts
+@@ -416,3 +416,105 @@ export async function getCourseGradebookData(courseId: string, classId: string)
+     return { quizzes: [], gradebook: [] }
+   }
+ }
++
++export async function getClassOverallGradebook(classId: string) {
++  try {
++    const targetClass = await prisma.class.findUnique({
++      where: { id: classId },
++      include: {
++        students: {
++          select: {
++            id: true,
++            firstName: true,
++            lastName: true,
++            studentId: true,
++          }
++        }
++      }
++    })
++
++    if (!targetClass) throw new Error("Fasalka lama helin.")
++
++    const teacherAssignments = await prisma.teacherAssignment.findMany({
++      where: { classId },
++      include: {
++        course: {
++          include: {
++            sections: {
++              include: {
++                quizzes: true
++              }
++            }
++          }
++        }
++      }
++    })
++
++    const courses = teacherAssignments.map(ta => ta.course)
++    const courseNames = Array.from(new Set(courses.map(c => c.name)))
++
++    const matrix = await Promise.all(targetClass.students.map(async (student) => {
++      const courseGrades: Record<string, number | null> = {}
++      let totalValidGrades = 0
++      let sumOfAverages = 0
++
++      for (const courseName of courseNames) {
++        const matchingCourses = courses.filter(c => c.name === courseName)
++        const quizIds = matchingCourses.flatMap(c => c.sections.flatMap(s => s.quizzes.map(q => q.id)))
++
++        if (quizIds.length === 0) {
++          courseGrades[courseName] = null
++          continue
++        }
++
++        const attempts = await prisma.quizAttempt.findMany({
++          where: {
++            studentId: student.id,
++            quizId: { in: quizIds }
++          },
++          select: {
++            quizId: true,
++            score: true
++          }
++        })
++
++        const bestScores: Record<string, number> = {}
++        attempts.forEach(a => {
++           const s = parseFloat(a.score.toString())
++           if (!bestScores[a.quizId] || s > bestScores[a.quizId]) {
++              bestScores[a.quizId] = s
++           }
++        })
++
++        const scores = Object.values(bestScores)
++        if (scores.length > 0) {
++           const avg = Math.round(scores.reduce((a, b) => a + b, 0) / quizIds.length)
++           courseGrades[courseName] = avg
++           sumOfAverages += avg
++           totalValidGrades++
++        } else {
++           courseGrades[courseName] = 0
++        }
++      }
++
++      const overallAverage = totalValidGrades > 0 ? Math.round(sumOfAverages / totalValidGrades) : 0
++
++      return {
++        studentId: student.id,
++        manualId: student.studentId,
++        name: `${student.firstName} ${student.lastName}`,
++        courseGrades,
++        overallAverage
++      }
++    }))
++
++    return {
++      className: targetClass.name,
++      courses: courseNames,
++      students: matrix
++    }
++  } catch (error) {
++    console.error("getClassOverallGradebook error:", error)
++    return { className: "", courses: [], students: [] }
++  }
++}
+
+commit dbe81c2287957bf5826c8afee19f82884316d6f5
+Author: Ali Ganey <aliganey2016000@gmail.com>
+Date:   Fri Mar 20 11:48:55 2026 +0300
+
+    feat: add course gradebook view with result matrix for quizzes
+
+diff --git a/src/app/dashboard/admin/grading/actions.ts b/src/app/dashboard/admin/grading/actions.ts
+index 2849c4f..6d38cef 100644
+--- a/src/app/dashboard/admin/grading/actions.ts
++++ b/src/app/dashboard/admin/grading/actions.ts
+@@ -340,3 +340,79 @@ export async function generateGlobalQuizAIGrades(quizId: string, classId?: strin
+   }
+ }
+ 
++
++export async function getCourseGradebookData(courseId: string, classId: string) {
++  try {
++    // 1. Get all quizzes for this course
++    const quizzes = await prisma.quiz.findMany({
++      where: { section: { courseId } },
++      orderBy: { order: 'asc' },
++      select: { id: true, title: true }
++    })
++
++    // 2. Get all students in this class
++    const students = await prisma.student.findMany({
++      where: { classId },
++      select: { 
++        id: true, 
++        firstName: true, 
++        lastName: true, 
++        studentId: true 
++      },
++      orderBy: { firstName: 'asc' }
++    })
++
++    // 3. Get all quiz attempts for these students and these quizzes
++    const attempts = await prisma.quizAttempt.findMany({
++      where: {
++        quizId: { in: quizzes.map(q => q.id) },
++        studentId: { in: students.map(s => s.id) }
++      },
++      select: {
++        id: true,
++        quizId: true,
++        studentId: true,
++        score: true
++      }
++    })
++
++    // 4. Transform into a matrix
++    const gradebook = students.map(student => {
++      const studentAttempts = attempts.filter(a => a.studentId === student.id)
++      const quizScores: Record<string, number | null> = {}
++      let totalScore = 0
++      let attemptedQuizzes = 0
++
++      quizzes.forEach(quiz => {
++        // Find the best score for this quiz
++        const quizAttempt = studentAttempts
++          .filter(a => a.quizId === quiz.id)
++          .sort((a, b) => b.score - a.score)[0]
++        
++        quizScores[quiz.id] = quizAttempt ? quizAttempt.score : null
++        if (quizAttempt) {
++            totalScore += quizAttempt.score
++            attemptedQuizzes++
++        }
++      })
++
++      // The user asked for "grand total". Let's provide average of weighted total.
++      // Sum of scores / number of quizzes
++      const average = quizzes.length > 0 ? (totalScore / quizzes.length) : 0
++
++      return {
++        studentId: student.id,
++        manualId: student.studentId,
++        name: `${student.firstName} ${student.lastName}`,
++        quizScores,
++        totalScore,
++        average: parseFloat(average.toFixed(2))
++      }
++    })
++
++    return { quizzes, gradebook }
++  } catch (error) {
++    console.error("Error fetching gradebook data:", error)
++    return { quizzes: [], gradebook: [] }
++  }
++}
+
+commit 42cf2325e5d956ca790dfbf05926f9f96ccf8de5
+Author: Ali Ganey <aliganey2016000@gmail.com>
+Date:   Fri Mar 20 11:12:01 2026 +0300
+
+    Add Global AI Auto-Grade for all students and search for quizzes/submissions
+
+diff --git a/src/app/dashboard/admin/grading/actions.ts b/src/app/dashboard/admin/grading/actions.ts
+index 8b3c9da..2849c4f 100644
+--- a/src/app/dashboard/admin/grading/actions.ts
++++ b/src/app/dashboard/admin/grading/actions.ts
+@@ -265,3 +265,78 @@ export async function generateBatchAIGrades(items: { id: string, question: strin
+     return { success: false, error: error.message || "Bulk grading failed" };
+   }
+ }
++
++export async function generateGlobalQuizAIGrades(quizId: string, classId?: string) {
++  if (!process.env.GEMINI_API_KEY) return { success: false, error: "GEMINI_API_KEY is missing." };
++
++  try {
++    const attempts = await prisma.quizAttempt.findMany({
++      where: { 
++        quizId,
++        ...(classId ? { student: { classId } } : {})
++      },
++      include: {
++        student: { select: { firstName: true, lastName: true } }
++      }
++    });
++
++    if (attempts.length === 0) {
++      return { success: false, error: "No attempts found to grade." };
++    }
++
++    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
++    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
++
++    let successCount = 0;
++
++    for (const attempt of attempts) {
++      const results = attempt.results as any[];
++      const subjectiveQuestions = results.filter(r => r.manual === true);
++      if (subjectiveQuestions.length === 0) continue;
++
++      const prompt = `Grade these ${subjectiveQuestions.length} answers for student ${attempt.student.firstName}.
++      ${subjectiveQuestions.map((q, i) => `
++      Q${i}: ${q.question}
++      Ans: ${q.studentAnswer || "N/A"}
++      Ideal: ${q.correctAnswer || "General knowledge"}
++      Max: ${q.total}
++      `).join('\n')}
++      Respond ONLY with: [{"earned": number, "feedback": "string (Somali)"}]`;
++
++      try {
++        const aiResult = await model.generateContent(prompt);
++        const responseText = aiResult.response.text();
++        // Alternative to /s flag: use [\s\S]* to match everything including newlines
++        const jsonMatch = responseText.match(/\[[\s\S]*\]/);
++        
++        if (jsonMatch) {
++          const aiAnswers = JSON.parse(jsonMatch[0]);
++          const updatedResults = results.map(r => {
++            if (r.manual === true) {
++              const subIdx = subjectiveQuestions.findIndex(sq => sq.question === r.question);
++              if (subIdx !== -1 && aiAnswers[subIdx]) {
++                const eval_ = aiAnswers[subIdx];
++                return { ...r, earned: eval_.earned, feedback: eval_.feedback, isCorrect: eval_.earned > 0 };
++              }
++            }
++            return r;
++          });
++
++          await prisma.quizAttempt.update({
++            where: { id: attempt.id },
++            data: { results: updatedResults }
++          });
++          successCount++;
++        }
++      } catch (e) {
++        console.error(`AI fail for attempt ${attempt.id}`);
++      }
++    }
++
++    revalidatePath("/dashboard/admin/grading");
++    return { success: true, message: `Successfully auto-graded ${successCount} student attempts.` };
++  } catch (error: any) {
++    return { success: false, error: error.message || "Failed to generate global AI grades" };
++  }
++}
++
+
+commit 5c1dc9870e55dcd1efb3909546aa1774d3d2f33e
+Author: Ali Ganey <aliganey2016000@gmail.com>
+Date:   Fri Mar 20 10:28:43 2026 +0300
+
+    Add Unique Students Worked column to Quizzes table
+
+diff --git a/src/app/dashboard/admin/grading/actions.ts b/src/app/dashboard/admin/grading/actions.ts
+index 932de70..8b3c9da 100644
+--- a/src/app/dashboard/admin/grading/actions.ts
++++ b/src/app/dashboard/admin/grading/actions.ts
+@@ -58,15 +58,26 @@ export async function getGradingCourses() {
+   }
+ }
+ 
+-export async function getCourseQuizzes(courseId: string) {
++export async function getCourseQuizzes(courseId: string, classId?: string) {
+   try {
+     const quizzes = await prisma.quiz.findMany({
+       where: { section: { courseId } },
+       include: {
+-        _count: { select: { attempts: true } }
++        attempts: {
++          where: classId ? { student: { classId } } : {},
++          select: { studentId: true }
++        }
++      }
++    })
++
++    return quizzes.map(q => {
++      const uniqueStudents = new Set(q.attempts.map(a => a.studentId)).size
++      return {
++        ...q,
++        uniqueStudents,
++        totalAttempts: q.attempts.length
+       }
+     })
+-    return quizzes
+   } catch (error) {
+     console.error("Error fetching course quizzes:", error)
+     return []
+
+commit 104cc72e66e60b8874fdd08da4040ec8fabab1d4
+Author: Ali Ganey <aliganey2016000@gmail.com>
+Date:   Fri Mar 20 10:00:06 2026 +0300
+
+    Flatten grading Registry to show one row per class-course assignment
+
+diff --git a/src/app/dashboard/admin/grading/actions.ts b/src/app/dashboard/admin/grading/actions.ts
+index 3d6819a..932de70 100644
+--- a/src/app/dashboard/admin/grading/actions.ts
++++ b/src/app/dashboard/admin/grading/actions.ts
+@@ -35,21 +35,23 @@ export async function getGradingCourses() {
+     // Filter: Only courses that are actually assigned to a class/teacher via TeacherAssignment
+     const assignedCourses = courses.filter(c => c.teacherAssignments.length > 0)
+ 
+-    return assignedCourses.map(c => {
+-      // Calculate students: sum of class students across all assignments + explicit enrollments
+-      const classStudents = c.teacherAssignments.reduce((acc, ta) => acc + (ta.class?._count.students || 0), 0)
+-      const totalEnrolled = Math.max(c._count.enrollments, classStudents)
+-
+-      return {
+-        id: c.id,
+-        name: c.name,
+-        teacher: `${c.teacher.firstName} ${c.teacher.lastName}`,
+-        className: c.teacherAssignments.map(ta => ta.class?.name).filter(Boolean).join(", "),
+-        studentsCount: totalEnrolled,
+-        quizCount: c.sections.reduce((acc, s) => acc + s._count.quizzes, 0),
+-        category: c.category || "General"
+-      }
++    const flattened: any[] = []
++    assignedCourses.forEach(c => {
++      c.teacherAssignments.forEach(ta => {
++        flattened.push({
++          id: c.id,
++          name: c.name,
++          teacher: `${c.teacher.firstName} ${c.teacher.lastName}`,
++          className: ta.class?.name || "N/A",
++          studentsCount: ta.class?._count.students || 0,
++          quizCount: c.sections.reduce((acc, s) => acc + s._count.quizzes, 0),
++          category: c.category || "General",
++          classId: ta.classId
++        })
++      })
+     })
++
++    return flattened
+   } catch (error) {
+     console.error("Error fetching grading courses:", error)
+     return []
+@@ -71,18 +73,19 @@ export async function getCourseQuizzes(courseId: string) {
+   }
+ }
+ 
+-export async function getQuizSubmissions(quizId: string) {
++export async function getQuizSubmissions(quizId: string, classId?: string) {
+   try {
+     const attempts = await prisma.quizAttempt.findMany({
+-      where: { quizId },
++      where: { 
++        quizId,
++        ...(classId ? { student: { classId } } : {})
++      },
+       include: {
+         student: { select: { firstName: true, lastName: true, studentId: true } }
+       },
+       orderBy: { createdAt: 'desc' }
+     })
+     
+-    // Grouping attempts by student if needed, or just showing latest. 
+-    // Usually, we show all attempts so they can be graded.
+     return attempts
+   } catch (error) {
+     console.error("Error fetching quiz submissions:", error)
+
+commit 64e4155ad424aab1a0f7b9f316d47d66f2b11a95
+Author: Ali Ganey <aliganey2016000@gmail.com>
+Date:   Fri Mar 20 09:50:37 2026 +0300
+
+    Fix enrolled student count, add course filtering by teacher assignment, and add search/filter UI
+
+diff --git a/src/app/dashboard/admin/grading/actions.ts b/src/app/dashboard/admin/grading/actions.ts
+index aa21ed2..3d6819a 100644
+--- a/src/app/dashboard/admin/grading/actions.ts
++++ b/src/app/dashboard/admin/grading/actions.ts
+@@ -10,15 +10,18 @@ export async function getGradingCourses() {
+       include: {
+         teacher: { select: { firstName: true, lastName: true } },
+         teacherAssignments: { 
+-          include: { class: { select: { name: true } } },
+-          take: 1
++          include: { 
++            class: { 
++              select: { 
++                name: true,
++                _count: { select: { students: true } }
++              } 
++            } 
++          }
+         },
+         _count: {
+           select: {
+             enrollments: true,
+-            sections: {
+-              // This is tricky in Prisma since it's nested. We'll manually count quizzes below or use subqueries if needed.
+-            }
+           }
+         },
+         sections: {
+@@ -29,14 +32,24 @@ export async function getGradingCourses() {
+       }
+     })
+ 
+-    return courses.map(c => ({
+-      id: c.id,
+-      name: c.name,
+-      teacher: `${c.teacher.firstName} ${c.teacher.lastName}`,
+-      className: c.teacherAssignments[0]?.class?.name || "N/A",
+-      studentsCount: c._count.enrollments,
+-      quizCount: c.sections.reduce((acc, s) => acc + s._count.quizzes, 0)
+-    }))
++    // Filter: Only courses that are actually assigned to a class/teacher via TeacherAssignment
++    const assignedCourses = courses.filter(c => c.teacherAssignments.length > 0)
++
++    return assignedCourses.map(c => {
++      // Calculate students: sum of class students across all assignments + explicit enrollments
++      const classStudents = c.teacherAssignments.reduce((acc, ta) => acc + (ta.class?._count.students || 0), 0)
++      const totalEnrolled = Math.max(c._count.enrollments, classStudents)
++
++      return {
++        id: c.id,
++        name: c.name,
++        teacher: `${c.teacher.firstName} ${c.teacher.lastName}`,
++        className: c.teacherAssignments.map(ta => ta.class?.name).filter(Boolean).join(", "),
++        studentsCount: totalEnrolled,
++        quizCount: c.sections.reduce((acc, s) => acc + s._count.quizzes, 0),
++        category: c.category || "General"
++      }
++    })
+   } catch (error) {
+     console.error("Error fetching grading courses:", error)
+     return []
+
+commit be8e51ab9670456af631d00b47a8adc90dac3161
+Author: Ali Ganey <aliganey2016000@gmail.com>
+Date:   Thu Mar 19 21:03:59 2026 +0300
+
+    Implement Bulk AI evaluates and Review/Approval workflow for instructor grading
+
+diff --git a/src/app/dashboard/admin/grading/actions.ts b/src/app/dashboard/admin/grading/actions.ts
+index 6c52ebc..aa21ed2 100644
+--- a/src/app/dashboard/admin/grading/actions.ts
++++ b/src/app/dashboard/admin/grading/actions.ts
+@@ -189,3 +189,52 @@ export async function generateAIGrade(questionText: string, studentAnswer: strin
+   }
+ }
+ 
++export async function generateBatchAIGrades(items: { id: string, question: string, studentAnswer: string, total: number, correctAnswer?: string }[]) {
++  if (!process.env.GEMINI_API_KEY) return { success: false, error: "GEMINI_API_KEY is missing." };
++
++  try {
++    const prompt = `You are an expert academic evaluator. Grade the following list of student answers. 
++    For each item, determine points earned and provide brief Somali feedback (1-3 sentences).
++    
++    ITEMS TO GRADE:
++    ${items.map((it, idx) => `
++    ITEM_ID: ${it.id}
++    Question: ${it.question}
++    ${it.correctAnswer ? `Expected: ${it.correctAnswer}` : ""}
++    Student: ${it.studentAnswer}
++    Max Points: ${it.total}
++    `).join('\n---\n')}
++    
++    Instructions:
++    1. Be fair and consistent.
++    2. Give points out of the indicated Max Points for each item.
++    3. Provide encouraging Somali feedback.
++    
++    Respond STRICTLY with a valid JSON array matching this exact format, with no extra text:
++    [
++      { "id": "string", "earned": number, "feedback": "string" },
++      ...
++    ]`;
++
++    const result = await model.generateContent(prompt);
++    const response = await result.response;
++    let text = response.text().trim();
++    
++    const startIndex = text.indexOf('[');
++    const endIndex = text.lastIndexOf(']');
++    if (startIndex !== -1 && endIndex !== -1) {
++       text = text.substring(startIndex, endIndex + 1);
++    }
++    
++    try {
++      const parsed = JSON.parse(text);
++      return { success: true, results: parsed };
++    } catch (parseError) {
++      console.error("Batch AI Grading JSON Parse Error. Raw text:", text);
++      return { success: false, error: "AI failed to respond in a readable format." };
++    }
++  } catch (error: any) {
++    console.error("Batch AI Grading Error:", error);
++    return { success: false, error: error.message || "Bulk grading failed" };
++  }
++}
+
+commit 78c0ef9cf49865e553305dbd5da2821771f2a389
+Author: Ali Ganey <aliganey2016000@gmail.com>
+Date:   Thu Mar 19 20:53:11 2026 +0300
+
+    Refactor Grading to Hierarchical Management System (Courses -> Quizzes -> Submissions)
+
+diff --git a/src/app/dashboard/admin/grading/actions.ts b/src/app/dashboard/admin/grading/actions.ts
+index 4bbe9a6..6c52ebc 100644
+--- a/src/app/dashboard/admin/grading/actions.ts
++++ b/src/app/dashboard/admin/grading/actions.ts
+@@ -4,6 +4,79 @@ import prisma from "@/lib/prisma"
+ import { revalidatePath } from "next/cache"
+ import { GoogleGenerativeAI } from "@google/generative-ai"
+ 
++export async function getGradingCourses() {
++  try {
++    const courses = await prisma.course.findMany({
++      include: {
++        teacher: { select: { firstName: true, lastName: true } },
++        teacherAssignments: { 
++          include: { class: { select: { name: true } } },
++          take: 1
++        },
++        _count: {
++          select: {
++            enrollments: true,
++            sections: {
++              // This is tricky in Prisma since it's nested. We'll manually count quizzes below or use subqueries if needed.
++            }
++          }
++        },
++        sections: {
++          include: {
++            _count: { select: { quizzes: true } }
++          }
++        }
++      }
++    })
++
++    return courses.map(c => ({
++      id: c.id,
++      name: c.name,
++      teacher: `${c.teacher.firstName} ${c.teacher.lastName}`,
++      className: c.teacherAssignments[0]?.class?.name || "N/A",
++      studentsCount: c._count.enrollments,
++      quizCount: c.sections.reduce((acc, s) => acc + s._count.quizzes, 0)
++    }))
++  } catch (error) {
++    console.error("Error fetching grading courses:", error)
++    return []
++  }
++}
++
++export async function getCourseQuizzes(courseId: string) {
++  try {
++    const quizzes = await prisma.quiz.findMany({
++      where: { section: { courseId } },
++      include: {
++        _count: { select: { attempts: true } }
++      }
++    })
++    return quizzes
++  } catch (error) {
++    console.error("Error fetching course quizzes:", error)
++    return []
++  }
++}
++
++export async function getQuizSubmissions(quizId: string) {
++  try {
++    const attempts = await prisma.quizAttempt.findMany({
++      where: { quizId },
++      include: {
++        student: { select: { firstName: true, lastName: true, studentId: true } }
++      },
++      orderBy: { createdAt: 'desc' }
++    })
++    
++    // Grouping attempts by student if needed, or just showing latest. 
++    // Usually, we show all attempts so they can be graded.
++    return attempts
++  } catch (error) {
++    console.error("Error fetching quiz submissions:", error)
++    return []
++  }
++}
++
+ export async function getPendingGradingTasks() {
+   try {
+     const allAttempts = await prisma.quizAttempt.findMany({
+
+commit 56e5a9f60f257f203522540e986b80fcc548e8cc
+Author: Ali Ganey <aliganey2016000@gmail.com>
+Date:   Thu Mar 19 19:01:20 2026 +0300
+
+    Update Gemini models to 2.5-flash across the application
+
+diff --git a/src/app/dashboard/admin/grading/actions.ts b/src/app/dashboard/admin/grading/actions.ts
+index bc7ae9b..4bbe9a6 100644
+--- a/src/app/dashboard/admin/grading/actions.ts
++++ b/src/app/dashboard/admin/grading/actions.ts
+@@ -69,7 +69,7 @@ export async function submitGradeUpdate(attemptId: string, updatedResults: any[]
+ }
+ 
+ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+-const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
++const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+ 
+ export async function generateAIGrade(questionText: string, studentAnswer: string, maxPoints: number, correctAnswer?: string) {
+   if (!process.env.GEMINI_API_KEY) return { success: false, error: "GEMINI_API_KEY is missing." };
+
+commit 8144efd783889e2b26897440ca515616bbde6b84
+Author: Ali Ganey <aliganey2016000@gmail.com>
+Date:   Thu Mar 19 18:00:07 2026 +0300
+
+    Apply local user updates
+
+diff --git a/src/app/dashboard/admin/grading/actions.ts b/src/app/dashboard/admin/grading/actions.ts
+index 928868a..bc7ae9b 100644
+--- a/src/app/dashboard/admin/grading/actions.ts
++++ b/src/app/dashboard/admin/grading/actions.ts
+@@ -69,7 +69,7 @@ export async function submitGradeUpdate(attemptId: string, updatedResults: any[]
+ }
+ 
+ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+-const model = genAI.getGenerativeModel({ model: "gemini-pro" });
++const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+ 
+ export async function generateAIGrade(questionText: string, studentAnswer: string, maxPoints: number, correctAnswer?: string) {
+   if (!process.env.GEMINI_API_KEY) return { success: false, error: "GEMINI_API_KEY is missing." };
+
+commit d6111420e2c64f6af9baaf6b501d3839f013731a
+Author: Ali Ganey <aliganey2016000@gmail.com>
+Date:   Thu Mar 19 17:49:00 2026 +0300
+
+    Improve JSON extraction resilience for AI auto-grading
+
+diff --git a/src/app/dashboard/admin/grading/actions.ts b/src/app/dashboard/admin/grading/actions.ts
+index 6a843bd..928868a 100644
+--- a/src/app/dashboard/admin/grading/actions.ts
++++ b/src/app/dashboard/admin/grading/actions.ts
+@@ -95,13 +95,24 @@ export async function generateAIGrade(questionText: string, studentAnswer: strin
+ 
+     const result = await model.generateContent(prompt);
+     const response = await result.response;
+-    const text = response.text().trim().replace(/^```json/, "").replace(/```$/, "").trim();
++    let text = response.text().trim();
+     
+-    const parsed = JSON.parse(text);
+-    return { success: true, earned: parsed.earned, feedback: parsed.feedback };
++    const startIndex = text.indexOf('{');
++    const endIndex = text.lastIndexOf('}');
++    if (startIndex !== -1 && endIndex !== -1) {
++       text = text.substring(startIndex, endIndex + 1);
++    }
++    
++    try {
++      const parsed = JSON.parse(text);
++      return { success: true, earned: parsed.earned, feedback: parsed.feedback };
++    } catch (parseError) {
++      console.error("AI Grading JSON Parse Error. Raw text:", text);
++      return { success: false, error: "Adeega AI-da xog qaldan ayuu soo celiyay. Mar kale isku day." };
++    }
+   } catch (error: any) {
+     console.error("AI Grading Error:", error);
+-    return { success: false, error: "Failed to generate AI grade" };
++    return { success: false, error: error.message || "Failed to generate AI grade" };
+   }
+ }
+ 
+
+commit 548ec26eee4753aac336c7b4d58e2ef574b38462
+Author: Ali Ganey <aliganey2016000@gmail.com>
+Date:   Thu Mar 19 17:41:27 2026 +0300
+
+    Add Instructor Grading Interface with AI assistance for subjective questions
+
+diff --git a/src/app/dashboard/admin/grading/actions.ts b/src/app/dashboard/admin/grading/actions.ts
+new file mode 100644
+index 0000000..6a843bd
+--- /dev/null
++++ b/src/app/dashboard/admin/grading/actions.ts
+@@ -0,0 +1,107 @@
++"use server"
++
++import prisma from "@/lib/prisma"
++import { revalidatePath } from "next/cache"
++import { GoogleGenerativeAI } from "@google/generative-ai"
++
++export async function getPendingGradingTasks() {
++  try {
++    const allAttempts = await prisma.quizAttempt.findMany({
++      orderBy: { createdAt: 'desc' },
++      take: 1000,
++      include: {
++        quiz: { select: { title: true, section: { select: { course: { select: { name: true } } } } } },
++        student: { select: { firstName: true, lastName: true, studentId: true } }
++      }
++    })
++
++    const pendingAttempts = allAttempts.filter(attempt => {
++      const results = attempt.results as any[]
++      if (!Array.isArray(results)) return false
++      return results.some((r: any) => r.manual === true)
++    })
++
++    return pendingAttempts
++  } catch (error) {
++    console.error("Error fetching pending grading tasks:", error)
++    return []
++  }
++}
++
++export async function submitGradeUpdate(attemptId: string, updatedResults: any[]) {
++  try {
++    let earnedPoints = 0
++    let totalPoints = 0
++    
++    updatedResults.forEach((res) => {
++      earnedPoints += (res.earned || 0)
++      totalPoints += (res.total || 0)
++    })
++
++    const score = totalPoints > 0 ? Math.round((earnedPoints / totalPoints) * 100) : 0
++    
++    const attempt = await prisma.quizAttempt.findUnique({
++      where: { id: attemptId },
++      include: { quiz: true }
++    })
++    
++    if (!attempt) return { success: false, error: "Attempt not found" }
++
++    const passed = score >= (attempt.quiz?.passingScore || 70)
++
++    const updatedAttempt = await prisma.quizAttempt.update({
++      where: { id: attemptId },
++      data: {
++        results: updatedResults,
++        score,
++        earnedPoints,
++        totalPoints,
++        passed
++      }
++    })
++
++    revalidatePath('/dashboard/admin/grading')
++    return { success: true, attempt: updatedAttempt }
++  } catch (error: any) {
++    console.error("Error updating grade:", error)
++    return { success: false, error: "Internal server error" }
++  }
++}
++
++const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
++const model = genAI.getGenerativeModel({ model: "gemini-pro" });
++
++export async function generateAIGrade(questionText: string, studentAnswer: string, maxPoints: number, correctAnswer?: string) {
++  if (!process.env.GEMINI_API_KEY) return { success: false, error: "GEMINI_API_KEY is missing." };
++
++  try {
++    const prompt = `You are an expert academic evaluator. You need to grade a student's answer to a specific question.
++    
++    Question: ${questionText}
++    ${correctAnswer ? `Official Correct Answer / Rubric: ${correctAnswer}\n` : ""}
++    Student's Answer: ${studentAnswer}
++    Maximum Possible Points: ${maxPoints}
++    
++    Instructions:
++    1. Read the student's answer carefully.
++    2. Determine how many points they deserve out of ${maxPoints}. Use your best academic judgment. A partially correct answer can receive partial points (e.g. 1.5 out of 2).
++    3. Write a brief feedback (1-3 sentences in Somali) encouraging the student, explaining why they got these points, and what they missed if applicable.
++    
++    Respond STRICTLY with a valid JSON document matching this exact format, with no markdown fences, no extra text:
++    {
++      "earned": <number>,
++      "feedback": "<string>"
++    }`;
++
++    const result = await model.generateContent(prompt);
++    const response = await result.response;
++    const text = response.text().trim().replace(/^```json/, "").replace(/```$/, "").trim();
++    
++    const parsed = JSON.parse(text);
++    return { success: true, earned: parsed.earned, feedback: parsed.feedback };
++  } catch (error: any) {
++    console.error("AI Grading Error:", error);
++    return { success: false, error: "Failed to generate AI grade" };
++  }
++}
++
