@@ -21,15 +21,15 @@ export async function getGradingCourses() {
     const where: any = {}
     
     if (user.role === 'TEACHER' && user.teacher) {
+      // Teachers only see their own courses
       where.teacherId = user.teacher.id
     } else if (user.role === 'STUDENT' && user.student) {
       where.OR = [
         { enrollments: { some: { studentId: user.student.id } } },
         { teacherAssignments: { some: { classId: user.student.classId } } }
       ]
-    } else if (user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN') {
-      return [] // Other roles shouldn't see this for now
     }
+    // ADMIN / SUPER_ADMIN: no filter — fetch everything
 
     const courses = await prisma.course.findMany({
       where,
@@ -58,7 +58,7 @@ export async function getGradingCourses() {
       }
     })
 
-    // Filter: Only courses that are actually assigned to a class/teacher via TeacherAssignment
+    // Only include courses actually assigned to a class
     const assignedCourses = courses.filter(c => c.teacherAssignments.length > 0)
 
     const flattened: any[] = []
@@ -583,12 +583,12 @@ export async function getGradingClasses() {
     const where: any = {}
 
     if (user.role === 'TEACHER' && user.teacher) {
+      // Teacher sees only classes they're assigned to
       where.subjectAssignments = { some: { teacherId: user.teacher.id } }
     } else if (user.role === 'STUDENT' && user.student) {
       where.id = user.student.classId
-    } else if (user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN') {
-      return []
     }
+    // ADMIN / SUPER_ADMIN: no filter — fetch everything
 
     const classes = await prisma.class.findMany({
       where,
@@ -599,7 +599,8 @@ export async function getGradingClasses() {
             subjectAssignments: true
           }
         }
-      }
+      },
+      orderBy: { name: 'asc' }
     })
     
     return classes.map(c => ({
