@@ -25,10 +25,18 @@ export async function getStudentGrades(studentId: string) {
       include: {
         course: {
           include: {
-            teacher: {
-              select: {
-                firstName: true,
-                lastName: true,
+            teacher: { select: { firstName: true, lastName: true } },
+            sections: {
+              include: {
+                quizzes: {
+                  include: {
+                    attempts: {
+                      where: { studentId },
+                      orderBy: { score: 'desc' },
+                      take: 1
+                    }
+                  }
+                }
               }
             },
             exams: {
@@ -52,52 +60,77 @@ export async function getStudentGrades(studentId: string) {
       }
     })
     
+    if (enrollments.length === 0) return []
+
     const formatted = enrollments.map((en: any) => {
       const course = en.course
-      const exams: any[] = []
+      const items: any[] = []
       
-      // Add Exam results
+      // 1. Quizzes
+      course.sections.forEach((section: any) => {
+        section.quizzes.forEach((quiz: any) => {
+          const attempt = quiz.attempts[0]
+          if (attempt) {
+            items.push({
+              name: quiz.title,
+              score: attempt.score,
+              max: 100,
+              date: new Date(attempt.createdAt).toLocaleDateString("en-US", { month: 'short', day: 'numeric' }),
+              grade: scoreToGrade(attempt.score),
+              type: 'QUIZ'
+            })
+          }
+        })
+      })
+
+      // 2. Exams
       course.exams.forEach((exam: any) => {
         const result = exam.results[0]
         if (result) {
-          exams.push({
+          const scorePct = (result.marksObtained / exam.maxMarks) * 100
+          items.push({
             name: exam.title,
             score: result.marksObtained,
             max: exam.maxMarks,
-            date: new Date(result.gradedAt).toLocaleDateString("en-US", { month: 'short', day: 'numeric' }),
-            grade: scoreToGrade((result.marksObtained / exam.maxMarks) * 100),
+            date: new Date(result.gradedAt || result.createdAt).toLocaleDateString("en-US", { month: 'short', day: 'numeric' }),
+            grade: scoreToGrade(scorePct),
+            type: 'EXAM'
           })
         }
       })
 
-      // Add Assignment results as pseudo-exams for the UI
+      // 3. Assignments
       course.assignments.forEach((ass: any) => {
         const grade = ass.grades[0]
         if (grade) {
-          exams.push({
+          items.push({
             name: ass.title,
             score: grade.score,
             max: 100,
-            date: new Date(grade.gradedAt).toLocaleDateString("en-US", { month: 'short', day: 'numeric' }),
+            date: new Date(grade.gradedAt || grade.createdAt).toLocaleDateString("en-US", { month: 'short', day: 'numeric' }),
             grade: scoreToGrade(grade.score),
+            type: 'ASSIGNMENT'
           })
         }
       })
 
-      // Calculate average for this course
+      // Calculate Course Average
       let avgScore = 0
-      if (exams.length > 0) {
-        // Simple average for now
-        avgScore = exams.reduce((acc, curr) => acc + (curr.score / curr.max), 0) / exams.length * 100
+      if (items.length > 0) {
+        const totalPct = items.reduce((acc, curr) => acc + (curr.score / curr.max), 0)
+        avgScore = (totalPct / items.length) * 100
       }
+
+      const colors = ["emerald", "violet", "blue", "amber", "indigo", "lime"]
+      const colorIndex = Math.abs(course.id.split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0)) % colors.length
 
       return {
         subject: course.name,
-        teacher: `${course.teacher.firstName} ${course.teacher.lastName}`,
+        teacher: course.teacher ? `${course.teacher.firstName} ${course.teacher.lastName}` : 'Unassigned',
         grade: scoreToGrade(avgScore),
         gpa: scoreToGPA(avgScore),
-        color: ["emerald", "violet", "blue", "amber", "indigo", "lime"][Math.floor(Math.random() * 6)],
-        exams: exams.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        color: colors[colorIndex],
+        exams: items.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
       }
     })
 

@@ -96,8 +96,29 @@ export default function StudentGradesPage() {
     )
   }
 
-  const gradeData = data.length > 0 ? data : mockGradeData
+  const gradeData = data
 
+  if (!loading && gradeData.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] p-8 text-center space-y-6">
+        <div className="h-24 w-24 rounded-[2rem] bg-slate-50 border-2 border-slate-100 flex items-center justify-center shadow-inner">
+           <GraduationCap className="h-10 w-10 text-slate-300" />
+        </div>
+        <div>
+           <h2 className="text-2xl font-black text-slate-900 tracking-tight">No Grades Found Yet</h2>
+           <p className="text-slate-500 font-medium max-w-md mx-auto mt-2">You haven't completed any quizzes or exams that have been graded. Once your instructors release your marks, they will appear here.</p>
+        </div>
+        <Button 
+          onClick={() => window.location.reload()} 
+          variant="outline" 
+          className="rounded-xl border-slate-200 font-black text-xs uppercase tracking-widest gap-2"
+        >
+          <TrendingUp className="h-4 w-4" />
+          Refresh Academic Data
+        </Button>
+      </div>
+    )
+  }
 
   const overallGPA = gradeData.length > 0 ? (gradeData.reduce((acc, g) => acc + g.gpa, 0) / gradeData.length).toFixed(2) : "0.00"
 
