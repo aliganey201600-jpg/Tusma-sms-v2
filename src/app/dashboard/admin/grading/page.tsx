@@ -7,7 +7,8 @@ import {
   getQuizSubmissions, 
   submitGradeUpdate, 
   generateAIGrade,
-  generateBatchAIGrades
+  generateBatchAIGrades,
+  generateGlobalQuizAIGrades
 } from "./actions"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -37,7 +38,8 @@ import {
   AlertCircle,
   Search,
   Filter,
-  GraduationCap as ClassIcon
+  GraduationCap as ClassIcon,
+  Zap
 } from "lucide-react"
 import { toast } from "sonner"
 import { format } from "date-fns"
@@ -53,9 +55,11 @@ export default function GradingInterfacePage() {
   const [quizzes, setQuizzes] = React.useState<any[]>([])
   const [submissions, setSubmissions] = React.useState<any[]>([])
   
-  // Filter States
+  // Search/Filter States
   const [searchTerm, setSearchTerm] = React.useState("")
   const [classFilter, setClassFilter] = React.useState("all")
+  const [quizSearch, setQuizSearch] = React.useState("")
+  const [submissionSearch, setSubmissionSearch] = React.useState("")
 
   // Selection States
   const [selectedCourse, setSelectedCourse] = React.useState<any>(null)
@@ -66,6 +70,7 @@ export default function GradingInterfacePage() {
   const [editedResults, setEditedResults] = React.useState<any[]>([])
   const [aiLoading, setAiLoading] = React.useState<number | null>(null)
   const [bulkAiLoading, setBulkAiLoading] = React.useState(false)
+  const [globalAiLoading, setGlobalAiLoading] = React.useState(false)
 
   const loadInitialData = React.useCallback(async () => {
     setLoading(true)
@@ -200,6 +205,25 @@ export default function GradingInterfacePage() {
     setBulkAiLoading(false)
   }
 
+  const handleGlobalAutoGrade = async () => {
+    if (!confirm("Ma hubtaa inaad rabto inaad hal mar u wada saxdo dhammaan ardayda AI? Tani waxay qaadan kartaa waqti.")) return
+
+    setGlobalAiLoading(true)
+    try {
+      const res = await generateGlobalQuizAIGrades(selectedQuiz.id, selectedCourse.classId)
+      if (res.success) {
+        toast.success(res.message || "Dhammaan ardayda waa loo wada saxay!")
+        const updatedData = await getQuizSubmissions(selectedQuiz.id, selectedCourse.classId)
+        setSubmissions(updatedData)
+      } else {
+        toast.error(res.error || "Cillad ayaa dhacday")
+      }
+    } catch (e) {
+      toast.error("Internal Error")
+    }
+    setGlobalAiLoading(false)
+  }
+
   const saveGrade = async () => {
     const unapproved = editedResults.filter(r => r.manual)
     if (unapproved.length > 0) {
@@ -235,6 +259,13 @@ export default function GradingInterfacePage() {
     });
     return Array.from(classes).sort();
   }, [courses]);
+
+  const filteredQuizzes = quizzes.filter(q => q.title.toLowerCase().includes(quizSearch.toLowerCase()))
+
+  const filteredSubmissions = submissions.filter(s => 
+    `${s.student?.firstName} ${s.student?.lastName}`.toLowerCase().includes(submissionSearch.toLowerCase()) ||
+    s.student?.studentId?.toLowerCase().includes(submissionSearch.toLowerCase())
+  )
 
   if (loading) {
     return (
@@ -272,6 +303,18 @@ export default function GradingInterfacePage() {
              'Assignment Review.'}
           </h1>
         </div>
+        
+        {view === 'SUBMISSIONS' && (
+           <Button 
+            onClick={handleGlobalAutoGrade} 
+            disabled={globalAiLoading} 
+            className="h-14 bg-indigo-600 hover:bg-slate-900 text-white font-black px-6 rounded-2xl shadow-xl shadow-indigo-100 gap-2 w-full md:w-auto"
+           >
+              {globalAiLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Sparkles className="h-5 w-5 text-indigo-300" />}
+              AI Auto-Grade All Students
+           </Button>
+        )}
+
         {view === 'GRADE' && (
           <div className="flex items-center gap-2 md:gap-4 w-full md:w-auto flex-wrap sm:flex-nowrap">
             <Button onClick={handleBulkAIGrade} disabled={bulkAiLoading} variant="outline" className="flex-1 md:flex-none h-12 md:h-14 px-4 md:px-6 rounded-2xl border-2 border-indigo-100 text-indigo-700 font-black hover:bg-indigo-50 gap-2 shadow-sm text-sm">
@@ -282,7 +325,6 @@ export default function GradingInterfacePage() {
             <Button onClick={approveAll} variant="outline" className="flex-1 md:flex-none h-12 md:h-14 px-4 md:px-6 rounded-2xl border-2 border-emerald-100 text-emerald-700 font-black hover:bg-emerald-50 gap-2 shadow-sm text-sm">
                <CheckCircle2 className="h-4 w-4" />
                <span className="hidden sm:inline">Approve All</span>
-               <span className="sm:hidden">Approve All</span>
             </Button>
             <Button onClick={saveGrade} className="w-full sm:w-auto bg-slate-900 hover:bg-black text-white font-black px-6 md:px-8 h-12 md:h-14 rounded-2xl shadow-xl shadow-slate-200 gap-2 text-sm">
               <Check className="h-4 w-4" /> Save
@@ -371,7 +413,17 @@ export default function GradingInterfacePage() {
       )}
 
       {view === 'QUIZZES' && (
-        <div className="grid gap-6">
+        <div className="space-y-6">
+           <div className="relative group">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 group-focus-within:text-emerald-500 transition-colors" />
+              <Input 
+                 placeholder="Search quiz title..." 
+                 value={quizSearch}
+                 onChange={(e) => setQuizSearch(e.target.value)}
+                 className="pl-12 h-14 bg-white border-2 border-slate-100 rounded-2xl text-lg font-medium focus:border-emerald-500 transition-all shadow-sm"
+              />
+           </div>
+
            <div className="bg-white rounded-[1.5rem] md:rounded-[2.5rem] border-2 border-slate-50 shadow-sm overflow-x-auto">
               <table className="w-full text-left border-collapse min-w-[700px]">
                  <thead>
@@ -383,7 +435,7 @@ export default function GradingInterfacePage() {
                     </tr>
                  </thead>
                  <tbody className="divide-y divide-slate-100">
-                    {quizzes.map(quiz => (
+                    {filteredQuizzes.map(quiz => (
                        <tr key={quiz.id} className="hover:bg-emerald-50/20 transition-all group">
                           <td className="px-6 md:px-8 py-6">
                              <div className="flex items-center gap-4">
@@ -421,7 +473,17 @@ export default function GradingInterfacePage() {
       )}
 
       {view === 'SUBMISSIONS' && (
-        <div className="grid gap-6">
+        <div className="space-y-6">
+           <div className="relative group">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
+              <Input 
+                 placeholder="Search student by name or ID..." 
+                 value={submissionSearch}
+                 onChange={(e) => setSubmissionSearch(e.target.value)}
+                 className="pl-12 h-14 bg-white border-2 border-slate-100 rounded-2xl text-lg font-medium focus:border-indigo-500 transition-all shadow-sm"
+              />
+           </div>
+
            <div className="bg-white rounded-[1.5rem] md:rounded-[2.5rem] border-2 border-slate-50 shadow-sm overflow-x-auto">
               <table className="w-full text-left border-collapse min-w-[900px]">
                  <thead>
@@ -433,7 +495,7 @@ export default function GradingInterfacePage() {
                     </tr>
                  </thead>
                  <tbody className="divide-y divide-slate-100">
-                    {submissions.map(attempt => {
+                    {filteredSubmissions.map(attempt => {
                        const results = attempt.results as any[]
                        const pendingCount = results.filter(r => r.manual).length
                        return (

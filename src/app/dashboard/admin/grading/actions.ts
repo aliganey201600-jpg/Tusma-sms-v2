@@ -265,3 +265,78 @@ export async function generateBatchAIGrades(items: { id: string, question: strin
     return { success: false, error: error.message || "Bulk grading failed" };
   }
 }
+
+export async function generateGlobalQuizAIGrades(quizId: string, classId?: string) {
+  if (!process.env.GEMINI_API_KEY) return { success: false, error: "GEMINI_API_KEY is missing." };
+
+  try {
+    const attempts = await prisma.quizAttempt.findMany({
+      where: { 
+        quizId,
+        ...(classId ? { student: { classId } } : {})
+      },
+      include: {
+        student: { select: { firstName: true, lastName: true } }
+      }
+    });
+
+    if (attempts.length === 0) {
+      return { success: false, error: "No attempts found to grade." };
+    }
+
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+
+    let successCount = 0;
+
+    for (const attempt of attempts) {
+      const results = attempt.results as any[];
+      const subjectiveQuestions = results.filter(r => r.manual === true);
+      if (subjectiveQuestions.length === 0) continue;
+
+      const prompt = `Grade these ${subjectiveQuestions.length} answers for student ${attempt.student.firstName}.
+      ${subjectiveQuestions.map((q, i) => `
+      Q${i}: ${q.question}
+      Ans: ${q.studentAnswer || "N/A"}
+      Ideal: ${q.correctAnswer || "General knowledge"}
+      Max: ${q.total}
+      `).join('\n')}
+      Respond ONLY with: [{"earned": number, "feedback": "string (Somali)"}]`;
+
+      try {
+        const aiResult = await model.generateContent(prompt);
+        const responseText = aiResult.response.text();
+        // Alternative to /s flag: use [\s\S]* to match everything including newlines
+        const jsonMatch = responseText.match(/\[[\s\S]*\]/);
+        
+        if (jsonMatch) {
+          const aiAnswers = JSON.parse(jsonMatch[0]);
+          const updatedResults = results.map(r => {
+            if (r.manual === true) {
+              const subIdx = subjectiveQuestions.findIndex(sq => sq.question === r.question);
+              if (subIdx !== -1 && aiAnswers[subIdx]) {
+                const eval_ = aiAnswers[subIdx];
+                return { ...r, earned: eval_.earned, feedback: eval_.feedback, isCorrect: eval_.earned > 0 };
+              }
+            }
+            return r;
+          });
+
+          await prisma.quizAttempt.update({
+            where: { id: attempt.id },
+            data: { results: updatedResults }
+          });
+          successCount++;
+        }
+      } catch (e) {
+        console.error(`AI fail for attempt ${attempt.id}`);
+      }
+    }
+
+    revalidatePath("/dashboard/admin/grading");
+    return { success: true, message: `Successfully auto-graded ${successCount} student attempts.` };
+  } catch (error: any) {
+    return { success: false, error: error.message || "Failed to generate global AI grades" };
+  }
+}
+
