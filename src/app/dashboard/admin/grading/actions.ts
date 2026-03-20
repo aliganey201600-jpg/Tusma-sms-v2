@@ -10,15 +10,18 @@ export async function getGradingCourses() {
       include: {
         teacher: { select: { firstName: true, lastName: true } },
         teacherAssignments: { 
-          include: { class: { select: { name: true } } },
-          take: 1
+          include: { 
+            class: { 
+              select: { 
+                name: true,
+                _count: { select: { students: true } }
+              } 
+            } 
+          }
         },
         _count: {
           select: {
             enrollments: true,
-            sections: {
-              // This is tricky in Prisma since it's nested. We'll manually count quizzes below or use subqueries if needed.
-            }
           }
         },
         sections: {
@@ -29,14 +32,24 @@ export async function getGradingCourses() {
       }
     })
 
-    return courses.map(c => ({
-      id: c.id,
-      name: c.name,
-      teacher: `${c.teacher.firstName} ${c.teacher.lastName}`,
-      className: c.teacherAssignments[0]?.class?.name || "N/A",
-      studentsCount: c._count.enrollments,
-      quizCount: c.sections.reduce((acc, s) => acc + s._count.quizzes, 0)
-    }))
+    // Filter: Only courses that are actually assigned to a class/teacher via TeacherAssignment
+    const assignedCourses = courses.filter(c => c.teacherAssignments.length > 0)
+
+    return assignedCourses.map(c => {
+      // Calculate students: sum of class students across all assignments + explicit enrollments
+      const classStudents = c.teacherAssignments.reduce((acc, ta) => acc + (ta.class?._count.students || 0), 0)
+      const totalEnrolled = Math.max(c._count.enrollments, classStudents)
+
+      return {
+        id: c.id,
+        name: c.name,
+        teacher: `${c.teacher.firstName} ${c.teacher.lastName}`,
+        className: c.teacherAssignments.map(ta => ta.class?.name).filter(Boolean).join(", "),
+        studentsCount: totalEnrolled,
+        quizCount: c.sections.reduce((acc, s) => acc + s._count.quizzes, 0),
+        category: c.category || "General"
+      }
+    })
   } catch (error) {
     console.error("Error fetching grading courses:", error)
     return []
