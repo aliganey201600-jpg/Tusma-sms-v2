@@ -81,7 +81,7 @@ export default function GradingInterfacePage() {
   const navigateToQuizzes = async (course: any) => {
     setLoading(true)
     setSelectedCourse(course)
-    const data = await getCourseQuizzes(course.id)
+    const data = await getCourseQuizzes(course.id, course.classId)
     setQuizzes(data)
     setView('QUIZZES')
     setLoading(false)
@@ -361,19 +361,6 @@ export default function GradingInterfacePage() {
                           </td>
                        </tr>
                     ))}
-                    {filteredCourses.length === 0 && (
-                       <tr>
-                          <td colSpan={5} className="px-8 py-32 text-center bg-slate-50/10">
-                             <div className="flex flex-col items-center gap-4">
-                                <div className="h-24 w-24 rounded-full bg-slate-50 flex items-center justify-center text-slate-100">
-                                   <Search className="h-12 w-12" />
-                                </div>
-                                <p className="text-xl font-black text-slate-300 uppercase tracking-widest">No matching results found</p>
-                                <Button onClick={() => { setSearchTerm(""); setClassFilter("all"); }} variant="link" className="text-indigo-600 font-black uppercase text-xs tracking-widest">Clear all filters</Button>
-                             </div>
-                          </td>
-                       </tr>
-                    )}
                  </tbody>
               </table>
            </div>
@@ -387,7 +374,8 @@ export default function GradingInterfacePage() {
                  <thead>
                     <tr className="border-b border-slate-100 bg-slate-50/30">
                        <th className="px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest">Quiz Title</th>
-                       <th className="px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest text-center">Attempts</th>
+                       <th className="px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest text-center">Students Worked</th>
+                       <th className="px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest text-center">Total Attempts</th>
                        <th className="px-8 py-6 text-[10px] font-black uppercase text-slate-400 tracking-widest text-right">Action</th>
                     </tr>
                  </thead>
@@ -403,8 +391,17 @@ export default function GradingInterfacePage() {
                              </div>
                           </td>
                           <td className="px-8 py-6 text-center">
+                             <div className="flex flex-col items-center">
+                                <div className="flex items-center gap-2">
+                                   <Users className="h-4 w-4 text-emerald-500" />
+                                   <p className="font-black text-slate-900">{quiz.uniqueStudents}</p>
+                                </div>
+                                <p className="text-[9px] font-black text-slate-400 uppercase">Unique Students</p>
+                             </div>
+                          </td>
+                          <td className="px-8 py-6 text-center">
                              <Badge variant="outline" className="text-xs font-black rounded-lg border-slate-200 px-3 py-1 bg-slate-50">
-                                {quiz._count.attempts} Attempts
+                                {quiz.totalAttempts} Attempts
                              </Badge>
                           </td>
                           <td className="px-8 py-6 text-right">

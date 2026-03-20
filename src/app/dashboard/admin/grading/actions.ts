@@ -58,15 +58,26 @@ export async function getGradingCourses() {
   }
 }
 
-export async function getCourseQuizzes(courseId: string) {
+export async function getCourseQuizzes(courseId: string, classId?: string) {
   try {
     const quizzes = await prisma.quiz.findMany({
       where: { section: { courseId } },
       include: {
-        _count: { select: { attempts: true } }
+        attempts: {
+          where: classId ? { student: { classId } } : {},
+          select: { studentId: true }
+        }
       }
     })
-    return quizzes
+
+    return quizzes.map(q => {
+      const uniqueStudents = new Set(q.attempts.map(a => a.studentId)).size
+      return {
+        ...q,
+        uniqueStudents,
+        totalAttempts: q.attempts.length
+      }
+    })
   } catch (error) {
     console.error("Error fetching course quizzes:", error)
     return []
