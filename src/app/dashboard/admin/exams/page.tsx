@@ -223,9 +223,36 @@ export default function ExamsPage() {
   }
 
   const updateMark = (studentId: string, marks: string) => {
-    setExamStudents(prev => prev.map(s => 
-      s.studentId === studentId ? { ...s, marksObtained: marks } : s
-    ))
+    setExamStudents(prev => prev.map(s => {
+      if (s.studentId === studentId) {
+        let newRemarks = s.remarks;
+        const m = parseFloat(marks || "0");
+        const percentage = (m / selectedExam.maxMarks) * 100;
+        
+        const defaultRemarks = [
+          "Excellent performance! Keep it up.",
+          "Great job! Very well done.",
+          "Good work, but can do better.",
+          "Satisfactory progress.",
+          "Needs improvement.",
+          "Requires immediate attention.",
+          "Good progress /",
+          ""
+        ];
+
+        if (!s.remarks || defaultRemarks.includes(s.remarks)) {
+          if (percentage >= 90) newRemarks = "Excellent performance! Keep it up.";
+          else if (percentage >= 80) newRemarks = "Great job! Very well done.";
+          else if (percentage >= 70) newRemarks = "Good work, but can do better.";
+          else if (percentage >= 60) newRemarks = "Satisfactory progress.";
+          else if (percentage >= 50) newRemarks = "Needs improvement.";
+          else newRemarks = "Requires immediate attention.";
+        }
+
+        return { ...s, marksObtained: marks, remarks: newRemarks };
+      }
+      return s;
+    }))
   }
 
   const updateRemark = (studentId: string, remark: string) => {
