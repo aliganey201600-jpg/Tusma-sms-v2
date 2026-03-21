@@ -183,12 +183,17 @@ export async function submitGradeUpdate(attemptId: string, updatedResults: any[]
     
     const attempt = await prisma.quizAttempt.findUnique({
       where: { id: attemptId },
-      include: { quiz: true }
+      include: { 
+        quiz: true, 
+        student: { 
+          select: { firstName: true, lastName: true, phone: true, guardianPhone: true } 
+        } 
+      }
     })
     
     if (!attempt) return { success: false, error: "Attempt not found" }
 
-    const passed = score >= (attempt.quiz?.passingScore || 70)
+    const passed = score >= (attempt.quiz?.passingScore || 50)
 
     const updatedAttempt = await prisma.quizAttempt.update({
       where: { id: attemptId },
@@ -200,6 +205,13 @@ export async function submitGradeUpdate(attemptId: string, updatedResults: any[]
         passed
       }
     })
+
+    // Trigger notification
+    const studentName = `${attempt.student?.firstName} ${attempt.student?.lastName}`;
+    const message = `Salaam, Nidaamka Tusmo School: Quiz-ka ${attempt.quiz?.title} ee ardayga ${studentName} waa la saxay. Dhibcahaagu waa ${score}%. Mahadsanid.`;
+
+    if (attempt.student?.guardianPhone) sendWhatsAppNotification({ phone: attempt.student.guardianPhone, message });
+    if (attempt.student?.phone) sendWhatsAppNotification({ phone: attempt.student.phone, message });
 
     revalidatePath('/dashboard/admin/grading')
     return { success: true, attempt: updatedAttempt }
