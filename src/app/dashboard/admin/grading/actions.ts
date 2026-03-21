@@ -483,8 +483,8 @@ export async function getCourseGradebookData(courseId: string, classId: string) 
         return ex?.type === 'FINAL'
       })
 
-      const midtermScore = midtermResult ? parseFloat(midtermResult.marksObtained) : 0
-      const finalScore = finalResult ? parseFloat(finalResult.marksObtained) : 0
+      const midtermScore = midtermResult ? Number(midtermResult.marksObtained) : 0
+      const finalScore = finalResult ? Number(finalResult.marksObtained) : 0
 
       // Grand Total (100%)
       const grandTotal = quizTotal30 + midtermScore + finalScore
