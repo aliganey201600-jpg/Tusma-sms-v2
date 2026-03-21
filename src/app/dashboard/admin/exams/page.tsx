@@ -797,8 +797,12 @@ export default function ExamsPage() {
                   <ChevronRight className="w-5 h-5 rotate-180" />
                 </Button>
                 <div>
-                  <CardTitle className="text-2xl font-bold">{selectedExam.title} Results</CardTitle>
-                  <CardDescription>Enter marks for students enrolled in {selectedExam.courseName}</CardDescription>
+                  <CardTitle className="text-2xl font-bold tracking-tight">{selectedExam.title} Results</CardTitle>
+                  <CardDescription className="flex items-center gap-2 mt-1">
+                    <span className="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-md text-xs font-bold uppercase tracking-wider">{selectedExam.courseName}</span>
+                    <span>•</span>
+                    <span className="bg-slate-50 text-slate-600 px-2 py-0.5 rounded-md text-xs font-semibold">{selectedExam.className}</span>
+                  </CardDescription>
                 </div>
               </div>
               <div className="flex gap-2">
@@ -820,6 +824,59 @@ export default function ExamsPage() {
               </div>
             </CardHeader>
             <CardContent className="p-0">
+              {/* Quick Stats Bar */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-6 bg-slate-50/50 border-b">
+                {(() => {
+                  const total = examStudents.length;
+                  const marks = examStudents.map(s => parseFloat(s.marksObtained || "0"));
+                  const avg = total > 0 ? (marks.reduce((a, b) => a + b, 0) / total).toFixed(1) : "0";
+                  const high = total > 0 ? Math.max(...marks).toFixed(1) : "0";
+                  const pass = marks.filter(m => (m / selectedExam.maxMarks) * 100 >= 50).length;
+                  const passPct = total > 0 ? ((pass / total) * 100).toFixed(0) : "0";
+
+                  return (
+                    <React.Fragment>
+                      <div className="bg-white p-4 rounded-2xl shadow-sm flex items-center gap-4 border border-slate-100">
+                        <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center">
+                          <Users className="w-5 h-5 text-blue-600" />
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Students</p>
+                          <h4 className="text-xl font-black text-slate-800">{total}</h4>
+                        </div>
+                      </div>
+                      <div className="bg-white p-4 rounded-2xl shadow-sm flex items-center gap-4 border border-slate-100">
+                        <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center">
+                          <TrendingUp className="w-5 h-5 text-indigo-600" />
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Average</p>
+                          <h4 className="text-xl font-black text-slate-800">{avg}</h4>
+                        </div>
+                      </div>
+                      <div className="bg-white p-4 rounded-2xl shadow-sm flex items-center gap-4 border border-slate-100">
+                        <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center">
+                          <GraduationCap className="w-5 h-5 text-emerald-600" />
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">High Score</p>
+                          <h4 className="text-xl font-black text-slate-800">{high}</h4>
+                        </div>
+                      </div>
+                      <div className="bg-white p-4 rounded-2xl shadow-sm flex items-center gap-4 border border-slate-100">
+                        <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center">
+                          <ClipboardList className="w-5 h-5 text-amber-600" />
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Pass Rate</p>
+                          <h4 className="text-xl font-black text-slate-800">{passPct}%</h4>
+                        </div>
+                      </div>
+                    </React.Fragment>
+                  )
+                })()}
+              </div>
+
               <div className="overflow-x-auto">
                 <table className="w-full text-left">
                   <thead className="bg-slate-50 border-b">
