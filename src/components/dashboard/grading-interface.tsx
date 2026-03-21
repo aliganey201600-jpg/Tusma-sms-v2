@@ -941,7 +941,6 @@ export function GradingInterfaceContent({ userRole }: { userRole: 'ADMIN' | 'TEA
                 );
               })()}
             </div>
-           </div>
 
            <div className="bg-white rounded-[2.5rem] border-2 border-slate-50 shadow-sm overflow-x-auto print:shadow-none print:border-none">
               <table className="w-full text-left border-collapse min-w-[1000px]">
