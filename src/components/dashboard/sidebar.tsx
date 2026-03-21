@@ -44,6 +44,14 @@ interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 export function Sidebar({ className, role }: SidebarProps) {
+  return (
+    <React.Suspense fallback={<div className="pb-12 h-full flex flex-col" />}>
+      <SidebarInner className={className} role={role} />
+    </React.Suspense>
+  )
+}
+
+function SidebarInner({ className, role }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
@@ -194,7 +202,9 @@ export function SidebarMobile({ role }: { role: SidebarProps["role"] }) {
         </Button>
       </SheetTrigger>
       <SheetContent side="left" className="p-0 w-[240px]">
-        <Sidebar role={role} />
+        <React.Suspense fallback={null}>
+          <SidebarInner role={role} />
+        </React.Suspense>
       </SheetContent>
     </Sheet>
   )
