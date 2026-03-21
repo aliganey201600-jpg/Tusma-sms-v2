@@ -590,10 +590,10 @@ export async function getClassOverallGradebook(classId: string) {
         const midterm = examResults.find(r => r.exam.type === 'MIDTERM')?.marksObtained || 0
         const final = examResults.find(r => r.exam.type === 'FINAL')?.marksObtained || 0
         
-        // Calculate Weighted Grade: 30% Quizzes, 35% Midterm, 35% Final (Total 100%)
+        // Calculate Weighted Grade: 30% Quizzes, 30% Midterm, 40% Final (Total 100%)
         const hasExams = examResults.length > 0
         const weightedGrade = hasExams 
-          ? Math.round((quizAvg * 0.3) + (midterm * 0.35) + (final * 0.35))
+          ? Math.round((quizAvg * 0.3) + (midterm * 0.3) + (final * 0.4))
           : quizAvg
 
         courseGrades[courseName] = {
@@ -734,9 +734,9 @@ export async function getBulkReportData(classId: string) {
         const midterm = examResults.find(r => r.exam.type === 'MIDTERM')?.marksObtained || 0
         const final = examResults.find(r => r.exam.type === 'FINAL')?.marksObtained || 0
         
-        // 3. Weighting (30% Q, 35% M, 35% F)
+        // 3. Weighting (30% Q, 30% M, 40% F)
         const finalGrade = examResults.length > 0 
-           ? Math.round((quizAvg * 0.3) + (midterm * 0.35) + (final * 0.35))
+           ? Math.round((quizAvg * 0.3) + (midterm * 0.3) + (final * 0.4))
            : quizAvg
 
         const gpa = finalGrade >= 90 ? 4.0 : finalGrade >= 80 ? 3.5 : finalGrade >= 70 ? 3.0 : finalGrade >= 60 ? 2.5 : finalGrade >= 50 ? 2.0 : 0.0
