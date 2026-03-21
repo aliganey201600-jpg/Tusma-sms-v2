@@ -19,8 +19,13 @@ import {
   Eye,
   EyeOff,
   Copy,
-  AlertCircle
+  AlertCircle,
+  Download,
+  Upload,
+  FileSpreadsheet
 } from "lucide-react"
+import * as XLSX from "xlsx"
+import Papa from "papaparse"
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -88,6 +93,8 @@ export default function ExamsPage() {
   const [isCreateOpen, setIsCreateOpen] = React.useState(false)
   const [editingExam, setEditingExam] = React.useState<any>(null)
   const [isEditOpen, setIsEditOpen] = React.useState(false)
+  const [isImportOpen, setIsImportOpen] = React.useState(false)
+  const fileInputRef = React.useRef<HTMLInputElement>(null)
 
   // Load data
   const loadData = React.useCallback(async () => {
@@ -259,6 +266,76 @@ export default function ExamsPage() {
     setExamStudents(prev => prev.map(s => 
       s.studentId === studentId ? { ...s, remarks: remark } : s
     ))
+  }
+
+  const handleExportResults = () => {
+    if (!selectedExam || examStudents.length === 0) return
+
+    const data = examStudents.map(s => ({
+      "Student Name": `${s.firstName} ${s.lastName}`,
+      "ID Number": s.manualId || s.studentId,
+      "Marks Obtained": s.marksObtained || 0,
+      "Max Marks": selectedExam.maxMarks,
+      "Remarks": s.remarks || ""
+    }))
+
+    const worksheet = XLSX.utils.json_to_sheet(data)
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Results")
+    XLSX.writeFile(workbook, `${selectedExam.title.replace(/\s+/g, '_')}_Results.xlsx`)
+    toast.success("Natiijada waxaa loo soo dejiyey si guul leh!")
+  }
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      const bstr = event.target?.result
+      const workbook = XLSX.read(bstr, { type: 'binary' })
+      const worksheetName = workbook.SheetNames[0]
+      const worksheet = workbook.Sheets[worksheetName]
+      const data = XLSX.utils.sheet_to_json(worksheet) as any[]
+      
+      processImportData(data)
+    }
+    reader.readAsBinaryString(file)
+  }
+
+  const processImportData = (data: any[]) => {
+    let matchCount = 0
+    const newStudents = [...examStudents]
+
+    data.forEach(row => {
+      // Try to find student by ID Number, Student Name, or ID
+      const studentId = row["ID Number"] || row["Student ID"] || row["id"]
+      const marks = row["Marks Obtained"] || row["Marks"] || row["marks"]
+      const remarks = row["Remarks"] || row["remarks"] || ""
+
+      const index = newStudents.findIndex(s => 
+        s.manualId === String(studentId) || 
+        s.studentId === String(studentId) || 
+        `${s.firstName} ${s.lastName}`.toLowerCase() === String(row["Student Name"]).toLowerCase()
+      )
+
+      if (index !== -1) {
+        newStudents[index] = { 
+          ...newStudents[index], 
+          marksObtained: String(marks),
+          remarks: remarks || newStudents[index].remarks
+        }
+        matchCount++
+      }
+    })
+
+    if (matchCount > 0) {
+      setExamStudents(newStudents)
+      toast.success(`Guul! Waxaa la helay dhibcaha ${matchCount} arday.`)
+      setIsImportOpen(false)
+    } else {
+      toast.error("Lama helin arday u dhiganta xogta la soo galiyey. Fadlan hubi ID Numbers-ka.")
+    }
   }
 
   // Mock chart data
@@ -657,6 +734,58 @@ export default function ExamsPage() {
               )}
             </DialogContent>
           </Dialog>
+
+          {/* Bulk Import Dialog */}
+          <Dialog open={isImportOpen} onOpenChange={setIsImportOpen}>
+            <DialogContent className="sm:max-w-[500px] rounded-3xl p-6">
+              <DialogHeader className="mb-6">
+                <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center mb-4">
+                  <FileSpreadsheet className="w-6 h-6 text-blue-600" />
+                </div>
+                <DialogTitle className="text-2xl font-bold">Bulk Marks Import</DialogTitle>
+                <DialogDescription>
+                  Upload an Excel or CSV file to import student marks. The file should contain columns like: 
+                  <b>ID Number, Marks Obtained, Remarks</b>.
+                </DialogDescription>
+              </DialogHeader>
+              
+              <div className="space-y-6">
+                <div 
+                  className="border-2 border-dashed border-slate-200 rounded-3xl p-10 text-center hover:border-blue-400 hover:bg-blue-50/50 transition-all cursor-pointer group"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <Upload className="w-10 h-10 text-slate-300 group-hover:text-blue-500 mx-auto mb-4 transition-colors" />
+                  <p className="text-sm font-medium text-slate-600">Click to upload or drag & drop</p>
+                  <p className="text-xs text-slate-400 mt-1">Excel (.xlsx, .xls) or CSV files supported</p>
+                  <input 
+                    type="file" 
+                    ref={fileInputRef} 
+                    className="hidden" 
+                    accept=".xlsx,.xls,.csv"
+                    onChange={handleFileUpload}
+                  />
+                </div>
+
+                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                  <div className="flex gap-3">
+                    <AlertCircle className="w-5 h-5 text-slate-400 shrink-0" />
+                    <div className="text-xs text-slate-500 space-y-1">
+                      <p className="font-bold text-slate-700">Important Tips:</p>
+                      <ul className="list-disc ml-4 space-y-1">
+                        <li>Ensure "ID Number" matches the student IDs in our system.</li>
+                        <li>Export the current list first to get a template.</li>
+                        <li>Max marks for this exam is <b>{selectedExam?.maxMarks}</b>.</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <DialogFooter className="mt-8">
+                <Button variant="outline" onClick={() => setIsImportOpen(false)} className="rounded-xl h-11">Cancel</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </React.Fragment>
       ) : (
         /* Results Entry View */
@@ -673,6 +802,13 @@ export default function ExamsPage() {
                 </div>
               </div>
               <div className="flex gap-2">
+                <Button variant="outline" onClick={handleExportResults} className="rounded-xl h-11 border-emerald-200 text-emerald-700 hover:bg-emerald-50">
+                  <Download className="w-4 h-4 mr-2" /> Export Excel
+                </Button>
+                <Button variant="outline" onClick={() => setIsImportOpen(true)} className="rounded-xl h-11 border-blue-200 text-blue-700 hover:bg-blue-50">
+                  <Upload className="w-4 h-4 mr-2" /> Bulk Import
+                </Button>
+                <div className="w-px bg-slate-200 mx-1" />
                 <Button variant="outline" onClick={() => setSelectedExam(null)} className="rounded-xl h-11">Discard</Button>
                 <Button 
                   onClick={handleSaveMarks} 
