@@ -669,136 +669,6 @@ export default function ExamsPage() {
               </div>
             </TabsContent>
           </Tabs>
-
-          {/* Edit Exam Dialog */}
-          <Dialog open={isEditOpen} onOpenChange={(open) => {
-            setIsEditOpen(open)
-            if (!open) setEditingExam(null)
-          }}>
-            <DialogContent className="sm:max-w-[500px] rounded-3xl p-6">
-              {editingExam && (
-                <form onSubmit={handleUpdateExam}>
-                  <DialogHeader className="mb-6">
-                    <DialogTitle className="text-2xl font-bold">Edit Assessment</DialogTitle>
-                    <DialogDescription>Modify the details of this scheduled exam.</DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="edit-title">Exam Title</Label>
-                      <Input id="edit-title" name="title" defaultValue={editingExam.title} required className="rounded-xl h-11" />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="edit-type">Assessment Type</Label>
-                        <Select name="type" defaultValue={editingExam.type} required>
-                          <SelectTrigger className="rounded-xl h-11">
-                            <SelectValue placeholder="Select type" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="MIDTERM">Midterm Exam</SelectItem>
-                            <SelectItem value="FINAL">Final Exam</SelectItem>
-                            <SelectItem value="QUIZ">Pop Quiz</SelectItem>
-                            <SelectItem value="ASSIGNMENT">Formal Assignment</SelectItem>
-                            <SelectItem value="OTHER">Other</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="edit-maxMarks">Max Marks</Label>
-                        <Input id="edit-maxMarks" name="maxMarks" type="number" defaultValue={editingExam.maxMarks} required className="rounded-xl h-11" />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="edit-assignment">Subject & Class</Label>
-                      <Select name="assignment" defaultValue={`${editingExam.courseId}|${editingExam.classId}`} required>
-                        <SelectTrigger className="rounded-xl h-11">
-                          <SelectValue placeholder="Choose a course & class" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {courses.map((course, idx) => (
-                            <SelectItem key={`${course.id}-${idx}`} value={`${course.courseId}|${course.classId}`}>
-                              {course.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="edit-examDate">Exam Date</Label>
-                      <Input 
-                        id="edit-examDate" 
-                        name="examDate" 
-                        type="date" 
-                        defaultValue={new Date(editingExam.examDate).toISOString().split('T')[0]} 
-                        required 
-                        className="rounded-xl h-11" 
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="edit-description">Brief Description (Optional)</Label>
-                      <Textarea id="edit-description" name="description" defaultValue={editingExam.description || ""} className="rounded-xl min-h-[80px]" />
-                    </div>
-                  </div>
-                  <DialogFooter className="mt-8">
-                    <Button type="button" variant="outline" onClick={() => setIsEditOpen(false)} className="rounded-xl h-11">Cancel</Button>
-                    <Button type="submit" className="bg-blue-600 hover:bg-blue-700 rounded-xl h-11 px-8">Update Changes</Button>
-                  </DialogFooter>
-                </form>
-              )}
-            </DialogContent>
-          </Dialog>
-
-          {/* Bulk Import Dialog */}
-          <Dialog open={isImportOpen} onOpenChange={setIsImportOpen}>
-            <DialogContent className="sm:max-w-[500px] rounded-3xl p-6">
-              <DialogHeader className="mb-6">
-                <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center mb-4">
-                  <FileSpreadsheet className="w-6 h-6 text-blue-600" />
-                </div>
-                <DialogTitle className="text-2xl font-bold">Bulk Marks Import</DialogTitle>
-                <DialogDescription>
-                  Upload an Excel or CSV file to import student marks. The file should contain columns like: 
-                  <b>ID Number, Marks Obtained, Remarks</b>.
-                </DialogDescription>
-              </DialogHeader>
-              
-              <div className="space-y-6">
-                <div 
-                  className="border-2 border-dashed border-slate-200 rounded-3xl p-10 text-center hover:border-blue-400 hover:bg-blue-50/50 transition-all cursor-pointer group"
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  <Upload className="w-10 h-10 text-slate-300 group-hover:text-blue-500 mx-auto mb-4 transition-colors" />
-                  <p className="text-sm font-medium text-slate-600">Click to upload or drag & drop</p>
-                  <p className="text-xs text-slate-400 mt-1">Excel (.xlsx, .xls) or CSV files supported</p>
-                  <input 
-                    type="file" 
-                    ref={fileInputRef} 
-                    className="hidden" 
-                    accept=".xlsx,.xls,.csv"
-                    onChange={handleFileUpload}
-                  />
-                </div>
-
-                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                  <div className="flex gap-3">
-                    <AlertCircle className="w-5 h-5 text-slate-400 shrink-0" />
-                    <div className="text-xs text-slate-500 space-y-1">
-                      <p className="font-bold text-slate-700">Important Tips:</p>
-                      <ul className="list-disc ml-4 space-y-1">
-                        <li>Ensure "ID Number" matches the student IDs in our system.</li>
-                        <li>Export the current list first to get a template.</li>
-                        <li>Max marks for this exam is <b>{selectedExam?.maxMarks}</b>.</li>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <DialogFooter className="mt-8">
-                <Button variant="outline" onClick={() => setIsImportOpen(false)} className="rounded-xl h-11">Cancel</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
         </React.Fragment>
       ) : (
         /* Results Entry View */
@@ -984,6 +854,136 @@ export default function ExamsPage() {
           </Card>
         </div>
       )}
+
+      {/* Shared Dialogs (Always Rendered) */}
+      <Dialog open={isImportOpen} onOpenChange={setIsImportOpen}>
+        <DialogContent className="sm:max-w-[500px] rounded-3xl p-6">
+          <DialogHeader className="mb-6">
+            <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center mb-4">
+              <FileSpreadsheet className="w-6 h-6 text-blue-600" />
+            </div>
+            <DialogTitle className="text-2xl font-bold">Bulk Marks Import</DialogTitle>
+            <DialogDescription>
+              Upload an Excel or CSV file to import student marks. The file should contain columns like: 
+              <b>ID Number, Marks Obtained, Remarks</b>.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-6">
+            <div 
+              className="border-2 border-dashed border-slate-200 rounded-3xl p-10 text-center hover:border-blue-400 hover:bg-blue-50/50 transition-all cursor-pointer group"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <Upload className="w-10 h-10 text-slate-300 group-hover:text-blue-500 mx-auto mb-4 transition-colors" />
+              <p className="text-sm font-medium text-slate-600">Click to upload or drag & drop</p>
+              <p className="text-xs text-slate-400 mt-1">Excel (.xlsx, .xls) or CSV files supported</p>
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                className="hidden" 
+                accept=".xlsx,.xls,.csv"
+                onChange={handleFileUpload}
+              />
+            </div>
+
+            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+              <div className="flex gap-3">
+                <AlertCircle className="w-5 h-5 text-slate-400 shrink-0" />
+                <div className="text-xs text-slate-500 space-y-1">
+                  <p className="font-bold text-slate-700">Important Tips:</p>
+                  <ul className="list-disc ml-4 space-y-1">
+                    <li>Ensure "ID Number" matches the student IDs in our system.</li>
+                    <li>Export the current list first to get a template.</li>
+                    <li>Max marks for this exam is <b>{selectedExam?.maxMarks}</b>.</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="mt-8">
+            <Button variant="outline" onClick={() => setIsImportOpen(false)} className="rounded-xl h-11">Cancel</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Exam Dialog */}
+      <Dialog open={isEditOpen} onOpenChange={(open) => {
+        setIsEditOpen(open)
+        if (!open) setEditingExam(null)
+      }}>
+        <DialogContent className="sm:max-w-[500px] rounded-3xl p-6">
+          {editingExam && (
+            <form onSubmit={handleUpdateExam}>
+              <DialogHeader className="mb-6">
+                <DialogTitle className="text-2xl font-bold">Edit Assessment</DialogTitle>
+                <DialogDescription>Modify the details of this scheduled exam.</DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-title">Exam Title</Label>
+                  <Input id="edit-title" name="title" defaultValue={editingExam.title} required className="rounded-xl h-11" />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-type">Assessment Type</Label>
+                    <Select name="type" defaultValue={editingExam.type} required>
+                      <SelectTrigger className="rounded-xl h-11">
+                        <SelectValue placeholder="Select type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="MIDTERM">Midterm Exam</SelectItem>
+                        <SelectItem value="FINAL">Final Exam</SelectItem>
+                        <SelectItem value="QUIZ">Pop Quiz</SelectItem>
+                        <SelectItem value="ASSIGNMENT">Formal Assignment</SelectItem>
+                        <SelectItem value="OTHER">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-maxMarks">Max Marks</Label>
+                    <Input id="edit-maxMarks" name="maxMarks" type="number" defaultValue={editingExam.maxMarks} required className="rounded-xl h-11" />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-assignment">Subject & Class</Label>
+                  <Select name="assignment" defaultValue={`${editingExam.courseId}|${editingExam.classId}`} required>
+                    <SelectTrigger className="rounded-xl h-11">
+                      <SelectValue placeholder="Choose a course & class" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {courses.map((course, idx) => (
+                        <SelectItem key={`${course.id}-${idx}`} value={`${course.courseId}|${course.classId}`}>
+                          {course.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-examDate">Exam Date</Label>
+                  <Input 
+                    id="edit-examDate" 
+                    name="examDate" 
+                    type="date" 
+                    defaultValue={new Date(editingExam.examDate).toISOString().split('T')[0]} 
+                    required 
+                    className="rounded-xl h-11" 
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-description">Brief Description (Optional)</Label>
+                  <Textarea id="edit-description" name="description" defaultValue={editingExam.description || ""} className="rounded-xl min-h-[80px]" />
+                </div>
+              </div>
+              <DialogFooter className="mt-8">
+                <Button type="button" variant="outline" onClick={() => setIsEditOpen(false)} className="rounded-xl h-11">Cancel</Button>
+                <Button type="submit" className="bg-blue-600 hover:bg-blue-700 rounded-xl h-11 px-8">Update Changes</Button>
+              </DialogFooter>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
