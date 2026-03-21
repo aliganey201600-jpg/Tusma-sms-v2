@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { usePathname, useRouter } from "next/navigation"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { createClient } from "@/utils/supabase/client"
 import { logoutAndResetStudent } from "@/app/dashboard/student/actions"
 import { useCurrentUser } from "@/hooks/use-current-user"
@@ -115,6 +115,26 @@ export function Sidebar({ className, role }: SidebarProps) {
   }
 
   const currentRoutes = routes[role] || []
+  const searchParams = useSearchParams()
+  const viewParam = searchParams.get('view')
+  
+  // Highlighting logic that accounts for query params
+  const isRouteActive = (routeHref: string) => {
+    const [path, query] = routeHref.split('?')
+    if (pathname !== path) return false
+    
+    if (query) {
+      const routeParams = new URLSearchParams(query)
+      const routeView = routeParams.get('view')
+      // If we are looking for a specific view (like gradebook)
+      if (routeView) return viewParam === routeView
+    }
+    
+    // For route with NO view param, it should only be active if searchParams has NO view param
+    if (viewParam) return false
+    
+    return true
+  }
 
   return (
     <div className={cn("pb-12 h-full flex flex-col", className)}>
@@ -129,22 +149,25 @@ export function Sidebar({ className, role }: SidebarProps) {
       <div className="flex-1 py-4">
         <div className="px-3 py-2">
           <div className="space-y-1">
-            {currentRoutes.map((route) => (
-              <Button
-                key={route.href}
-                variant={pathname === route.href ? "secondary" : "ghost"}
-                className={cn(
-                  "w-full justify-start",
-                  pathname === route.href && "bg-secondary font-medium"
-                )}
-                asChild
-              >
-                <Link href={route.href}>
-                  <route.icon className="mr-2 h-4 w-4" />
-                  {route.label}
-                </Link>
-              </Button>
-            ))}
+            {currentRoutes.map((route) => {
+              const active = isRouteActive(route.href)
+              return (
+                <Button
+                  key={route.href}
+                  variant={active ? "secondary" : "ghost"}
+                  className={cn(
+                    "w-full justify-start",
+                    active && "bg-secondary font-medium"
+                  )}
+                  asChild
+                >
+                  <Link href={route.href}>
+                    <route.icon className="mr-2 h-4 w-4" />
+                    {route.label}
+                  </Link>
+                </Button>
+              )
+            })}
           </div>
         </div>
       </div>
