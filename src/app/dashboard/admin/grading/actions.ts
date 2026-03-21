@@ -413,7 +413,8 @@ export async function getCourseGradebookData(courseId: string, classId: string) 
       },
       orderBy: { firstName: 'asc' }
     })
-    // 3. Get all quiz attempts for these students and these quizzes
+
+    // 3. Get all quiz attempts
     const attempts = await prisma.quizAttempt.findMany({
       where: {
         quizId: { in: quizzes.map(q => q.id) },
@@ -423,41 +424,80 @@ export async function getCourseGradebookData(courseId: string, classId: string) 
         id: true,
         quizId: true,
         studentId: true,
-        score: true
+        score: true,
+        earnedPoints: true,
+        totalPoints: true
       }
     })
 
-    // 4. Transform into a matrix
+    // 4. Get Exams for this course and class
+    const exams = await prisma.exam.findMany({
+      where: { courseId, classId },
+      select: { id: true, type: true, maxMarks: true }
+    })
+
+    const examResults = await prisma.examResult.findMany({
+      where: {
+        examId: { in: exams.map(e => e.id) },
+        studentId: { in: students.map(s => s.id) }
+      },
+      select: {
+        studentId: true,
+        examId: true,
+        marksObtained: true
+      }
+    })
+
+    // 5. Transform into a matrix
     const gradebook = students.map(student => {
       const studentAttempts = attempts.filter(a => a.studentId === student.id)
+      const studentExamResults = examResults.filter(er => er.studentId === student.id)
+
       const quizScores: Record<string, number | null> = {}
-      let totalScore = 0
-      let attemptedQuizzes = 0
+      let totalEarned = 0
+      let totalPossible = 0
 
       quizzes.forEach(quiz => {
-        // Find the best score for this quiz
+        // Best attempt for this quiz
         const quizAttempt = studentAttempts
           .filter(a => a.quizId === quiz.id)
           .sort((a, b) => b.score - a.score)[0]
         
         quizScores[quiz.id] = quizAttempt ? quizAttempt.score : null
         if (quizAttempt) {
-            totalScore += quizAttempt.score
-            attemptedQuizzes++
+            totalEarned += (quizAttempt.earnedPoints || 0)
+            totalPossible += (quizAttempt.totalPoints || 0)
         }
       })
 
-      // The user asked for "grand total". Let's provide average of weighted total.
-      // Sum of scores / number of quizzes
-      const average = quizzes.length > 0 ? (totalScore / quizzes.length) : 0
+      // Quiz Total (Scaled to 30%)
+      const quizTotal30 = totalPossible > 0 ? (totalEarned / totalPossible) * 30 : 0
+
+      // Exam Results
+      const midtermResult = studentExamResults.find(er => {
+        const ex = exams.find(e => e.id === er.examId)
+        return ex?.type === 'MIDTERM'
+      })
+      const finalResult = studentExamResults.find(er => {
+        const ex = exams.find(e => e.id === er.examId)
+        return ex?.type === 'FINAL'
+      })
+
+      const midtermScore = midtermResult ? parseFloat(midtermResult.marksObtained) : 0
+      const finalScore = finalResult ? parseFloat(finalResult.marksObtained) : 0
+
+      // Grand Total (100%)
+      const grandTotal = quizTotal30 + midtermScore + finalScore
 
       return {
         studentId: student.id,
         manualId: student.studentId,
         name: `${student.firstName} ${student.lastName}`,
         quizScores,
-        totalScore,
-        average: parseFloat(average.toFixed(2))
+        quizTotal30: parseFloat(quizTotal30.toFixed(2)),
+        midterm: midtermScore,
+        final: finalScore,
+        grandTotal: parseFloat(grandTotal.toFixed(2))
       }
     })
 

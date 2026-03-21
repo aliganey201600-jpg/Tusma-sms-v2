@@ -823,7 +823,10 @@ export function GradingInterfaceContent({ userRole }: { userRole: 'ADMIN' | 'TEA
                              <div className="truncate max-w-[120px] mx-auto" title={q.title}>Q{i+1}: {q.title}</div>
                           </th>
                        ))}
-                       <th className="px-6 py-6 text-[10px] font-black uppercase text-slate-900 tracking-widest w-[120px] text-center bg-slate-100/50">Grand Total</th>
+                       <th className="px-4 py-6 text-[10px] font-black uppercase text-blue-600 tracking-widest w-[100px] text-center bg-blue-50/20">Quizzes (30%)</th>
+                        <th className="px-4 py-6 text-[10px] font-black uppercase text-amber-600 tracking-widest w-[100px] text-center bg-amber-50/20">Midterm</th>
+                        <th className="px-4 py-6 text-[10px] font-black uppercase text-emerald-600 tracking-widest w-[100px] text-center bg-emerald-50/20">Final Exam</th>
+                        <th className="px-6 py-6 text-[10px] font-black uppercase text-slate-900 tracking-widest w-[120px] text-center bg-slate-100/50">Grand Total (100%)</th>
                     </tr>
                  </thead>
                  <tbody className="divide-y divide-slate-100">
@@ -853,11 +856,21 @@ export function GradingInterfaceContent({ userRole }: { userRole: 'ADMIN' | 'TEA
                                 </td>
                              )
                           })}
-                          <td className="px-6 py-4 text-center bg-indigo-50/30">
-                             <div className={`text-base font-black ${student.average >= 70 ? 'text-indigo-600' : student.average >= 50 ? 'text-slate-700' : 'text-rose-700'}`}>
-                                {student.average}%
-                             </div>
-                          </td>
+                           <td className="px-4 py-4 text-center bg-blue-50/10 font-black text-blue-700 text-sm border-x border-blue-50/50">
+                              {student.quizTotal30 || "0"}
+                           </td>
+                           <td className="px-4 py-4 text-center bg-amber-50/10 font-black text-amber-700 text-sm border-r border-amber-50/50">
+                              {student.midterm || "0"}
+                           </td>
+                           <td className="px-4 py-4 text-center bg-emerald-50/10 font-black text-emerald-700 text-sm border-r border-emerald-50/50">
+                              {student.final || "0"}
+                           </td>
+                           <td className="px-6 py-4 text-center bg-indigo-50/20 shadow-sm">
+                              <div className={`text-lg font-black ${student.grandTotal >= 50 ? 'text-slate-900' : 'text-rose-700'}`}>
+                                 {student.grandTotal}
+                              </div>
+                              <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-1">/ 100</p>
+                           </td>
                        </tr>
                     ))}
                  </tbody>
