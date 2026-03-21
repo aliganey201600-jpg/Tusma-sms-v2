@@ -841,17 +841,19 @@ export function GradingInterfaceContent({ userRole }: { userRole: 'ADMIN' | 'TEA
                              </div>
                           </td>
                           {gradebookData.quizzes.map(quiz => {
-                             const score = student.quizScores[quiz.id]
+                             const scoreData = student.quizScores[quiz.id]
+                             const pct = scoreData ? scoreData.score : null
                              return (
                                 <td key={quiz.id} className="px-4 py-4 text-center">
-                                   {score !== null ? (
-                                      <div className="inline-flex items-center justify-center p-2 rounded-lg bg-white border border-slate-100 shadow-sm min-w-[60px]">
-                                         <p className={`text-xs font-black ${score >= 70 ? 'text-emerald-600' : score >= 50 ? 'text-amber-600' : 'text-rose-600'}`}>
-                                            {score}%
+                                   {scoreData ? (
+                                      <div className="flex flex-col items-center gap-1 p-1.5 rounded-xl bg-white border border-slate-100 shadow-sm min-w-[70px]">
+                                         <p className={`text-xs font-black ${pct! >= 70 ? 'text-emerald-600' : pct! >= 50 ? 'text-amber-500' : 'text-rose-600'}`}>
+                                            {scoreData!.earned}<span className="text-slate-300 font-bold">/{scoreData!.total}</span>
                                          </p>
+                                          <span className="text-[8px] font-black text-slate-400 uppercase tracking-tighter bg-slate-50 px-1.5 py-0.5 rounded-md border border-slate-100/50 leading-none">{Math.round(pct!)}%</span>
                                       </div>
                                    ) : (
-                                      <span className="text-[10px] font-bold text-slate-300">N/A</span>
+                                      <span className="text-[10px] font-bold text-slate-200">—</span>
                                    )}
                                 </td>
                              )

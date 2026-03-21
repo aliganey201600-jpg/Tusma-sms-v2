@@ -453,7 +453,7 @@ export async function getCourseGradebookData(courseId: string, classId: string) 
       const studentAttempts = attempts.filter(a => a.studentId === student.id)
       const studentExamResults = examResults.filter(er => er.studentId === student.id)
 
-      const quizScores: Record<string, number | null> = {}
+      const quizScores: Record<string, { earned: number; total: number; score: number } | null> = {}
       let totalEarned = 0
       let totalPossible = 0
 
@@ -463,10 +463,16 @@ export async function getCourseGradebookData(courseId: string, classId: string) 
           .filter(a => a.quizId === quiz.id)
           .sort((a, b) => b.score - a.score)[0]
         
-        quizScores[quiz.id] = quizAttempt ? quizAttempt.score : null
         if (quizAttempt) {
-            totalEarned += (quizAttempt.earnedPoints || 0)
-            totalPossible += (quizAttempt.totalPoints || 0)
+          quizScores[quiz.id] = {
+            earned: quizAttempt.earnedPoints || 0,
+            total: quizAttempt.totalPoints || 0,
+            score: quizAttempt.score
+          }
+          totalEarned += (quizAttempt.earnedPoints || 0)
+          totalPossible += (quizAttempt.totalPoints || 0)
+        } else {
+          quizScores[quiz.id] = null
         }
       })
 
