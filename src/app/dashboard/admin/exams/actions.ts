@@ -92,7 +92,7 @@ export async function fetchExamStudents(examId: string) {
     const students = await prisma.student.findMany({
       where: { classId: exam.classId },
       include: {
-        results: {
+        examResults: {
           where: { examId: examId },
           select: { marksObtained: true, remarks: true }
         }
@@ -105,8 +105,8 @@ export async function fetchExamStudents(examId: string) {
       firstName: s.firstName,
       lastName: s.lastName,
       manualId: s.studentId,
-      marksObtained: s.results[0]?.marksObtained?.toString() || "",
-      remarks: s.results[0]?.remarks || ""
+      marksObtained: s.examResults[0]?.marksObtained?.toString() || "",
+      remarks: s.examResults[0]?.remarks || ""
     }));
   } catch (error) {
     console.error("Error fetching exam students:", error);
