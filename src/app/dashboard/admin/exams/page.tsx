@@ -292,15 +292,20 @@ export default function ExamsPage() {
 
     const reader = new FileReader()
     reader.onload = (event) => {
-      const bstr = event.target?.result
-      const workbook = XLSX.read(bstr, { type: 'binary' })
-      const worksheetName = workbook.SheetNames[0]
-      const worksheet = workbook.Sheets[worksheetName]
-      const data = XLSX.utils.sheet_to_json(worksheet) as any[]
-      
-      processImportData(data)
+      try {
+        const arrayBuffer = event.target?.result as ArrayBuffer
+        const workbook = XLSX.read(new Uint8Array(arrayBuffer), { type: 'array' })
+        const worksheetName = workbook.SheetNames[0]
+        const worksheet = workbook.Sheets[worksheetName]
+        const data = XLSX.utils.sheet_to_json(worksheet) as any[]
+        
+        processImportData(data)
+      } catch (err) {
+        console.error("Import error:", err)
+        toast.error("Ma awoodo inaan akhriyo faylka. Fadlan hubi inuu yahay Excel ama CSV.")
+      }
     }
-    reader.readAsBinaryString(file)
+    reader.readAsArrayBuffer(file)
   }
 
   const processImportData = (data: any[]) => {
@@ -308,22 +313,28 @@ export default function ExamsPage() {
     const newStudents = [...examStudents]
 
     data.forEach(row => {
-      // Try to find student by ID Number, Student Name, or ID
-      const studentId = row["ID Number"] || row["Student ID"] || row["id"]
-      const marks = row["Marks Obtained"] || row["Marks"] || row["marks"]
-      const remarks = row["Remarks"] || row["remarks"] || ""
+      // Normalize row keys to lowercase for robust matching
+      const normalizedRow: any = {}
+      Object.keys(row).forEach(k => {
+        normalizedRow[k.toLowerCase().trim().replace(/\s+/g, '')] = row[k]
+      })
+
+      // Keys we're looking for (normalized)
+      const studentId = normalizedRow["idnumber"] || normalizedRow["studentid"] || normalizedRow["id"]
+      const marks = normalizedRow["marksobtained"] || normalizedRow["marks"] || normalizedRow["mark"]
+      const remarksValue = normalizedRow["remarks"] || normalizedRow["comment"] || normalizedRow["remarks/comments"] || ""
 
       const index = newStudents.findIndex(s => 
-        s.manualId === String(studentId) || 
-        s.studentId === String(studentId) || 
-        `${s.firstName} ${s.lastName}`.toLowerCase() === String(row["Student Name"]).toLowerCase()
+        (s.manualId && String(s.manualId).toLowerCase() === String(studentId).toLowerCase()) || 
+        (s.studentId && String(s.studentId).toLowerCase() === String(studentId).toLowerCase()) || 
+        `${s.firstName} ${s.lastName}`.toLowerCase().trim() === String(normalizedRow["studentname"] || "").toLowerCase().trim()
       )
 
-      if (index !== -1) {
+      if (index !== -1 && marks !== undefined) {
         newStudents[index] = { 
           ...newStudents[index], 
           marksObtained: String(marks),
-          remarks: remarks || newStudents[index].remarks
+          remarks: remarksValue || newStudents[index].remarks
         }
         matchCount++
       }
@@ -331,11 +342,13 @@ export default function ExamsPage() {
 
     if (matchCount > 0) {
       setExamStudents(newStudents)
-      toast.success(`Guul! Waxaa la helay dhibcaha ${matchCount} arday.`)
+      toast.success(`Guul! Waxaa la soo dhoofiyey dhibcaha ${matchCount} arday.`)
       setIsImportOpen(false)
     } else {
-      toast.error("Lama helin arday u dhiganta xogta la soo galiyey. Fadlan hubi ID Numbers-ka.")
+      toast.error("Lama helin arday xogtoodu u dhigantaa faylka. Fadlan hubi 'ID Number'.")
     }
+    // Reset file input
+    if (fileInputRef.current) fileInputRef.current.value = ""
   }
 
   // Mock chart data
@@ -806,21 +819,37 @@ export default function ExamsPage() {
                 </div>
               </div>
               <div className="flex gap-2">
-                <Button variant="outline" onClick={handleExportResults} className="rounded-xl h-11 border-emerald-200 text-emerald-700 hover:bg-emerald-50">
-                  <Download className="w-4 h-4 mr-2" /> Export Excel
-                </Button>
-                <Button variant="outline" onClick={() => setIsImportOpen(true)} className="rounded-xl h-11 border-blue-200 text-blue-700 hover:bg-blue-50">
-                  <Upload className="w-4 h-4 mr-2" /> Bulk Import
-                </Button>
-                <div className="w-px bg-slate-200 mx-1" />
-                <Button variant="outline" onClick={() => setSelectedExam(null)} className="rounded-xl h-11">Discard</Button>
                 <Button 
                   onClick={handleSaveMarks} 
                   disabled={saving}
-                  className="bg-indigo-600 hover:bg-indigo-700 rounded-xl h-11 px-6 shadow-md"
+                  className="bg-indigo-600 hover:bg-indigo-700 active:scale-95 transition-all rounded-xl h-11 px-6 shadow-md font-bold"
                 >
                    {saving ? "Saving..." : <React.Fragment><Save className="w-4 h-4 mr-2" /> Save All Grades</React.Fragment>}
                 </Button>
+
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" className="rounded-xl h-11 px-3 border-slate-200">
+                      <MoreVertical className="w-5 h-5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="rounded-2xl p-2 w-56 shadow-2xl border-slate-200">
+                    <DropdownMenuLabel className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-3 py-2">Quick Actions</DropdownMenuLabel>
+                    <DropdownMenuItem onClick={handleExportResults} className="rounded-xl cursor-pointer py-3 text-emerald-700 focus:bg-emerald-50 focus:text-emerald-800">
+                      <Download className="mr-2 h-4 w-4" />
+                      <span className="font-semibold">Export to Excel</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setIsImportOpen(true)} className="rounded-xl cursor-pointer py-3 text-blue-700 focus:bg-blue-50 focus:text-blue-800">
+                      <Upload className="mr-2 h-4 w-4" />
+                      <span className="font-semibold">Bulk Import Marks</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator className="my-2" />
+                    <DropdownMenuItem onClick={() => setSelectedExam(null)} className="rounded-xl cursor-pointer py-3 text-slate-600 focus:bg-slate-100 italic">
+                      <ChevronRight className="mr-2 h-4 w-4 rotate-180" />
+                      <span>Discard Changes</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </CardHeader>
             <CardContent className="p-0">
