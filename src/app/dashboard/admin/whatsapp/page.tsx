@@ -5,6 +5,9 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import QRCode from "react-qr-code"
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 async function getWhatsAppConfig() {
   try {
     const config = await prisma.whatsAppConfig.findUnique({
