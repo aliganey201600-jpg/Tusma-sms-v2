@@ -13,7 +13,8 @@ import {
   getCourseGradebookData,
   getClassOverallGradebook,
   getGradingClasses,
-  getBulkReportData
+  getBulkReportData,
+  bulkUpdateQuizScores
 } from "@/app/dashboard/admin/grading/actions"
 import { useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -91,6 +92,48 @@ export function GradingInterfaceContent({ userRole }: { userRole: 'ADMIN' | 'TEA
   const [searchTerm, setSearchTerm] = React.useState("")
   const [classFilter, setClassFilter] = React.useState("all")
   const [quizSearch, setQuizSearch] = React.useState("")
+    const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const handleBulkImportMarks = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !selectedQuiz) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
+        const arrayBuffer = event.target?.result as ArrayBuffer;
+        const workbook = XLSX.read(new Uint8Array(arrayBuffer), { type: 'array' });
+        const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+        const data = XLSX.utils.sheet_to_json(worksheet) as any[];
+
+        const updates = data.map(row => {
+          const studentId = row["ID Number"] || row["Student ID"] || row["id"];
+          const earned = parseFloat(row["Marks"] || row["Earned"] || row["Score"] || 0);
+          const total = parseFloat(row["Max Marks"] || row["Total"] || 100);
+          return { studentId: String(studentId), earned, total };
+        }).filter(u => u.studentId);
+
+        if (updates.length > 0) {
+          const res = await bulkUpdateQuizScores(selectedQuiz.id, updates);
+          if (res.success) {
+            toast.success(`Successfully imported ${res.count} scores!`);
+            // Refresh submissions
+            if (selectedCourse) {
+               const subs = await getQuizSubmissions(selectedQuiz.id);
+               setSubmissions(subs);
+            }
+          } else {
+            toast.error(res.error || "Bulk import failed");
+          }
+        }
+      } catch (err) {
+        toast.error("Error reading file");
+      }
+    };
+    reader.readAsArrayBuffer(file);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
   const [submissionSearch, setSubmissionSearch] = React.useState("")
 
   // Selection States

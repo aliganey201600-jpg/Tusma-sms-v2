@@ -209,6 +209,51 @@ export async function submitGradeUpdate(attemptId: string, updatedResults: any[]
   }
 }
 
+export async function bulkUpdateQuizScores(quizId: string, updates: { studentId: string, earned: number, total: number }[]) {
+  try {
+    const results = await Promise.all(updates.map(async (upd) => {
+      const student = await prisma.student.findFirst({
+        where: { OR: [ { studentId: upd.studentId }, { id: upd.studentId } ] }
+      })
+      
+      if (!student) return { studentId: upd.studentId, success: false, error: "Student not found" }
+
+      const attempt = await prisma.quizAttempt.findFirst({
+        where: { quizId, studentId: student.id },
+        orderBy: { createdAt: 'desc' }
+      })
+
+      if (!attempt) return { studentId: upd.studentId, success: false, error: "No attempt found" }
+
+      const score = upd.total > 0 ? Math.round((upd.earned / upd.total) * 100) : 0
+      
+      // Update results array to mark everything as manual: false (sanity check)
+      const currentResults = (attempt.results as any[]) || []
+      const updatedResults = currentResults.map(r => ({ ...r, manual: false }))
+
+      await prisma.quizAttempt.update({
+        where: { id: attempt.id },
+        data: {
+          earnedPoints: upd.earned,
+          totalPoints: upd.total,
+          score,
+          results: updatedResults,
+          passed: score >= 50 // Default passing score if not set
+        }
+      })
+
+      return { studentId: upd.studentId, success: true }
+    }))
+
+    revalidatePath('/dashboard/admin/grading')
+    const successCount = results.filter(r => r.success).length
+    return { success: true, count: successCount, details: results }
+  } catch (error: any) {
+    console.error("Bulk update quiz error:", error)
+    return { success: false, error: error.message }
+  }
+}
+
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
@@ -492,8 +537,14 @@ export async function getCourseGradebookData(courseId: string, classId: string) 
       const midtermScore = midtermResult ? Number(midtermResult.marksObtained) : 0
       const finalScore = finalResult ? Number(finalResult.marksObtained) : 0
 
-      // Grand Total (100%)
-      const grandTotal = quizTotal30 + midtermScore + finalScore
+      const midtermMax = midtermResult?.exam?.maxMarks || 100
+      const finalMax = finalResult?.exam?.maxMarks || 100
+      
+      const midtermWeight = midtermResult ? (midtermScore / midtermMax) * 30 : 0
+      const finalWeight = finalResult ? (finalScore / finalMax) * 40 : 0
+
+      // Grand Total (Weighted: 30% Quiz, 30% Mid, 40% Final)
+      const grandTotal = Math.round(quizTotal30 + midtermWeight + finalWeight)
 
       return {
         studentId: student.id,
@@ -593,14 +644,22 @@ export async function getClassOverallGradebook(classId: string) {
           include: { exam: true }
         })
 
-        const midterm = examResults.find(r => r.exam.type === 'MIDTERM')?.marksObtained || 0
-        const final = examResults.find(r => r.exam.type === 'FINAL')?.marksObtained || 0
+        const midtermResult = examResults.find(r => r.exam.type === 'MIDTERM')
+        const finalResult = examResults.find(r => r.exam.type === 'FINAL')
+
+        const midtermRaw = midtermResult?.marksObtained || 0
+        const finalRaw = finalResult?.marksObtained || 0
+        const midtermMax = midtermResult?.exam?.maxMarks || 100
+        const finalMax = finalResult?.exam?.maxMarks || 100
+
+        const midtermWeight = midtermResult ? (midtermRaw / midtermMax) * 30 : 0
+        const finalWeight = finalResult ? (finalRaw / finalMax) * 40 : 0
         
         // Calculate Weighted Grade: 30% Quizzes, 30% Midterm, 40% Final (Total 100%)
         const hasExams = examResults.length > 0
         const weightedGrade = hasExams 
-          ? Math.round((quizAvg * 0.3) + (midterm * 0.3) + (final * 0.4))
-          : quizAvg
+          ? Math.round((quizAvg * 0.3) + midtermWeight + finalWeight)
+          : Math.round(quizAvg * 0.3)
 
         courseGrades[courseName] = {
            grade: weightedGrade,
@@ -737,12 +796,20 @@ export async function getBulkReportData(classId: string) {
           where: { studentId: student.id, exam: { courseId: course.id, classId: classId } },
           include: { exam: true }
         })
-        const midterm = examResults.find(r => r.exam.type === 'MIDTERM')?.marksObtained || 0
-        const final = examResults.find(r => r.exam.type === 'FINAL')?.marksObtained || 0
+        const midtermResult = examResults.find(r => r.exam.type === 'MIDTERM')
+        const finalResult = examResults.find(r => r.exam.type === 'FINAL')
+
+        const midtermRaw = midtermResult?.marksObtained || 0
+        const finalRaw = finalResult?.marksObtained || 0
+        const midtermMax = midtermResult?.exam?.maxMarks || 100
+        const finalMax = finalResult?.exam?.maxMarks || 100
+
+        const midtermWeight = midtermResult ? (midtermRaw / midtermMax) * 30 : 0
+        const finalWeight = finalResult ? (finalRaw / finalMax) * 40 : 0
         
         // 3. Weighting (30% Q, 30% M, 40% F)
         const finalGrade = examResults.length > 0 
-           ? Math.round((quizAvg * 0.3) + (midterm * 0.3) + (final * 0.4))
+           ? Math.round((quizAvg * 0.3) + midtermWeight + finalWeight)
            : quizAvg
 
         const gpa = finalGrade >= 90 ? 4.0 : finalGrade >= 80 ? 3.5 : finalGrade >= 70 ? 3.0 : finalGrade >= 60 ? 2.5 : finalGrade >= 50 ? 2.0 : 0.0
