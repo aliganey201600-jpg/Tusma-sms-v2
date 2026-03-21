@@ -86,6 +86,7 @@ export async function saveAttendance(records: { studentId: string; status: strin
 
       studentDetails.forEach(student => {
         const record = records.find(r => r.studentId === student.id);
+        if (!record) return;
         const statusText = record.status === "ABSENT" ? "ka maqnaa" : "ku habsaamay (Late)";
         const studentName = `${student.firstName} ${student.lastName}`;
         const message = `Salaam, Nidaamka Tusmo School: Ardayga ${studentName} wuxuu ${statusText} fasalka (${student.class_name}) maanta oo ay taariikhdu tahay ${readableDate}. Fadlan nala soo xidhiidh. Mahadsanid.`;
@@ -96,7 +97,7 @@ export async function saveAttendance(records: { studentId: string; status: strin
     }
     
     revalidatePath("/dashboard/admin/attendance");
-    return { success: true, notificationCount: absentRecords.length };
+    return { success: true, notificationCount: notifyRecords.length };
   } catch (error: any) {
     console.error("Error saving attendance:", error);
     return { success: false, error: error.message || "Failed to save attendance" };

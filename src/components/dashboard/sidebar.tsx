@@ -24,6 +24,7 @@ import {
   RefreshCcw,
   Trophy,
   FileText,
+  Smartphone
 } from "lucide-react"
 
 import { cn } from "@/lib/utils"

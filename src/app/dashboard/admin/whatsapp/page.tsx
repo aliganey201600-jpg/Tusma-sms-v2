@@ -104,7 +104,7 @@ export default async function WhatsAppSettingsPage() {
                  </div>
                  <div>
                     <h3 className="text-2xl font-black text-slate-900 tracking-tight uppercase">Successfully Connected</h3>
-                    <p className="text-slate-500 font-bold text-sm mt-2">{config.phoneNumber || "Linked Device"}</p>
+                    <p className="text-slate-500 font-bold text-sm mt-2">{config.status === "CONNECTED" && 'sessionName' in config ? config.sessionName : "Linked Device"}</p>
                  </div>
                  <Badge variant="outline" className="mt-8 bg-emerald-50/50 text-emerald-700 border-emerald-100 font-black text-[10px] py-2 px-6 tracking-[0.2em] rounded-full uppercase">
                     All notifications are online

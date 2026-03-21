@@ -136,12 +136,12 @@ export async function toggleExamStatus(id: string, currentStatus: string) {
 
     // If published, trigger automated notifications
     if (newStatus === "PUBLISHED") {
-      const exam = await prisma.exam.findUnique({
+      const exam: any = await prisma.exam.findUnique({
         where: { id },
         include: {
           course: { select: { name: true } },
           class: { select: { name: true } },
-          examResults: {
+          results: {
             include: {
               student: {
                 select: {
@@ -156,8 +156,8 @@ export async function toggleExamStatus(id: string, currentStatus: string) {
         }
       });
 
-      if (exam && exam.examResults.length > 0) {
-        exam.examResults.forEach(res => {
+      if (exam && exam.results && exam.results.length > 0) {
+        exam.results.forEach((res: any) => {
           const student = res.student;
           const studentName = `${student.firstName} ${student.lastName}`;
           const score = res.marksObtained;

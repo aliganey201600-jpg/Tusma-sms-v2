@@ -5,6 +5,7 @@ import prisma from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
 import { GoogleGenerativeAI } from "@google/generative-ai"
 import { createClient } from "@/utils/supabase/server"
+import { sendWhatsAppNotification } from "@/utils/whatsapp"
 
 export async function getGradingCourses() {
   try {
@@ -501,7 +502,8 @@ export async function getCourseGradebookData(courseId: string, classId: string) 
       select: {
         studentId: true,
         examId: true,
-        marksObtained: true
+        marksObtained: true,
+        exam: { select: { type: true, maxMarks: true } }
       }
     })
 
@@ -673,12 +675,12 @@ export async function getClassOverallGradebook(classId: string) {
           ? Math.round((quizAvg * 0.3) + midtermWeight + finalWeight)
           : Math.round(quizAvg * 0.3)
 
-        courseGrades[courseName] = {
-           grade: weightedGrade,
-           midterm,
-           final,
-           quizzes: quizAvg
-        }
+         courseGrades[courseName] = {
+            grade: weightedGrade,
+            midterm: midtermRaw,
+            final: finalRaw,
+            quizzes: quizAvg
+         }
         
         sumOfAverages += weightedGrade
         totalValidGrades++
@@ -831,8 +833,8 @@ export async function getBulkReportData(classId: string) {
           teacher: `${course.teacher.firstName} ${course.teacher.lastName}`,
           grade: finalGrade,
           quizzes: quizAvg,
-          midterm,
-          final,
+          midterm: midtermRaw,
+          final: finalRaw,
           gpa
         })
       }

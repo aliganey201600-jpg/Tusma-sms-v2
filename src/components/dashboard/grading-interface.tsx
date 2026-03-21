@@ -865,7 +865,7 @@ export function GradingInterfaceContent({ userRole }: { userRole: 'ADMIN' | 'TEA
                      <DropdownMenuItem 
                         onClick={() => {
                           const data = gradebookData.gradebook.map(s => {
-                            const row = {
+                            const row: Record<string, any> = {
                               "Student Name": s.name,
                               "ID Number": s.manualId || s.studentId,
                               "Quiz Total (30%)": s.quizTotal30,
