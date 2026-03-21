@@ -35,6 +35,7 @@ async function connectToWhatsApp() {
             keys: makeCacheableSignalKeyStore(state.keys, logger),
         },
         logger,
+        browser: ["Tusmo SMS", "Chrome", "1.0.0"],
         printQRInTerminal: true,
     });
 
