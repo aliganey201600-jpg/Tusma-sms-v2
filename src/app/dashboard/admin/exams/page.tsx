@@ -12,20 +12,36 @@ import {
   GraduationCap,
   Save,
   ChevronRight,
-  ClipboardList
+  ClipboardList,
+  MoreVertical,
+  Edit,
+  Trash2,
+  Eye,
+  EyeOff,
+  Copy,
+  AlertCircle
 } from "lucide-react"
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuLabel, 
+  DropdownMenuSeparator, 
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toast } from "sonner"
 import { 
-  fetchExams, 
-  fetchCoursesForExams, 
-  createExam, 
   fetchExamStudents, 
   saveExamResults,
-  fetchExamStats
+  fetchExamStats,
+  updateExam,
+  deleteExam,
+  toggleExamStatus,
+  duplicateExam
 } from "./actions"
 import {
   Dialog,
@@ -67,6 +83,8 @@ export default function ExamsPage() {
   const [examStudents, setExamStudents] = React.useState<any[]>([])
   const [saving, setSaving] = React.useState(false)
   const [isCreateOpen, setIsCreateOpen] = React.useState(false)
+  const [editingExam, setEditingExam] = React.useState<any>(null)
+  const [isEditOpen, setIsEditOpen] = React.useState(false)
 
   // Load data
   const loadData = React.useCallback(async () => {
@@ -115,6 +133,70 @@ export default function ExamsPage() {
     } else {
       toast.error(res.error || "Waa laygu guuldareystay inaan abuuro imtixaanka")
     }
+  }
+
+  const handleUpdateExam = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    if (!editingExam) return
+    const formData = new FormData(e.currentTarget)
+    const assignmentValue = formData.get("assignment") as string
+    const [cId, clsId] = assignmentValue.split("|")
+
+    const data = {
+      title: formData.get("title") as string,
+      description: formData.get("description") as string,
+      type: formData.get("type") as any,
+      courseId: cId,
+      classId: clsId,
+      maxMarks: parseFloat(formData.get("maxMarks") as string),
+      examDate: formData.get("examDate") as string,
+    }
+
+    const res = await updateExam(editingExam.id, data)
+    if (res.success) {
+      toast.success("Imtixaanka waa la cusboonaysiiyey!")
+      setIsEditOpen(false)
+      setEditingExam(null)
+      loadData()
+    } else {
+      toast.error(res.error || "Waa laygu guuldareystay inaan cusboonaysiiyo imtixaanka")
+    }
+  }
+
+  const handleDeleteExam = async (id: string) => {
+    if (!confirm("Ma hubtaa inaad rabto inaad tirtirto imtixaankan?")) return
+    const res = await deleteExam(id)
+    if (res.success) {
+      toast.success("Imtixaanka waa la tirtiray")
+      loadData()
+    } else {
+      toast.error(res.error)
+    }
+  }
+
+  const handleToggleStatus = async (id: string, currentStatus: string) => {
+    const res = await toggleExamStatus(id, currentStatus)
+    if (res.success) {
+      toast.success(`Hadda waa ${res.newStatus}`)
+      loadData()
+    } else {
+      toast.error(res.error)
+    }
+  }
+
+  const handleDuplicateExam = async (id: string) => {
+    const res = await duplicateExam(id)
+    if (res.success) {
+      toast.success("Imtixaanka waa la koobiyeeyay")
+      loadData()
+    } else {
+      toast.error(res.error)
+    }
+  }
+
+  const openEditModal = (exam: any) => {
+    setEditingExam(exam)
+    setIsEditOpen(true)
   }
 
   const handleSelectExam = async (exam: any) => {
@@ -399,19 +481,65 @@ export default function ExamsPage() {
                           </td>
                           <td className="px-6 py-4 text-center">
                             <span className={`px-3 py-1 rounded-full text-[10px] font-bold ${
-                              exam.status === 'COMPLETED' ? 'bg-emerald-50 text-emerald-700' : 'bg-blue-50 text-blue-700'
+                              exam.status === 'COMPLETED' ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200' : 
+                              exam.status === 'PUBLISHED' ? 'bg-blue-50 text-blue-700 ring-1 ring-blue-200' :
+                              exam.status === 'DRAFT' ? 'bg-slate-100 text-slate-600 ring-1 ring-slate-200' :
+                              'bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200'
                             }`}>
                               {exam.status}
                             </span>
                           </td>
                           <td className="px-6 py-4 text-right">
-                            <Button 
-                              variant="ghost" 
-                              className="text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 rounded-xl"
-                              onClick={() => handleSelectExam(exam)}
-                            >
-                              Grade Marks <ChevronRight className="w-4 h-4 ml-1" />
-                            </Button>
+                            <div className="flex items-center justify-end gap-2">
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                className="text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 rounded-xl"
+                                onClick={() => handleSelectExam(exam)}
+                              >
+                                Grade Marks <ChevronRight className="w-4 h-4 ml-1" />
+                              </Button>
+
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded-full">
+                                    <MoreVertical className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="rounded-2xl p-2 w-48 shadow-xl border-slate-200">
+                                  <DropdownMenuLabel className="text-xs font-bold text-slate-500 uppercase tracking-widest px-3 py-2">Actions</DropdownMenuLabel>
+                                  <DropdownMenuItem onClick={() => openEditModal(exam)} className="rounded-xl cursor-pointer py-2.5">
+                                    <Edit className="mr-2 h-4 w-4 text-blue-600" />
+                                    <span>Edit Schedule</span>
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleDuplicateExam(exam.id)} className="rounded-xl cursor-pointer py-2.5">
+                                    <Copy className="mr-2 h-4 w-4 text-indigo-600" />
+                                    <span>Duplicate Exam</span>
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleToggleStatus(exam.id, exam.status)} className="rounded-xl cursor-pointer py-2.5">
+                                    {exam.status === "DRAFT" ? (
+                                      <>
+                                        <Eye className="mr-2 h-4 w-4 text-emerald-600" />
+                                        <span>Publish Now</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <EyeOff className="mr-2 h-4 w-4 text-amber-600" />
+                                        <span>Back to Draft</span>
+                                      </>
+                                    )}
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator className="my-1 border-slate-100" />
+                                  <DropdownMenuItem 
+                                    onClick={() => handleDeleteExam(exam.id)}
+                                    className="rounded-xl cursor-pointer py-2.5 text-red-600 focus:text-red-700 focus:bg-red-50"
+                                  >
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    <span>Delete Assessment</span>
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
                           </td>
                         </tr>
                       ))
@@ -421,6 +549,84 @@ export default function ExamsPage() {
               </div>
             </TabsContent>
           </Tabs>
+
+          {/* Edit Exam Dialog */}
+          <Dialog open={isEditOpen} onOpenChange={(open) => {
+            setIsEditOpen(open)
+            if (!open) setEditingExam(null)
+          }}>
+            <DialogContent className="sm:max-w-[500px] rounded-3xl p-6">
+              {editingExam && (
+                <form onSubmit={handleUpdateExam}>
+                  <DialogHeader className="mb-6">
+                    <DialogTitle className="text-2xl font-bold">Edit Assessment</DialogTitle>
+                    <DialogDescription>Modify the details of this scheduled exam.</DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-title">Exam Title</Label>
+                      <Input id="edit-title" name="title" defaultValue={editingExam.title} required className="rounded-xl h-11" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-type">Assessment Type</Label>
+                        <Select name="type" defaultValue={editingExam.type} required>
+                          <SelectTrigger className="rounded-xl h-11">
+                            <SelectValue placeholder="Select type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="MIDTERM">Midterm Exam</SelectItem>
+                            <SelectItem value="FINAL">Final Exam</SelectItem>
+                            <SelectItem value="QUIZ">Pop Quiz</SelectItem>
+                            <SelectItem value="ASSIGNMENT">Formal Assignment</SelectItem>
+                            <SelectItem value="OTHER">Other</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-maxMarks">Max Marks</Label>
+                        <Input id="edit-maxMarks" name="maxMarks" type="number" defaultValue={editingExam.maxMarks} required className="rounded-xl h-11" />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-assignment">Subject & Class</Label>
+                      <Select name="assignment" defaultValue={`${editingExam.courseId}|${editingExam.classId}`} required>
+                        <SelectTrigger className="rounded-xl h-11">
+                          <SelectValue placeholder="Choose a course & class" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {courses.map((course, idx) => (
+                            <SelectItem key={`${course.id}-${idx}`} value={`${course.courseId}|${course.classId}`}>
+                              {course.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-examDate">Exam Date</Label>
+                      <Input 
+                        id="edit-examDate" 
+                        name="examDate" 
+                        type="date" 
+                        defaultValue={new Date(editingExam.examDate).toISOString().split('T')[0]} 
+                        required 
+                        className="rounded-xl h-11" 
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-description">Brief Description (Optional)</Label>
+                      <Textarea id="edit-description" name="description" defaultValue={editingExam.description || ""} className="rounded-xl min-h-[80px]" />
+                    </div>
+                  </div>
+                  <DialogFooter className="mt-8">
+                    <Button type="button" variant="outline" onClick={() => setIsEditOpen(false)} className="rounded-xl h-11">Cancel</Button>
+                    <Button type="submit" className="bg-blue-600 hover:bg-blue-700 rounded-xl h-11 px-8">Update Changes</Button>
+                  </DialogFooter>
+                </form>
+              )}
+            </DialogContent>
+          </Dialog>
         </React.Fragment>
       ) : (
         /* Results Entry View */

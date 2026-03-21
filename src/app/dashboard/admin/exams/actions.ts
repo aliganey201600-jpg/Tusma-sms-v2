@@ -68,7 +68,7 @@ export async function createExam(data: {
         classId: data.classId,
         maxMarks: data.maxMarks,
         examDate: new Date(data.examDate),
-        status: 'SCHEDULED'
+        status: 'DRAFT'
       }
     });
 
@@ -77,6 +77,96 @@ export async function createExam(data: {
   } catch (error) {
     console.error("Error creating exam:", error);
     return { success: false, error: "Waa laygu guuldareystay inaan abuuro imtixaanka" };
+  }
+}
+
+export async function updateExam(id: string, data: {
+  title: string;
+  description: string;
+  type: any;
+  courseId: string;
+  classId: string;
+  maxMarks: number;
+  examDate: string;
+}) {
+  try {
+    await prisma.exam.update({
+      where: { id },
+      data: {
+        title: data.title,
+        description: data.description,
+        type: data.type,
+        courseId: data.courseId,
+        classId: data.classId,
+        maxMarks: data.maxMarks,
+        examDate: new Date(data.examDate),
+      }
+    });
+
+    revalidatePath("/dashboard/admin/exams");
+    return { success: true };
+  } catch (error) {
+    console.error("Error updating exam:", error);
+    return { success: false, error: "Waa laygu guuldareystay inaan cusboonaysiiyo imtixaanka" };
+  }
+}
+
+export async function deleteExam(id: string) {
+  try {
+    await prisma.exam.delete({
+      where: { id }
+    });
+
+    revalidatePath("/dashboard/admin/exams");
+    return { success: true };
+  } catch (error) {
+    console.error("Error deleting exam:", error);
+    return { success: false, error: "Waa laygu guuldareystay inaan tirtiro imtixaanka" };
+  }
+}
+
+export async function toggleExamStatus(id: string, currentStatus: string) {
+  try {
+    const newStatus = currentStatus === "DRAFT" ? "PUBLISHED" : "DRAFT";
+    await prisma.exam.update({
+      where: { id },
+      data: { status: newStatus }
+    });
+
+    revalidatePath("/dashboard/admin/exams");
+    return { success: true, newStatus };
+  } catch (error) {
+    console.error("Error toggling exam status:", error);
+    return { success: false, error: "Waa laygu guuldareystay inaan badalo heerka imtixaanka" };
+  }
+}
+
+export async function duplicateExam(id: string) {
+  try {
+    const original = await prisma.exam.findUnique({
+      where: { id }
+    });
+
+    if (!original) return { success: false, error: "Imtixaanka lama helin" };
+
+    await prisma.exam.create({
+      data: {
+        title: `${original.title} (Copy)`,
+        description: original.description,
+        type: original.type,
+        courseId: original.courseId,
+        classId: original.classId,
+        maxMarks: original.maxMarks,
+        examDate: original.examDate,
+        status: "DRAFT"
+      }
+    });
+
+    revalidatePath("/dashboard/admin/exams");
+    return { success: true };
+  } catch (error) {
+    console.error("Error duplicating exam:", error);
+    return { success: false, error: "Waa laygu guuldareystay inaan koobiyeeyo imtixaanka" };
   }
 }
 
