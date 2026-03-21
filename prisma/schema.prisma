@@ -579,3 +579,13 @@ model TeacherAssignment {
   @@unique([courseId, classId])
 }
 
+model WhatsAppConfig {
+  id            String   @id @default(uuid())
+  status        String   @default("DISCONNECTED") // CONNECTED, DISCONNECTED, INITIALIZING
+  phoneNumber   String?
+  sessionName   String   @default("default")
+  qrCode        String?  @db.Text
+  lastConnected DateTime?
+  updatedAt     DateTime @updatedAt
+}
+

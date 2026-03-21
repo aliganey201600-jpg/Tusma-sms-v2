@@ -89,6 +89,7 @@ function SidebarInner({ className, role }: SidebarProps) {
       { label: "Exams", icon: GraduationCap, href: "/dashboard/admin/exams" },
       { label: "Grading", icon: BookOpen, href: "/dashboard/admin/grading" },
       { label: "Gradebook", icon: FileText, href: "/dashboard/admin/grading?view=gradebook" },
+      { label: "WhatsApp", icon: Smartphone, href: "/dashboard/admin/whatsapp" },
       { label: "Assignments", icon: Briefcase, href: "/dashboard/admin/teachers/assignments" },
       { label: "Imports", icon: RefreshCcw, href: "/dashboard/admin/imports" },
       { label: "Messages", icon: Bell, href: "/dashboard/messages" },

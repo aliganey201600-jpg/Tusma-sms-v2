@@ -1,3 +1,5 @@
+import axios from 'axios';
+
 /**
  * WhatsApp Notification Utility for Tusmo School
  * This utility handles sending automated messages to parents and students.
@@ -8,32 +10,28 @@ interface WhatsAppMessage {
   message: string;
 }
 
+const GATEWAY_URL = process.env.WHATSAPP_GATEWAY_URL || 'http://localhost:3001';
+
 /**
- * In a production environment, you would integrate with a service like Twilio, 
- * Infobip, or a custom WhatsApp Business API gateway.
+ * Sends a message via the local WhatsApp Gateway.
+ * It will retry or queue according to the gateway's logic.
  */
 export async function sendWhatsAppNotification({ phone, message }: WhatsAppMessage) {
   try {
-    // Sanitize phone number (ensure no + or spaces if using specific APIs)
     const cleanPhone = phone.replace(/\D/g, "");
-    
-    console.log(`[WhatsApp Sync] To: ${cleanPhone} | Msg: ${message}`);
+    if (!cleanPhone) return { success: false, error: "Invalid phone number" };
 
-    /**
-     * Simulation of an API Call. 
-     * In a real app, you'd do:
-     * const response = await fetch('https://api.provider.com/send', {
-     *   method: 'POST',
-     *   body: JSON.stringify({ to: cleanPhone, text: message }),
-     *   headers: { 'Authorization': `Bearer ${process.env.WHATSAPP_API_KEY}` }
-     * });
-     */
-    
-    // For now, we simulate success
-    return { success: true, provider: "Simulated_Gateway" };
-  } catch (error) {
-    console.error("WhatsApp delivery failed:", error);
-    return { success: false, error };
+    const response = await axios.post(`${GATEWAY_URL}/send-message`, {
+      phone: cleanPhone,
+      message: message
+    });
+
+    console.log(`[WhatsApp Sync] To: ${cleanPhone} | Status: ${response.data.status}`);
+    return { success: true, provider: "WhiskeySockets_Gateway", queueLength: response.data.queueLength };
+  } catch (error: any) {
+    console.error("WhatsApp delivery failed (Gateway unreachable):", error.message);
+    // Fallback if gateway is down: Log it
+    return { success: false, error: "Gateway unreachable" };
   }
 }
 
