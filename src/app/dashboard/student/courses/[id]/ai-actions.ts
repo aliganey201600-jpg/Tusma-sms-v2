@@ -1,43 +1,53 @@
 "use server"
 // Deployment: v1.3.1 - SDK Live
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import prisma from "@/lib/prisma"
 
 async function callGemini(prompt: string, context: string) {
   const key = process.env.GEMINI_API_KEY;
-  if (!key) return { error: "GEMINI_API_KEY is missing." };
+  
+  if (!key) {
+    console.error("DEBUG: GEMINI_API_KEY is not configured.");
+    // Fallback Mock for local testing/fixing if key is missing - but clearly marked
+    return { 
+      text: `### ⚠️ Configuration Required\n\nAI actions are ready, but your **GEMINI_API_KEY** is not set in your Vercel/Environment settings. \n\n**To fix this:**\n1. Go to Vercel Dashboard\n2. Settings > Environment Variables\n3. Add \`GEMINI_API_KEY\` with your value.\n\n*This is a diagnostic message.*` 
+    };
+  }
 
   try {
-    const genAI = new GoogleGenerativeAI(key);
-    // Use gemini-1.5-flash-latest for best performance and stability
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{
+          parts: [{
+            text: `You are an expert tutor.
+            ---
+            Context: ${context}
+            ---
+            Task: ${prompt}
+            ---
+            CRITICAL: Respond in Somali (Af-Soomaali).`
+          }]
+        }]
+      })
+    });
 
-    const systemPrompt = `You are an expert academic tutor for the Tusmo SMS platform. 
-    Context of the current lesson:
-    ---
-    ${context}
-    ---
-    Student Question/Task: ${prompt}
-    
-    Provide clear, concise, and highly educational responses. Use Markdown for formatting. 
-    CRITICAL: If the student asks in Somali or if the prompt is in Somali, you MUST respond in Somali. Keep a professional yet encouraging tone.`;
-
-    const result = await model.generateContent(systemPrompt);
-    const response = await result.response;
-    const text = response.text();
-
-    if (!text) {
-      return { error: "AI returned an empty response. This might be due to safety filters." };
+    if (!response.ok) {
+       const err = await response.json().catch(() => ({}));
+       return { error: `Gemini API Error: ${err.error?.message || response.statusText}` };
     }
 
-    return { text };
+    const data = await response.json();
+    const resultText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+    if (!resultText) {
+      return { error: "Waan ka xunnahay, AI-ga ayaa ku hakoobay (No response content)." };
+    }
+
+    return { text: resultText };
   } catch (error: any) {
-    console.error("AI Action: Fatal Error:", error);
-    // Check for specific SDK errors
-    if (error.message?.includes("API_KEY_INVALID")) {
-      return { error: "Your AI API Key is invalid. Please check your .env settings." };
-    }
-    return { error: `AI Error: ${error.message || "Something went wrong while thinking."}` };
+    console.error("Fatal AI failure:", error);
+    return { error: `Server Connection Error: ${error.message || "Failed to reach AI hub"}` };
   }
 }
 
