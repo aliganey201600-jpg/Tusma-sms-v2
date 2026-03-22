@@ -403,142 +403,143 @@ function SmartSelectionTool({
   if (!position) return null
 
   return (
-    <div 
-      id="ai-toolkit-container"
-      className="fixed z-[200] animate-in fade-in zoom-in-95 duration-200"
-      style={{ left: position.x, top: position.y }}
+      <div className={cn(
+        "fixed z-[250] animate-in fade-in zoom-in-95 duration-200",
+        position.y < 200 ? "mt-4" : "" // Push down if too high
+      )}
+      style={{ 
+        left: Math.min(window.innerWidth - 150, Math.max(150, position.x)), 
+        top: position.y < 200 ? position.y + 20 : position.y // Show below if selection is at the top
+      }}
     >
-      <div className="bg-slate-950/95 backdrop-blur-xl border border-white/10 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)] rounded-[2.5rem] p-3 flex flex-col gap-1 min-w-[280px] max-w-[450px] -translate-x-1/2 -translate-y-full mb-8 relative border-t-white/20">
+      <div className={cn(
+        "bg-slate-950/95 backdrop-blur-2xl border border-white/10 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.8)] rounded-[2rem] p-3 flex flex-col gap-1 min-w-[280px] max-w-[340px] relative border-t-white/20",
+        position.y < 200 ? "" : "-translate-x-1/2 -translate-y-full mb-8" // Normal position above
+      )}>
         {!activeTask ? (
           <div className="flex flex-col gap-1 p-1">
-             <div className="px-5 py-4 border-b border-white/5 flex items-center justify-between">
+             <div className="px-5 py-3 border-b border-white/5 flex items-center justify-between">
                 <div>
-                   <p className="text-[11px] font-black uppercase tracking-[0.2em] text-indigo-400">Tusmo AI Insight</p>
-                   <p className="text-[9px] font-medium text-slate-500 mt-0.5">Choose an action for your selection</p>
+                   <p className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-400">Tusmo AI Insight</p>
                 </div>
                 <div className="h-2 w-2 rounded-full bg-indigo-500 animate-pulse shadow-[0_0_12px_rgba(99,102,241,0.8)]" />
              </div>
              <div className="grid grid-cols-1 gap-1 pt-2">
-                <button 
-                  onClick={(e) => { e.stopPropagation(); handleAction('explain'); }}
-                  onMouseDown={(e) => e.preventDefault()}
-                  className="flex items-center gap-5 w-full px-5 py-5 text-[12px] font-black text-slate-200 hover:bg-white/5 rounded-[1.5rem] transition-all group uppercase tracking-tight text-left"
-                >
-                  <div className="h-10 w-10 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 group-hover:scale-110 group-hover:bg-indigo-500 group-hover:text-white transition-all duration-300 shadow-sm">
-                     <Search className="h-5 w-5" /> 
-                  </div>
-                  <div className="flex-1">
-                      <p>Fasir Tool</p>
-                      <p className="text-[9px] font-medium text-slate-500 lowercase tracking-normal mt-0.5">Sharaxaad kooban oo AI ah</p>
-                  </div>
-                </button>
-                <button 
-                  onClick={(e) => { e.stopPropagation(); handleAction('summarize'); }}
-                  onMouseDown={(e) => e.preventDefault()}
-                  className="flex items-center gap-5 w-full px-5 py-5 text-[12px] font-black text-slate-200 hover:bg-white/5 rounded-[1.5rem] transition-all group uppercase tracking-tight text-left"
-                >
-                  <div className="h-10 w-10 rounded-2xl bg-amber-500/10 flex items-center justify-center text-amber-500 group-hover:scale-110 group-hover:bg-amber-500 group-hover:text-white transition-all duration-300 shadow-sm">
-                     <Hash className="h-5 w-5" />
-                  </div>
-                  <div className="flex-1">
-                      <p>Soo Koob</p>
-                      <p className="text-[9px] font-medium text-slate-500 lowercase tracking-normal mt-0.5">Nuxurka qoraalka soo saar</p>
-                  </div>
-                </button>
-                <button 
-                  onClick={(e) => { e.stopPropagation(); handleAction('translate'); }}
-                  onMouseDown={(e) => e.preventDefault()}
-                  className="flex items-center gap-5 w-full px-5 py-5 text-[12px] font-black text-slate-200 hover:bg-white/5 rounded-[1.5rem] transition-all group uppercase tracking-tight text-left"
-                >
-                  <div className="h-10 w-10 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-500 group-hover:scale-110 group-hover:bg-emerald-500 group-hover:text-white transition-all duration-300 shadow-sm">
-                     <Languages className="h-5 w-5" />
-                  </div>
-                  <div className="flex-1">
-                      <p>Turjun Tool</p>
-                      <p className="text-[9px] font-medium text-slate-500 lowercase tracking-normal mt-0.5">U bedel Luqadda Soomaaliga</p>
-                  </div>
-                </button>
+                {[
+                  { id: 'explain', label: 'Fasir Tool', sub: 'Sharaxaad kooban', icon: Search, color: 'indigo' },
+                  { id: 'summarize', label: 'Soo Koob', sub: 'Nuxurka qoraalka', icon: Hash, color: 'amber' },
+                  { id: 'translate', label: 'Turjun Tool', sub: 'Af-Soomaali dhab ah', icon: Languages, color: 'emerald' }
+                ].map((act) => (
+                  <button 
+                    key={act.id}
+                    onClick={(e) => { e.stopPropagation(); handleAction(act.id as any); }}
+                    onMouseDown={(e) => e.preventDefault()}
+                    className="flex items-center gap-4 w-full px-4 py-4 text-[11px] font-black text-slate-200 hover:bg-white/10 rounded-2xl transition-all group uppercase tracking-tight text-left"
+                  >
+                    <div className={cn("h-8 w-8 rounded-xl flex items-center justify-center transition-all duration-300", 
+                      act.color === 'indigo' ? "bg-indigo-500/10 text-indigo-400 group-hover:bg-indigo-500 group-hover:text-white" :
+                      act.color === 'amber' ? "bg-amber-500/10 text-amber-400 group-hover:bg-amber-500 group-hover:text-white" :
+                      "bg-emerald-500/10 text-emerald-400 group-hover:bg-emerald-500 group-hover:text-white"
+                    )}>
+                       <act.icon className="h-4 w-4" /> 
+                    </div>
+                    <div className="flex-1">
+                        <p>{act.label}</p>
+                        <p className="text-[8px] font-medium text-slate-500 lowercase tracking-normal mt-0.5">{act.sub}</p>
+                    </div>
+                  </button>
+                ))}
              </div>
           </div>
         ) : (
-          <div className="p-6 space-y-5">
-             <div className="flex items-center justify-between pb-4 border-b border-white/5">
-                <div className="flex items-center gap-3">
-                   <div className="h-8 w-8 rounded-lg bg-white/5 flex items-center justify-center">
-                      {activeTask === 'explain' && <Search className="h-4 w-4 text-indigo-400" />}
-                      {activeTask === 'summarize' && <Hash className="h-4 w-4 text-amber-400" />}
-                      {activeTask === 'translate' && <Languages className="h-4 w-4 text-emerald-400" />}
+          <Dialog open={!!activeTask} onOpenChange={(open) => !open && onClose()}>
+            <DialogContent className="max-w-2xl w-[95vw] sm:w-full bg-slate-950 border-white/10 p-0 overflow-hidden rounded-[2.5rem] shadow-2xl z-[300]">
+              <DialogTitle className="sr-only">AI {activeTask} Result</DialogTitle>
+              <div className="p-8 md:p-12 space-y-8 max-h-[85vh] overflow-y-auto thin-scrollbar">
+                <div className="flex items-center justify-between border-b border-white/5 pb-6">
+                   <div className="flex items-center gap-4">
+                      <div className="h-12 w-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-400">
+                         {activeTask === 'explain' && <Search className="h-6 w-6" />}
+                         {activeTask === 'summarize' && <Hash className="h-6 w-6" />}
+                         {activeTask === 'translate' && <Languages className="h-6 w-6" />}
+                      </div>
+                      <div>
+                         <h3 className="text-xl font-black text-white uppercase tracking-tight">AI {activeTask} Hub</h3>
+                         <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mt-1">Smart Academic Assistant</p>
+                      </div>
                    </div>
-                   <div>
-                      <span className="text-[11px] font-black uppercase tracking-[0.2em] text-white">AI {activeTask} Result</span>
-                      <p className="text-[8px] font-medium text-slate-500 uppercase tracking-widest mt-0.5">Tusmo Academic Engine</p>
-                   </div>
+                   <Button variant="ghost" size="icon" onClick={onClose} className="h-10 w-10 rounded-2xl bg-white/5 text-slate-500 hover:text-white"><X className="h-5 w-5" /></Button>
                 </div>
-                <button 
-                  onClick={(e) => { e.stopPropagation(); onClose(); }} 
-                  className="h-8 w-8 rounded-xl bg-white/5 flex items-center justify-center text-slate-500 hover:text-white transition-all hover:bg-red-500/20 hover:text-red-400"
-                >
-                   <X className="h-4 w-4" />
-                </button>
-             </div>
-             
-             {loading ? (
-                <div className="py-16 flex flex-col items-center gap-5">
-                   <div className="relative">
-                      <div className="h-12 w-12 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin" />
-                      <Sparkles className="absolute inset-0 m-auto h-5 w-5 text-indigo-300 animate-pulse" />
-                   </div>
-                   <p className="text-[11px] text-slate-400 font-black uppercase tracking-[0.2em]">Tutor is analyzing text...</p>
-                </div>
-             ) : error ? (
-                <div className="text-[11px] font-bold text-red-400 p-5 bg-red-400/10 rounded-2xl border border-red-400/20 animate-in zoom-in-95 leading-relaxed">
-                   <p className="uppercase text-[9px] mb-1 opacity-60">Analysis Error</p>
-                   {error}
-                </div>
-             ) : (
-                <div className="text-[13px] leading-[1.7] text-slate-100 font-medium whitespace-pre-wrap animate-in fade-in slide-in-from-bottom-2 duration-700 max-h-[400px] overflow-y-auto pr-3 thin-scrollbar custom-prose-style">
-                   {result}
-                </div>
-             )}
 
-             {!loading && result && (
-                <div className="pt-5 border-t border-white/5 flex justify-between items-center">
-                   <div className="flex items-center gap-3">
-                      <Sparkles className="h-4 w-4 text-indigo-400 animate-pulse" />
-                      <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Somali AI Feedback</p>
-                   </div>
-                   <div className="flex items-center gap-2">
-                       <Button 
-                         size="sm" 
-                         variant="ghost" 
-                         onClick={(e) => { 
-                           e.stopPropagation(); 
-                           navigator.clipboard.writeText(result || "");
-                           const self = e.currentTarget;
-                           self.innerHTML = "Copied!";
-                           setTimeout(() => self.innerHTML = "Copy", 2000);
-                         }}
-                         className="h-8 px-4 rounded-xl text-[10px] font-black uppercase text-slate-400 hover:text-white hover:bg-white/5 transition-all"
-                        >
-                          Copy
-                        </Button>
-                       <Button 
-                         size="sm" 
-                         variant="ghost" 
-                         onClick={(e) => { e.stopPropagation(); setActiveTask(null); }}
-                         className="h-8 px-5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-[10px] font-black uppercase tracking-wider shadow-lg shadow-indigo-500/20 transition-all"
-                        >
-                          New Task
-                        </Button>
-                   </div>
+                <div className="relative">
+                   {loading ? (
+                      <div className="py-24 flex flex-col items-center gap-8 animate-in fade-in duration-500">
+                         <div className="relative">
+                            <div className="h-20 w-20 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin" />
+                            <Sparkles className="absolute inset-0 m-auto h-8 w-8 text-indigo-300 animate-pulse" />
+                         </div>
+                         <div className="text-center">
+                            <p className="text-sm font-black text-slate-200 uppercase tracking-widest">Processing Selection...</p>
+                            <p className="text-[10px] text-slate-500 font-medium uppercase tracking-widest mt-2 px-10">Our AI is analyzing the didactic context of this module</p>
+                         </div>
+                      </div>
+                   ) : error ? (
+                      <div className="p-8 bg-red-500/10 border border-red-500/20 rounded-[2rem] text-red-400 flex flex-col items-center gap-4 text-center">
+                         <AlertCircle className="h-10 w-10" />
+                         <div>
+                            <p className="text-xs font-black uppercase tracking-widest mb-1">Response Error</p>
+                            <p className="text-sm font-medium leading-relaxed">{error}</p>
+                         </div>
+                      </div>
+                   ) : (
+                      <div className="space-y-6">
+                         <div className="flex items-start gap-4 p-4 bg-white/5 rounded-2xl border border-white/5">
+                            <Quote className="h-4 w-4 text-slate-500 shrink-0 mt-1" />
+                            <p className="text-xs italic text-slate-400 font-medium leading-relaxed line-clamp-3">"{text}"</p>
+                         </div>
+                         <div className="text-lg leading-[1.8] text-slate-100 font-medium whitespace-pre-wrap animate-in fade-in slide-in-from-bottom-4 duration-1000">
+                            {result}
+                         </div>
+                      </div>
+                   )}
                 </div>
-             )}
-          </div>
+
+                {!loading && result && (
+                   <div className="pt-8 border-t border-white/5 flex flex-col sm:flex-row justify-between items-center gap-6">
+                      <div className="flex items-center gap-3">
+                         <Sparkles className="h-5 w-5 text-indigo-400 animate-pulse" />
+                         <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Enhanced Somali AI Results</p>
+                      </div>
+                      <div className="flex items-center gap-3 w-full sm:w-auto">
+                          <Button 
+                            variant="outline"
+                            onClick={() => { 
+                              navigator.clipboard.writeText(result || "");
+                              toast.success("Result copied to clipboard");
+                            }}
+                            className="flex-1 sm:flex-initial h-12 px-8 rounded-2xl bg-white/5 border-white/10 text-xs font-black uppercase tracking-widest text-slate-300 hover:bg-white/10 hover:text-white"
+                           >
+                             Copy Result
+                           </Button>
+                          <Button 
+                            onClick={() => setActiveTask(null)}
+                            className="flex-1 sm:flex-initial h-12 px-10 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-indigo-500/20"
+                           >
+                             New Task
+                           </Button>
+                      </div>
+                   </div>
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
         )}
       </div>
     </div>
   )
 }
+
+
 
 export default function StudentCourseViewerPage() {
   const { id } = useParams()
