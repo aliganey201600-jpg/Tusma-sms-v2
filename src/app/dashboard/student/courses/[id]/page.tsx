@@ -408,91 +408,129 @@ function SmartSelectionTool({
       className="fixed z-[200] animate-in fade-in zoom-in-95 duration-200"
       style={{ left: position.x, top: position.y }}
     >
-      <div className="bg-slate-950 border border-slate-800 shadow-2xl rounded-3xl p-2 flex flex-col gap-1 min-w-[220px] max-w-[340px] -translate-x-1/2 -translate-y-full mb-6 relative">
+      <div className="bg-slate-950/95 backdrop-blur-xl border border-white/10 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.5)] rounded-[2.5rem] p-3 flex flex-col gap-1 min-w-[280px] max-w-[450px] -translate-x-1/2 -translate-y-full mb-8 relative border-t-white/20">
         {!activeTask ? (
-          <div className="flex flex-col gap-1">
-             <div className="px-4 py-3 border-b border-white/5 flex items-center justify-between">
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Tusmo AI Toolkit</p>
-                <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+          <div className="flex flex-col gap-1 p-1">
+             <div className="px-5 py-4 border-b border-white/5 flex items-center justify-between">
+                <div>
+                   <p className="text-[11px] font-black uppercase tracking-[0.2em] text-indigo-400">Tusmo AI Insight</p>
+                   <p className="text-[9px] font-medium text-slate-500 mt-0.5">Choose an action for your selection</p>
+                </div>
+                <div className="h-2 w-2 rounded-full bg-indigo-500 animate-pulse shadow-[0_0_12px_rgba(99,102,241,0.8)]" />
              </div>
-             <button 
-               onClick={(e) => { e.stopPropagation(); handleAction('explain'); }}
-               onMouseDown={(e) => e.preventDefault()}
-               className="flex items-center gap-4 w-full px-5 py-4 text-[11px] font-black text-slate-200 hover:bg-white/10 rounded-2xl transition-all group uppercase tracking-tight"
-             >
-               <Search className="h-4 w-4 text-indigo-400 group-hover:scale-125 transition-transform" /> 
-               <div className="text-left flex-1">
-                  <p>Explain</p>
-                  <p className="text-[8px] font-medium text-slate-500 lowercase tracking-normal">Break down complex concepts</p>
-               </div>
-             </button>
-             <button 
-               onClick={(e) => { e.stopPropagation(); handleAction('summarize'); }}
-               onMouseDown={(e) => e.preventDefault()}
-               className="flex items-center gap-4 w-full px-5 py-4 text-[11px] font-black text-slate-200 hover:bg-white/10 rounded-2xl transition-all group uppercase tracking-tight"
-             >
-               <Hash className="h-4 w-4 text-amber-400 group-hover:scale-125 transition-transform" />
-               <div className="text-left flex-1">
-                  <p>Summarize</p>
-                  <p className="text-[8px] font-medium text-slate-500 lowercase tracking-normal">Extract the core meaning</p>
-               </div>
-             </button>
-             <button 
-               onClick={(e) => { e.stopPropagation(); handleAction('translate'); }}
-               onMouseDown={(e) => e.preventDefault()}
-               className="flex items-center gap-4 w-full px-5 py-4 text-[11px] font-black text-slate-200 hover:bg-white/10 rounded-2xl transition-all group uppercase tracking-tight"
-             >
-               <Languages className="h-4 w-4 text-emerald-400 group-hover:scale-125 transition-transform" />
-               <div className="text-left flex-1">
-                  <p>Translate</p>
-                   <p className="text-[8px] font-medium text-slate-500 lowercase tracking-normal">Fasiraad Af-Soomaali ah</p>
-               </div>
-             </button>
+             <div className="grid grid-cols-1 gap-1 pt-2">
+                <button 
+                  onClick={(e) => { e.stopPropagation(); handleAction('explain'); }}
+                  onMouseDown={(e) => e.preventDefault()}
+                  className="flex items-center gap-5 w-full px-5 py-5 text-[12px] font-black text-slate-200 hover:bg-white/5 rounded-[1.5rem] transition-all group uppercase tracking-tight text-left"
+                >
+                  <div className="h-10 w-10 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 group-hover:scale-110 group-hover:bg-indigo-500 group-hover:text-white transition-all duration-300 shadow-sm">
+                     <Search className="h-5 w-5" /> 
+                  </div>
+                  <div className="flex-1">
+                      <p>Fasir Tool</p>
+                      <p className="text-[9px] font-medium text-slate-500 lowercase tracking-normal mt-0.5">Sharaxaad kooban oo AI ah</p>
+                  </div>
+                </button>
+                <button 
+                  onClick={(e) => { e.stopPropagation(); handleAction('summarize'); }}
+                  onMouseDown={(e) => e.preventDefault()}
+                  className="flex items-center gap-5 w-full px-5 py-5 text-[12px] font-black text-slate-200 hover:bg-white/5 rounded-[1.5rem] transition-all group uppercase tracking-tight text-left"
+                >
+                  <div className="h-10 w-10 rounded-2xl bg-amber-500/10 flex items-center justify-center text-amber-500 group-hover:scale-110 group-hover:bg-amber-500 group-hover:text-white transition-all duration-300 shadow-sm">
+                     <Hash className="h-5 w-5" />
+                  </div>
+                  <div className="flex-1">
+                      <p>Soo Koob</p>
+                      <p className="text-[9px] font-medium text-slate-500 lowercase tracking-normal mt-0.5">Nuxurka qoraalka soo saar</p>
+                  </div>
+                </button>
+                <button 
+                  onClick={(e) => { e.stopPropagation(); handleAction('translate'); }}
+                  onMouseDown={(e) => e.preventDefault()}
+                  className="flex items-center gap-5 w-full px-5 py-5 text-[12px] font-black text-slate-200 hover:bg-white/5 rounded-[1.5rem] transition-all group uppercase tracking-tight text-left"
+                >
+                  <div className="h-10 w-10 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-500 group-hover:scale-110 group-hover:bg-emerald-500 group-hover:text-white transition-all duration-300 shadow-sm">
+                     <Languages className="h-5 w-5" />
+                  </div>
+                  <div className="flex-1">
+                      <p>Turjun Tool</p>
+                      <p className="text-[9px] font-medium text-slate-500 lowercase tracking-normal mt-0.5">U bedel Luqadda Soomaaliga</p>
+                  </div>
+                </button>
+             </div>
           </div>
         ) : (
-          <div className="p-5 space-y-4">
-             <div className="flex items-center justify-between pb-3 border-b border-white/5">
-                <div className="flex items-center gap-2">
-                   {activeTask === 'explain' && <Search className="h-4 w-4 text-indigo-400" />}
-                   {activeTask === 'summarize' && <Hash className="h-4 w-4 text-amber-400" />}
-                   {activeTask === 'translate' && <Languages className="h-4 w-4 text-emerald-400" />}
-                   <span className="text-[10px] font-black uppercase tracking-widest text-white">{activeTask} Result</span>
+          <div className="p-6 space-y-5">
+             <div className="flex items-center justify-between pb-4 border-b border-white/5">
+                <div className="flex items-center gap-3">
+                   <div className="h-8 w-8 rounded-lg bg-white/5 flex items-center justify-center">
+                      {activeTask === 'explain' && <Search className="h-4 w-4 text-indigo-400" />}
+                      {activeTask === 'summarize' && <Hash className="h-4 w-4 text-amber-400" />}
+                      {activeTask === 'translate' && <Languages className="h-4 w-4 text-emerald-400" />}
+                   </div>
+                   <div>
+                      <span className="text-[11px] font-black uppercase tracking-[0.2em] text-white">AI {activeTask} Result</span>
+                      <p className="text-[8px] font-medium text-slate-500 uppercase tracking-widest mt-0.5">Tusmo Academic Engine</p>
+                   </div>
                 </div>
-                <button onClick={(e) => { e.stopPropagation(); onClose(); }} className="h-7 w-7 rounded-xl bg-white/5 flex items-center justify-center text-slate-500 hover:text-white transition-all hover:bg-red-500/20 hover:text-red-400">
+                <button 
+                  onClick={(e) => { e.stopPropagation(); onClose(); }} 
+                  className="h-8 w-8 rounded-xl bg-white/5 flex items-center justify-center text-slate-500 hover:text-white transition-all hover:bg-red-500/20 hover:text-red-400"
+                >
                    <X className="h-4 w-4" />
                 </button>
              </div>
              
              {loading ? (
-                <div className="py-10 flex flex-col items-center gap-4">
+                <div className="py-16 flex flex-col items-center gap-5">
                    <div className="relative">
-                      <RotateCcw className="h-8 w-8 text-indigo-500 animate-spin" />
-                      <Sparkles className="absolute inset-0 m-auto h-4 w-4 text-indigo-300 animate-pulse" />
+                      <div className="h-12 w-12 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin" />
+                      <Sparkles className="absolute inset-0 m-auto h-5 w-5 text-indigo-300 animate-pulse" />
                    </div>
-                   <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Processing request...</p>
+                   <p className="text-[11px] text-slate-400 font-black uppercase tracking-[0.2em]">Tutor is analyzing text...</p>
                 </div>
              ) : error ? (
-                <div className="text-[10px] font-bold text-red-400 p-4 bg-red-400/10 rounded-2xl border border-red-400/20">{error}</div>
+                <div className="text-[11px] font-bold text-red-400 p-5 bg-red-400/10 rounded-2xl border border-red-400/20 animate-in zoom-in-95 leading-relaxed">
+                   <p className="uppercase text-[9px] mb-1 opacity-60">Analysis Error</p>
+                   {error}
+                </div>
              ) : (
-                <div className="text-[12px] leading-relaxed text-slate-200 font-medium whitespace-pre-wrap animate-in fade-in duration-500 max-h-[300px] overflow-y-auto pr-2 thin-scrollbar">
+                <div className="text-[13px] leading-[1.7] text-slate-100 font-medium whitespace-pre-wrap animate-in fade-in slide-in-from-bottom-2 duration-700 max-h-[400px] overflow-y-auto pr-3 thin-scrollbar custom-prose-style">
                    {result}
                 </div>
              )}
 
              {!loading && result && (
-                <div className="pt-4 border-t border-white/5 flex justify-between items-center">
-                   <div className="flex items-center gap-2">
-                      <Sparkles className="h-3.5 w-3.5 text-indigo-400 animate-pulse" />
-                      <p className="text-[9px] font-black uppercase tracking-tighter text-slate-500">Tusmo AI Insight</p>
+                <div className="pt-5 border-t border-white/5 flex justify-between items-center">
+                   <div className="flex items-center gap-3">
+                      <Sparkles className="h-4 w-4 text-indigo-400 animate-pulse" />
+                      <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Somali AI Feedback</p>
                    </div>
-                   <Button 
-                     size="sm" 
-                     variant="ghost" 
-                     onClick={(e) => { e.stopPropagation(); setActiveTask(null); }}
-                     className="h-7 px-4 rounded-xl text-[10px] font-black uppercase text-indigo-400 hover:text-indigo-300 hover:bg-white/5 border border-white/5"
-                    >
-                      Change Task
-                    </Button>
+                   <div className="flex items-center gap-2">
+                       <Button 
+                         size="sm" 
+                         variant="ghost" 
+                         onClick={(e) => { 
+                           e.stopPropagation(); 
+                           navigator.clipboard.writeText(result || "");
+                           const self = e.currentTarget;
+                           self.innerHTML = "Copied!";
+                           setTimeout(() => self.innerHTML = "Copy", 2000);
+                         }}
+                         className="h-8 px-4 rounded-xl text-[10px] font-black uppercase text-slate-400 hover:text-white hover:bg-white/5 transition-all"
+                        >
+                          Copy
+                        </Button>
+                       <Button 
+                         size="sm" 
+                         variant="ghost" 
+                         onClick={(e) => { e.stopPropagation(); setActiveTask(null); }}
+                         className="h-8 px-5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-[10px] font-black uppercase tracking-wider shadow-lg shadow-indigo-500/20 transition-all"
+                        >
+                          New Task
+                        </Button>
+                   </div>
                 </div>
              )}
           </div>
