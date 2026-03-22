@@ -906,6 +906,7 @@ export default function CourseBuilderPage() {
                                        <tr className="animate-in slide-in-from-top-4 duration-500">
                                           <td colSpan={5} className="px-8 pt-2 pb-10">
                                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                                 {(section.lessons || []).map((lesson: any) => (
                                                    <div key={lesson.id} className="relative group/node">
                                                       <button 
                                                          onClick={() => handleSelectItem({ type: 'lesson', data: lesson })}
@@ -943,6 +944,7 @@ export default function CourseBuilderPage() {
                                                          </DropdownMenu>
                                                       </div>
                                                    </div>
+                                                ))}
                                                 {(section.quizzes || []).map((quiz: any) => (
                                                    <div key={quiz.id} className="relative group/node">
                                                       <button 
