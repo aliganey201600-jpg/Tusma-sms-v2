@@ -7,7 +7,7 @@ import {
   X, FileDown, BookOpenCheck, GraduationCap, HelpCircle,
   Layers, AlertCircle, Trophy, RotateCcw, Check, Eye,
   Sparkles, MessageSquare, User, Shuffle, Star, Type, Target,
-  Printer, Hash
+  Printer, Hash, Languages, Search, Quote
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -21,10 +21,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { 
-  getCourseStructure, 
-  getQuizWithQuestions, 
-  saveQuizAttempt, 
+import {
+  getCourseStructure,
+  getQuizWithQuestions,
+  saveQuizAttempt,
   getQuizAttempts,
   completeLesson,
   getCourseProgress,
@@ -32,7 +32,7 @@ import {
   issueCertificate,
   getCertificate
 } from "../../../admin/courses/builder-actions"
-import { generateLessonSummary, askAIQuestion } from "./ai-actions"
+import { generateLessonSummary, askAIQuestion, performSmartAIAction } from "./ai-actions"
 import { useParams, useRouter } from "next/navigation"
 import { useCurrentUser } from "@/hooks/use-current-user"
 import { LessonDiscussions } from "./lesson-discussions"
@@ -368,6 +368,136 @@ function MatchingQuestion({ options, value, onChange }: {
   )
 }
 
+
+// ─── Smart Selection Tool ───────────────────────────────────────────────────
+function SmartSelectionTool({ 
+  text, 
+  position, 
+  onClose, 
+  lessonId 
+}: { 
+  text: string; 
+  position: { x: number; y: number } | null; 
+  onClose: () => void;
+  lessonId: string;
+}) {
+  const [result, setResult] = React.useState<string | null>(null)
+  const [loading, setLoading] = React.useState(false)
+  const [error, setError] = React.useState<string | null>(null)
+  const [activeTask, setActiveTask] = React.useState<'explain' | 'summarize' | 'translate' | null>(null)
+
+  const handleAction = async (task: 'explain' | 'summarize' | 'translate') => {
+    setLoading(true)
+    setError(null)
+    setResult(null)
+    setActiveTask(task)
+    try {
+      const res = await performSmartAIAction(lessonId, task, text)
+      if (res.error) setError(res.error)
+      else if (res.result) setResult(res.result)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (!position) return null
+
+  return (
+    <div 
+      className="fixed z-[200] animate-in fade-in zoom-in-95 duration-200"
+      style={{ left: position.x, top: position.y }}
+    >
+      <div className="bg-slate-950 border border-slate-800 shadow-2xl rounded-3xl p-2 flex flex-col gap-1 min-w-[220px] max-w-[340px] -translate-x-1/2 -translate-y-full mb-6">
+        {!activeTask ? (
+          <div className="flex flex-col gap-1">
+             <div className="px-4 py-3 border-b border-white/5 flex items-center justify-between">
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Tusmo AI Toolkit</p>
+                <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+             </div>
+             <button 
+               onClick={(e) => { e.stopPropagation(); handleAction('explain'); }}
+               className="flex items-center gap-4 w-full px-5 py-4 text-[11px] font-black text-slate-200 hover:bg-white/10 rounded-2xl transition-all group uppercase tracking-tight"
+             >
+               <Search className="h-4 w-4 text-indigo-400 group-hover:scale-125 transition-transform" /> 
+               <div className="text-left flex-1">
+                  <p>Explain</p>
+                  <p className="text-[8px] font-medium text-slate-500 lowercase tracking-normal">Break down complex concepts</p>
+               </div>
+             </button>
+             <button 
+               onClick={(e) => { e.stopPropagation(); handleAction('summarize'); }}
+               className="flex items-center gap-4 w-full px-5 py-4 text-[11px] font-black text-slate-200 hover:bg-white/10 rounded-2xl transition-all group uppercase tracking-tight"
+             >
+               <Hash className="h-4 w-4 text-amber-400 group-hover:scale-125 transition-transform" />
+               <div className="text-left flex-1">
+                  <p>Summarize</p>
+                  <p className="text-[8px] font-medium text-slate-500 lowercase tracking-normal">Extract the core meaning</p>
+               </div>
+             </button>
+             <button 
+               onClick={(e) => { e.stopPropagation(); handleAction('translate'); }}
+               className="flex items-center gap-4 w-full px-5 py-4 text-[11px] font-black text-slate-200 hover:bg-white/10 rounded-2xl transition-all group uppercase tracking-tight"
+             >
+               <Languages className="h-4 w-4 text-emerald-400 group-hover:scale-125 transition-transform" />
+               <div className="text-left flex-1">
+                  <p>Translate</p>
+                   <p className="text-[8px] font-medium text-slate-500 lowercase tracking-normal">Fasiraad Af-Soomaali ah</p>
+               </div>
+             </button>
+          </div>
+        ) : (
+          <div className="p-5 space-y-4">
+             <div className="flex items-center justify-between pb-3 border-b border-white/5">
+                <div className="flex items-center gap-2">
+                   {activeTask === 'explain' && <Search className="h-4 w-4 text-indigo-400" />}
+                   {activeTask === 'summarize' && <Hash className="h-4 w-4 text-amber-400" />}
+                   {activeTask === 'translate' && <Languages className="h-4 w-4 text-emerald-400" />}
+                   <span className="text-[10px] font-black uppercase tracking-widest text-white">{activeTask} Result</span>
+                </div>
+                <button onClick={(e) => { e.stopPropagation(); onClose(); }} className="h-7 w-7 rounded-xl bg-white/5 flex items-center justify-center text-slate-500 hover:text-white transition-all hover:bg-red-500/20 hover:text-red-400">
+                   <X className="h-4 w-4" />
+                </button>
+             </div>
+             
+             {loading ? (
+                <div className="py-10 flex flex-col items-center gap-4">
+                   <div className="relative">
+                      <RotateCcw className="h-8 w-8 text-indigo-500 animate-spin" />
+                      <Sparkles className="absolute inset-0 m-auto h-4 w-4 text-indigo-300 animate-pulse" />
+                   </div>
+                   <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Processing request...</p>
+                </div>
+             ) : error ? (
+                <div className="text-[10px] font-bold text-red-400 p-4 bg-red-400/10 rounded-2xl border border-red-400/20">{error}</div>
+             ) : (
+                <div className="text-[12px] leading-relaxed text-slate-200 font-medium whitespace-pre-wrap animate-in fade-in duration-500 max-h-[300px] overflow-y-auto pr-2 thin-scrollbar">
+                   {result}
+                </div>
+             )}
+
+             {!loading && result && (
+                <div className="pt-4 border-t border-white/5 flex justify-between items-center">
+                   <div className="flex items-center gap-2">
+                      <Sparkles className="h-3.5 w-3.5 text-indigo-400 animate-pulse" />
+                      <p className="text-[9px] font-black uppercase tracking-tighter text-slate-500">Tusmo AI Insight</p>
+                   </div>
+                   <Button 
+                     size="sm" 
+                     variant="ghost" 
+                     onClick={(e) => { e.stopPropagation(); setActiveTask(null); }}
+                     className="h-7 px-4 rounded-xl text-[10px] font-black uppercase text-indigo-400 hover:text-indigo-300 hover:bg-white/5 border border-white/5"
+                    >
+                      Change Task
+                    </Button>
+                </div>
+             )}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export default function StudentCourseViewerPage() {
   const { id } = useParams()
   const router = useRouter()
@@ -405,6 +535,31 @@ export default function StudentCourseViewerPage() {
   const [aiResponse, setAiResponse] = React.useState<string | null>(null)
   const [aiQuestion, setAiQuestion] = React.useState("")
   const [aiError, setAiError] = React.useState<string | null>(null)
+
+  // Selection AI State
+  const [selection, setSelection] = React.useState<{ text: string; position: { x: number; y: number } | null }>({ text: "", position: null })
+
+  const handleSelectionChange = () => {
+    const s = window.getSelection()
+    if (!s || s.rangeCount === 0 || s.toString().trim() === "") {
+        if (selection.position) setSelection({ text: "", position: null })
+        return
+    }
+    
+    // Only trigger if selection is in the lesson content area
+    const range = s.getRangeAt(0)
+    const rect = range.getBoundingClientRect()
+    
+    setSelection({
+      text: s.toString().trim(),
+      position: { x: rect.left + rect.width / 2, y: rect.top }
+    })
+  }
+
+  React.useEffect(() => {
+    document.addEventListener("mouseup", handleSelectionChange)
+    return () => document.removeEventListener("mouseup", handleSelectionChange)
+  }, [selection])
 
   const handleAISummary = async () => {
     if (!activeLesson) return
@@ -1431,9 +1586,18 @@ export default function StudentCourseViewerPage() {
                     </div>
                     <Separator className="bg-slate-50" />
                     <div 
-                      className="prose prose-indigo max-w-none text-slate-700 leading-relaxed text-lg"
+                      className="prose prose-indigo max-w-none text-slate-700 leading-relaxed text-lg pb-10 relative"
                       dangerouslySetInnerHTML={{ __html: activeLesson?.content || "<p className='text-slate-400 italic'>No instructional narrative available yet.</p>" }}
                     />
+                    
+                    {selection.position && activeLesson && (
+                       <SmartSelectionTool 
+                         text={selection.text} 
+                         position={selection.position} 
+                         lessonId={activeLesson.id}
+                         onClose={() => setSelection({ text: "", position: null })}
+                       />
+                    )}
                   </div>
                 )}
                 {activeLessonTab === "materials" && (

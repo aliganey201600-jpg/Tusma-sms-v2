@@ -262,3 +262,35 @@ export async function generateQuizQuestions(quizId: string, counts: Record<strin
     return { error: `AI Quiz Error: ${error.message}` }
   }
 }
+
+export async function performSmartAIAction(lessonId: string, task: 'explain' | 'summarize' | 'translate', text: string) {
+  console.log(`AI Action: Smart ${task} for lesson ${lessonId}: "${text.slice(0, 50)}..."`)
+  try {
+    const lesson = await prisma.lesson.findUnique({
+      where: { id: lessonId },
+      select: { title: true, content: true }
+    })
+
+    const context = lesson?.content || "No detailed context available yet.";
+    
+    let prompt = "";
+    if (task === 'explain') {
+      prompt = `Provide a thorough but simple explanation for the following text. Break down any complex terminology and provide a relatable example if possible. Selected text: "${text}"`;
+    } else if (task === 'summarize') {
+      prompt = `Summarize the following text concisely while preserving the most important meaning. Keep it under two sentences. Selected text: "${text}"`;
+    } else if (task === 'translate') {
+      prompt = `Translate the following text into Somali. Ensure the translation is natural, grammatically correct, and preserves the educational meaning. Selected text: "${text}"`;
+    }
+
+    const res = await callGemini(prompt, context);
+
+    if (res.text) {
+      return { result: res.text };
+    }
+
+    return { error: res.error || "AI was unable to process this specific fragment." };
+  } catch (error: any) {
+    console.error("Smart AI Action Error:", error)
+    return { error: `Smart AI Error: ${error.message}` }
+  }
+}
