@@ -736,40 +736,40 @@ export default function CourseBuilderPage() {
         {!activeItem ? (
           /* Master Roadmap (Full-width) */
           <div className="max-w-6xl mx-auto space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-1000">
-             <div className="flex flex-col md:flex-row items-center justify-between gap-8 bg-white p-10 rounded-[50px] shadow-2xl shadow-slate-100 border border-slate-50">
-                <div className="space-y-4 text-center md:text-left">
-                   <div className="flex items-center justify-center md:justify-start gap-4">
-                      <div className="h-3 w-12 rounded-full bg-indigo-600" />
-                      <p className="text-[11px] font-black uppercase tracking-[0.5em] text-indigo-600">Curriculum Strategy Lab</p>
+             <div className="flex flex-col lg:flex-row items-center justify-between gap-6 bg-white p-6 md:p-10 rounded-[32px] md:rounded-[50px] shadow-2xl shadow-slate-100 border border-slate-50">
+                <div className="space-y-3 text-center lg:text-left">
+                   <div className="flex items-center justify-center lg:justify-start gap-3">
+                      <div className="h-2.5 w-10 rounded-full bg-indigo-600" />
+                      <p className="text-[10px] font-black uppercase tracking-[0.4em] text-indigo-600">Curriculum Strategy Lab</p>
                    </div>
-                   <h2 className="text-5xl font-black text-slate-900 tracking-tight uppercase leading-none">Course Roadmap</h2>
-                   <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">Select a specialized node to begin structural engineering</p>
+                   <h2 className="text-2xl md:text-3xl lg:text-4xl font-black text-slate-900 tracking-tight uppercase leading-none">Course Roadmap</h2>
+                   <p className="text-[11px] md:text-xs font-bold text-slate-400 uppercase tracking-widest">Select a specialized node to begin structural engineering</p>
                 </div>
-                <div className="flex gap-6">
-                   <div className="bg-slate-50 px-10 py-6 rounded-[35px] text-center min-w-[160px] border border-slate-100">
-                      <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Chapters</div>
-                      <div className="text-4xl font-black text-slate-900 leading-none">{course?.sections?.length || 0}</div>
+                <div className="flex flex-wrap justify-center gap-4 md:gap-6">
+                   <div className="bg-slate-50 px-6 md:px-8 py-4 md:py-6 rounded-[24px] md:rounded-[35px] text-center min-w-[120px] md:min-w-[150px] border border-slate-100">
+                      <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Chapters</div>
+                      <div className="text-2xl md:text-3xl font-black text-slate-900 leading-none">{course?.sections?.length || 0}</div>
                    </div>
-                   <div className="bg-indigo-600 px-10 py-6 rounded-[35px] text-center min-w-[160px] shadow-2xl shadow-indigo-100">
-                      <div className="text-[10px] font-black text-indigo-100 uppercase tracking-widest mb-1.5">Total Nodes</div>
-                      <div className="text-4xl font-black text-white leading-none">
+                   <div className="bg-indigo-600 px-6 md:px-8 py-4 md:py-6 rounded-[24px] md:rounded-[35px] text-center min-w-[120px] md:min-w-[150px] shadow-xl shadow-indigo-100">
+                      <div className="text-[9px] font-black text-indigo-100 uppercase tracking-widest mb-1">Nodes</div>
+                      <div className="text-2xl md:text-3xl font-black text-white leading-none">
                          {(course?.sections || []).reduce((acc: number, s: any) => acc + (s.lessons?.length || 0) + (s.quizzes?.length || 0), 0)}
                       </div>
                    </div>
                 </div>
              </div>
 
-             <Card className="border-none shadow-[0_80px_150px_-40px_rgba(0,0,0,0.1)] rounded-[70px] overflow-hidden bg-white ring-1 ring-slate-100 p-4">
-                <div className="bg-slate-50/50 rounded-[60px] p-8 lg:p-12">
+             <Card className="border-none shadow-[0_40px_100px_-20px_rgba(0,0,0,0.08)] rounded-[40px] md:rounded-[60px] overflow-hidden bg-white ring-1 ring-slate-100 p-2 md:p-4">
+                <div className="bg-slate-50/50 rounded-[32px] md:rounded-[54px] p-4 md:p-10">
                    <div className="overflow-x-auto">
-                      <table className="w-full text-left border-separate border-spacing-y-6">
+                      <table className="w-full text-left border-separate border-spacing-y-4">
                          <thead>
-                            <tr className="text-[12px] font-black text-slate-400 uppercase tracking-[0.3em]">
-                               <th className="px-8 pb-4">Idx</th>
-                               <th className="px-8 pb-4">Chapter Designation</th>
-                               <th className="px-8 pb-4">Construction</th>
-                               <th className="px-8 pb-4">Budgeted Time</th>
-                               <th className="px-8 pb-4 text-right">Engineering</th>
+                            <tr className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">
+                               <th className="px-6 pb-2">Idx</th>
+                               <th className="px-6 pb-2">Chapter Designation</th>
+                               <th className="px-6 pb-2 hidden md:table-cell">Construction</th>
+                               <th className="px-6 pb-2 hidden sm:table-cell">Budgeted Time</th>
+                               <th className="px-6 pb-2 text-right">Engineering</th>
                             </tr>
                          </thead>
                          <tbody>
@@ -782,52 +782,51 @@ export default function CourseBuilderPage() {
                                return (
                                   <React.Fragment key={section.id}>
                                     <tr className="group transition-all">
-                                       <td className="px-8 py-8 bg-white rounded-l-[40px] border-y border-l border-transparent group-hover:border-indigo-100 shadow-sm">
-                                          <div className="h-16 w-16 rounded-[22px] bg-slate-950 text-white shadow-2xl flex items-center justify-center font-black text-xl">
+                                       <td className="px-6 py-6 bg-white rounded-l-[28px] md:rounded-l-[40px] border-y border-l border-transparent group-hover:border-indigo-100 shadow-sm">
+                                          <div className="h-10 w-10 md:h-14 md:w-14 rounded-xl md:rounded-2xl bg-slate-950 text-white shadow-lg flex items-center justify-center font-black text-sm md:text-lg">
                                              {idx + 1}
                                           </div>
                                        </td>
-                                       <td className="px-8 py-8 bg-white border-y border-transparent group-hover:border-indigo-100 shadow-sm">
-                                          <div className="space-y-2">
-                                             <div className="text-lg font-black text-slate-900 uppercase tracking-tight group-hover:text-indigo-600 transition-colors">{section.title}</div>
-                                             <div className="flex items-center gap-3">
-                                                <Badge className="bg-emerald-50 text-emerald-600 border-none font-black text-[9px] uppercase tracking-widest px-3 py-1.5 rounded-lg">Operational</Badge>
+                                       <td className="px-6 py-6 bg-white border-y border-transparent group-hover:border-indigo-100 shadow-sm">
+                                          <div className="space-y-1.5">
+                                             <div className="text-sm md:text-base font-black text-slate-900 uppercase tracking-tight group-hover:text-indigo-600 transition-colors line-clamp-1">{section.title}</div>
+                                             <div className="flex items-center gap-2">
+                                                <Badge className="bg-emerald-50 text-emerald-600 border-none font-black text-[8px] uppercase tracking-widest px-2 py-1 rounded-md">Live</Badge>
+                                                <span className="text-[8px] font-black text-slate-300 md:hidden">{section.lessons?.length || 0}L • {section.quizzes?.length || 0}Q</span>
                                              </div>
                                           </div>
                                        </td>
-                                       <td className="px-8 py-8 bg-white border-y border-transparent group-hover:border-indigo-100 shadow-sm">
+                                       <td className="px-6 py-6 bg-white border-y border-transparent group-hover:border-indigo-100 shadow-sm hidden md:table-cell">
                                           <div className="flex gap-4">
-                                             <div className="flex flex-col gap-1.5">
-                                                <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Lectures</span>
-                                                <span className="text-xs font-black text-slate-900">{section.lessons?.length || 0} Nodes</span>
+                                             <div className="flex flex-col gap-1">
+                                                <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">Lectures</span>
+                                                <span className="text-[11px] font-black text-slate-900">{section.lessons?.length || 0} Nodes</span>
                                              </div>
-                                             <div className="flex flex-col gap-1.5">
-                                                <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Quizzes</span>
-                                                <span className="text-xs font-black text-slate-900">{section.quizzes?.length || 0} Units</span>
-                                             </div>
-                                          </div>
-                                       </td>
-                                       <td className="px-8 py-8 bg-white border-y border-transparent group-hover:border-indigo-100 shadow-sm">
-                                          <div className="flex items-center gap-4">
-                                             <div className="h-12 w-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
-                                                <Clock className="h-6 w-6" />
-                                             </div>
-                                             <div>
-                                                <div className="text-lg font-black text-slate-900 tracking-tight leading-none mb-1">{totalMinutes}m</div>
+                                             <div className="flex flex-col gap-1">
+                                                <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">Quizzes</span>
+                                                <span className="text-[11px] font-black text-slate-900">{section.quizzes?.length || 0} Units</span>
                                              </div>
                                           </div>
                                        </td>
-                                       <td className="px-8 py-8 bg-white rounded-r-[40px] border-y border-r border-transparent group-hover:border-indigo-100 shadow-sm text-right">
+                                       <td className="px-6 py-6 bg-white border-y border-transparent group-hover:border-indigo-100 shadow-sm hidden sm:table-cell">
+                                          <div className="flex items-center gap-3">
+                                             <div className="h-9 w-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                                                <Clock className="h-5 w-5" />
+                                             </div>
+                                             <div className="text-sm font-black text-slate-900 tracking-tight leading-none">{totalMinutes}m</div>
+                                          </div>
+                                       </td>
+                                       <td className="px-6 py-6 bg-white rounded-r-[28px] md:rounded-r-[40px] border-y border-r border-transparent group-hover:border-indigo-100 shadow-sm text-right">
                                           <Button 
                                              variant="ghost" 
                                              className={cn(
-                                                "h-16 px-10 rounded-2xl font-black uppercase tracking-widest text-[11px] transition-all gap-4 group/btn shadow-sm",
+                                                "h-12 md:h-14 px-4 md:px-8 rounded-xl md:rounded-2xl font-black uppercase tracking-widest text-[9px] md:text-[10px] transition-all gap-2 md:gap-3 group/btn shadow-sm",
                                                 expandedSectionId === section.id ? "bg-indigo-600 text-white" : "bg-slate-50 text-slate-400 hover:bg-slate-900 hover:text-white"
                                              )}
                                              onClick={() => setExpandedSectionId(expandedSectionId === section.id ? null : section.id)}
                                           >
-                                             {expandedSectionId === section.id ? "Close Assets" : "Open Assets"} 
-                                             <ChevronDown className={cn("h-5 w-5 transition-transform duration-500", expandedSectionId === section.id && "rotate-180")} />
+                                             <span className="hidden md:inline">{expandedSectionId === section.id ? "Close Assets" : "Open Assets"}</span>
+                                             <ChevronDown className={cn("h-4 w-4 md:h-5 md:w-5 transition-transform duration-500", expandedSectionId === section.id && "rotate-180")} />
                                           </Button>
                                        </td>
                                     </tr>
@@ -883,12 +882,12 @@ export default function CourseBuilderPage() {
                 </div>
              </Card>
 
-             <div className="flex justify-center pt-10">
+             <div className="flex justify-center pt-6">
                 <Button 
                    onClick={() => setIsAddingSection(true)}
-                   className="h-24 px-20 rounded-[40px] bg-slate-950 text-white font-black uppercase tracking-[0.4em] text-[13px] shadow-[0_40px_80px_-20px_rgba(0,0,0,0.4)] hover:scale-105 active:scale-95 transition-all gap-8 border-b-[10px] border-slate-800"
+                   className="h-16 md:h-20 px-12 md:px-16 rounded-[24px] md:rounded-[40px] bg-slate-950 text-white font-black uppercase tracking-[0.3em] text-[10px] md:text-[11px] shadow-xl hover:scale-105 active:scale-95 transition-all gap-4 md:gap-6 border-b-[6px] md:border-b-[8px] border-slate-800"
                 >
-                   <Plus className="h-8 w-8" />
+                   <Plus className="h-5 w-5 md:h-6 md:w-6" />
                    Initialize Strategic Chapter
                 </Button>
              </div>
