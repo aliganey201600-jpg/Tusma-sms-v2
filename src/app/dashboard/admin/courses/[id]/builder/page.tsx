@@ -58,16 +58,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
 import { 
   getCourseStructure, 
   addSection, 
@@ -1235,20 +1225,20 @@ export default function CourseBuilderPage() {
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={deleteDialog.open} onOpenChange={(open) => setDeleteDialog(prev => ({ ...prev, open }))}>
-        <AlertDialogContent className="rounded-[40px] p-10 border-none shadow-2xl">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-2xl font-black uppercase tracking-tight text-slate-900">Confirm Decommissioning</AlertDialogTitle>
-            <AlertDialogDescription className="text-sm font-bold text-slate-500 mt-4 leading-relaxed">
+      <Dialog open={deleteDialog.open} onOpenChange={(open) => setDeleteDialog(prev => ({ ...prev, open }))}>
+        <DialogContent className="rounded-[40px] p-10 border-none shadow-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-black uppercase tracking-tight text-slate-900">Confirm Decommissioning</DialogTitle>
+            <DialogDescription className="text-sm font-bold text-slate-500 mt-4 leading-relaxed">
               Are you sure you want to PERMANENTLY delete this {deleteDialog.type}? This action cannot be undone and all associated data will be purged from the repository.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="mt-8 gap-3">
-            <AlertDialogCancel className="h-14 rounded-2xl px-8 font-black uppercase tracking-widest text-[10px] border-none bg-slate-50 text-slate-400">Abort Operation</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteConfirmed} className="h-14 rounded-2xl px-10 bg-red-600 hover:bg-red-700 text-white font-black uppercase tracking-widest text-[10px] border-none shadow-xl shadow-red-100">Confirm Purge</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-8 gap-3">
+            <Button variant="ghost" onClick={() => setDeleteDialog({ open: false, type: null, id: null })} className="h-14 rounded-2xl px-8 font-black uppercase tracking-widest text-[10px] border-none bg-slate-50 text-slate-400">Abort Operation</Button>
+            <Button onClick={handleDeleteConfirmed} className="h-14 rounded-2xl px-10 bg-red-600 hover:bg-red-700 text-white font-black uppercase tracking-widest text-[10px] border-none shadow-xl shadow-red-100">Confirm Purge</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
