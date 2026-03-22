@@ -5,36 +5,33 @@ import prisma from "@/lib/prisma"
 
 async function callGemini(prompt: string, context: string) {
   const key = process.env.GEMINI_API_KEY;
-  if (!key) return { error: "XAQIIJI: GEMINI_API_KEY laguma hayo Environment-ka." };
+  if (!key) return { error: "XAQIIJI: Furaha AI-ga (API KEY) laguma helin Vercel. Fadlan ku dar Settings-ka." };
 
   try {
-    // Explicitly use v1beta as some keys prefer it for newer models
+    // Force latest production model
     const genAI = new GoogleGenerativeAI(key);
-    
-    const modelsToTry = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-pro"];
-    let lastError = "";
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
 
-    for (const mName of modelsToTry) {
-      try {
-        console.log(`[AI-DIAGNOSTIC] Trying model: ${mName}`);
-        const model = genAI.getGenerativeModel({ model: mName });
-        const result = await model.generateContent({
-           contents: [{ role: "user", parts: [{ text: `Context: ${context}\n\nTask: ${prompt}\n\nRespond in Somali.` }] }]
-        });
-        const response = await result.response;
-        return { text: response.text() };
-      } catch (err: any) {
-        lastError = err.message;
-        console.error(`[AI-DIAGNOSTIC] ${mName} failed:`, lastError);
-      }
-    }
+    const result = await model.generateContent({
+      contents: [{ role: "user", parts: [{ text: `Lesson Context: ${context}\n\nTask: ${prompt}\n\nLanguage: Somali.` }] }]
+    });
 
-    return { error: `Dhammaan AI-yada waa fashilmeen. Cilada ugu dambeysa: ${lastError}` };
+    const response = await result.response;
+    return { text: response.text() };
   } catch (error: any) {
-    console.error("[AI-DIAGNOSTIC] Global Failure:", error);
-    return { error: `Fatal Connectivity Error: ${error.message}` };
+    console.error("[AI-FINAL-ERROR]:", error.message);
+    
+    // Check for specific common fails
+    if (error.message.includes("404") || error.message.includes("not found")) {
+      return { 
+        error: "Cilaad: Key-gaaga ma haysto ogolaansho Model-ka (404). \n\nFADLAN: Tag aistudio.google.com, sameey 'API Key' cusub, ka dibna ku dar Vercel Settings." 
+      };
+    }
+    
+    return { error: `Cilad Farsamo: ${error.message}` };
   }
 }
+
 
 
 
