@@ -9,8 +9,8 @@ async function callGemini(prompt: string, context: string) {
 
   try {
     const genAI = new GoogleGenerativeAI(key);
-    // Use gemini-1.5-flash as it is extremely fast and reliable for these tasks
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    // Use gemini-1.5-flash-latest for best performance and stability
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
 
     const systemPrompt = `You are an expert academic tutor for the Tusmo SMS platform. 
     Context of the current lesson:
