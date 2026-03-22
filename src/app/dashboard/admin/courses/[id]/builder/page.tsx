@@ -48,13 +48,35 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { 
   getCourseStructure, 
   addSection, 
   addLesson, 
   addQuiz, 
   deleteSection,
+  updateSection,
+  deleteLesson,
+  deleteQuiz,
   updateLesson,
   updateQuiz,
   reorderSections,
@@ -88,7 +110,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
 
 // ─── Sortable Item Component ───────────────────────────────────────────────
-function SortableItem({ id, item, activeId, onClick, type }: any) {
+function SortableItem({ id, item, activeId, onClick, type, onDelete }: any) {
   const {
     attributes,
     listeners,
@@ -139,7 +161,40 @@ function SortableItem({ id, item, activeId, onClick, type }: any) {
           </p>
         </div>
       </div>
-      <ChevronRight className={cn("h-4 w-4 transition-all", isActive ? "text-indigo-400 translate-x-1" : "text-slate-200 group-hover:text-slate-400")} />
+      
+      <div className="flex items-center gap-2">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-300 hover:text-slate-600 rounded-lg">
+              <MoreVertical className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48 rounded-xl shadow-2xl border-slate-100">
+            <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400">Node Strategy</DropdownMenuLabel>
+            <DropdownMenuItem onClick={onClick} className="gap-2 text-xs font-bold py-2.5 cursor-pointer">
+              <Settings2 className="h-3.5 w-3.5 text-indigo-500" /> Open Editor
+            </DropdownMenuItem>
+            {isQuiz && (
+              <DropdownMenuItem className="gap-2 text-xs font-bold py-2.5 cursor-pointer" asChild>
+                <Link href={`/dashboard/admin/courses/${item.courseId}/quiz/${item.id}`}>
+                  <HelpCircle className="h-3.5 w-3.5 text-amber-500" /> Edit Questions
+                </Link>
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem 
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete();
+              }} 
+              className="gap-2 text-xs font-bold py-2.5 cursor-pointer text-red-600 focus:text-red-700 focus:bg-red-50"
+            >
+              <Trash2 className="h-3.5 w-3.5" /> Decommission Node
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+        <ChevronRight className={cn("h-4 w-4 transition-all", isActive ? "text-indigo-400 translate-x-1" : "text-slate-200 group-hover:text-slate-400")} />
+      </div>
     </div>
   );
 }
@@ -152,7 +207,9 @@ function SortableSection({
   handleItemDragEnd, 
   handleAddLesson, 
   handleAddQuiz, 
-  deleteSection, 
+  onDeleteSection, 
+  onUpdateSection,
+  onDeleteItem,
   loadCourse, 
   activeItem, 
   handleSelectItem, 
@@ -236,24 +293,37 @@ function SortableSection({
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3" onClick={e => e.stopPropagation()}>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-10 w-10 text-slate-200 hover:text-indigo-500 hover:bg-indigo-50 rounded-[14px] transition-all opacity-0 group-hover/header:opacity-100">
+                    <MoreVertical className="h-5 w-5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56 rounded-2xl shadow-2xl border-slate-100 p-2">
+                  <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-3 py-2">Chapter Governance</DropdownMenuLabel>
+                  <DropdownMenuItem 
+                    onClick={() => onUpdateSection(section.id, section.title)}
+                    className="gap-3 text-xs font-black uppercase tracking-tight py-3 px-3 rounded-xl cursor-pointer"
+                  >
+                    <PenLine className="h-4 w-4 text-indigo-500" /> Rename Chapter
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem 
+                    onClick={() => onDeleteSection(section.id)}
+                    className="gap-3 text-xs font-black uppercase tracking-tight py-3 px-3 rounded-xl cursor-pointer text-red-600 focus:text-red-700 focus:bg-red-50"
+                  >
+                    <Trash2 className="h-4 w-4" /> Delete Chapter
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              
               <div className={cn(
                 "h-10 w-10 rounded-[14px] border border-slate-100 bg-white flex items-center justify-center transition-all duration-500",
                 isExpanded ? "rotate-180 bg-indigo-50 border-indigo-200 text-indigo-600 shadow-sm" : "text-slate-200 group-hover/header:text-indigo-400 group-hover/header:border-indigo-100"
               )}>
                 <ChevronDown className="h-5 w-5" />
               </div>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-10 w-10 text-slate-200 hover:text-red-500 hover:bg-red-50 rounded-[14px] transition-all opacity-0 group-hover/header:opacity-100" 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  deleteSection(section.id).then(loadCourse);
-                }}
-              >
-                <Trash2 className="h-5 w-5" />
-              </Button>
             </div>
           </div>
 
@@ -277,10 +347,11 @@ function SortableSection({
                       <div key={item.id}>
                         <SortableItem 
                           id={item.id} 
-                          item={item} 
+                          item={{...item, courseId}} 
                           type={item.type}
                           activeId={activeItem?.data?.id}
                           onClick={() => handleSelectItem({ type: item.type, data: item })}
+                          onDelete={() => onDeleteItem(item.type, item.id)}
                         />
                         {item.type === 'quiz' && activeItem?.data?.id === item.id && (
                           <div className="ml-14 mb-6 mt-2 flex flex-col gap-2 animate-in fade-in slide-in-from-left-4 duration-500">
@@ -365,6 +436,10 @@ export default function CourseBuilderPage() {
   const [ytUrl, setYtUrl] = React.useState("")
   const [pdfPages, setPdfPages] = React.useState({ start: 1, end: 5 })
   const [expandedSectionId, setExpandedSectionId] = React.useState<string | null>(null)
+
+  // Modern Dialog States
+  const [deleteDialog, setDeleteDialog] = React.useState<{ open: boolean; type: 'section' | 'lesson' | 'quiz' | null; id: string | null }>({ open: false, type: null, id: null })
+  const [renameDialog, setRenameDialog] = React.useState<{ open: boolean; id: string | null; title: string }>({ open: false, id: null, title: "" })
 
   const handleGenerateObjectivesAI = async () => {
     if (!editData?.title) return toast.error("Please enter a Lesson Title first")
@@ -482,6 +557,40 @@ export default function CourseBuilderPage() {
     if (res.success) {
       loadCourse()
       toast.success("Assessment Hub Active")
+    }
+  }
+
+  const handleUpdateSection = async () => {
+    if (!renameDialog.id || !renameDialog.title) return
+    const res = await updateSection(renameDialog.id, renameDialog.title)
+    if (res.success) {
+      loadCourse()
+      setRenameDialog({ open: false, id: null, title: "" })
+      toast.success("Chapter Recalibrated Successfully")
+    } else {
+      toast.error("Strategy Update Failed")
+    }
+  }
+
+  const handleDeleteConfirmed = async () => {
+    if (!deleteDialog.id || !deleteDialog.type) return
+    
+    let res;
+    if (deleteDialog.type === 'section') {
+      res = await deleteSection(deleteDialog.id)
+    } else if (deleteDialog.type === 'lesson') {
+      res = await deleteLesson(deleteDialog.id)
+    } else {
+      res = await deleteQuiz(deleteDialog.id)
+    }
+
+    if (res.success) {
+      if (activeItem?.data?.id === deleteDialog.id) setActiveItem(null)
+      loadCourse()
+      setDeleteDialog({ open: false, type: null, id: null })
+      toast.success("Structural Node Decommissioned")
+    } else {
+      toast.error("Security Lock: Operation Aborted")
     }
   }
 
@@ -649,22 +758,24 @@ export default function CourseBuilderPage() {
             <SortableContext items={course?.sections?.map((s:any) => s.id) || []} strategy={verticalListSortingStrategy}>
               <div className="space-y-4">
                 {course?.sections?.map((section: any, sIdx: number) => (
-                  <SortableSection
-                    key={section.id}
-                    section={section}
-                    sIdx={sIdx}
-                    sensors={sensors}
-                    handleItemDragEnd={handleItemDragEnd}
-                    handleAddLesson={handleAddLesson}
-                    handleAddQuiz={handleAddQuiz}
-                    deleteSection={deleteSection}
-                    loadCourse={loadCourse}
-                    activeItem={activeItem}
-                    handleSelectItem={handleSelectItem}
-                    courseId={id}
-                    isExpanded={expandedSectionId === section.id}
-                    onToggle={() => setExpandedSectionId(expandedSectionId === section.id ? null : section.id)}
-                  />
+                    <SortableSection
+                      key={section.id}
+                      section={section}
+                      sIdx={sIdx}
+                      sensors={sensors}
+                      handleItemDragEnd={handleItemDragEnd}
+                      handleAddLesson={handleAddLesson}
+                      handleAddQuiz={handleAddQuiz}
+                      onDeleteSection={(sid: string) => setDeleteDialog({ open: true, type: 'section', id: sid })}
+                      onUpdateSection={(sid: string, title: string) => setRenameDialog({ open: true, id: sid, title })}
+                      onDeleteItem={(type: any, id: string) => setDeleteDialog({ open: true, type, id })}
+                      loadCourse={loadCourse}
+                      activeItem={activeItem}
+                      handleSelectItem={handleSelectItem}
+                      courseId={id}
+                      isExpanded={expandedSectionId === section.id}
+                      onToggle={() => setExpandedSectionId(expandedSectionId === section.id ? null : section.id)}
+                    />
                 ))}
               </div>
             </SortableContext>
@@ -1102,6 +1213,42 @@ export default function CourseBuilderPage() {
           </div>
         </DialogContent>
       </Dialog>
+      {/* Modern Dialogs */}
+      <Dialog open={renameDialog.open} onOpenChange={(open) => setRenameDialog(prev => ({ ...prev, open }))}>
+        <DialogContent className="rounded-[40px] p-10 border-none shadow-2xl w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-black uppercase tracking-tight text-slate-900">Rename Chapter</DialogTitle>
+            <DialogDescription className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-2">Adjust the structural designation for this learning chapter.</DialogDescription>
+          </DialogHeader>
+          <div className="py-8">
+            <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 ml-2 mb-3 block">Chapter Title</Label>
+            <Input 
+              value={renameDialog.title}
+              onChange={(e) => setRenameDialog(prev => ({ ...prev, title: e.target.value }))}
+              className="h-16 rounded-[24px] bg-slate-50 border-none px-8 font-black text-sm uppercase tracking-widest focus:ring-2 focus:ring-indigo-100 transition-all"
+            />
+          </div>
+          <DialogFooter className="gap-3">
+            <Button variant="ghost" onClick={() => setRenameDialog({ open: false, id: null, title: "" })} className="h-14 rounded-2xl px-8 font-black uppercase tracking-widest text-[10px] text-slate-400">Cancel</Button>
+            <Button onClick={handleUpdateSection} className="h-14 rounded-2xl px-10 bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase tracking-widest text-[10px] shadow-xl shadow-indigo-100">Apply Changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={deleteDialog.open} onOpenChange={(open) => setDeleteDialog(prev => ({ ...prev, open }))}>
+        <AlertDialogContent className="rounded-[40px] p-10 border-none shadow-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-2xl font-black uppercase tracking-tight text-slate-900">Confirm Decommissioning</AlertDialogTitle>
+            <AlertDialogDescription className="text-sm font-bold text-slate-500 mt-4 leading-relaxed">
+              Are you sure you want to PERMANENTLY delete this {deleteDialog.type}? This action cannot be undone and all associated data will be purged from the repository.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="mt-8 gap-3">
+            <AlertDialogCancel className="h-14 rounded-2xl px-8 font-black uppercase tracking-widest text-[10px] border-none bg-slate-50 text-slate-400">Abort Operation</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteConfirmed} className="h-14 rounded-2xl px-10 bg-red-600 hover:bg-red-700 text-white font-black uppercase tracking-widest text-[10px] border-none shadow-xl shadow-red-100">Confirm Purge</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

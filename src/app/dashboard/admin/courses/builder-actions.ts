@@ -242,6 +242,51 @@ export async function deleteSection(id: string) {
   }
 }
 
+export async function updateSection(id: string, title: string) {
+  try {
+    const section = await prisma.courseSection.update({
+      where: { id },
+      data: { title },
+      select: { courseId: true }
+    })
+    revalidatePath(`/dashboard/admin/courses/${section.courseId}/builder`)
+    revalidatePath(`/dashboard/admin/courses/${section.courseId}/preview`)
+    return { success: true }
+  } catch (error) {
+    return { success: false }
+  }
+}
+
+export async function deleteLesson(id: string) {
+  try {
+    const lesson = await prisma.lesson.delete({
+      where: { id },
+      include: { section: true }
+    })
+    const courseId = lesson.section.courseId
+    revalidatePath(`/dashboard/admin/courses/${courseId}/builder`)
+    revalidatePath(`/dashboard/admin/courses/${courseId}/preview`)
+    return { success: true }
+  } catch (error) {
+    return { success: false }
+  }
+}
+
+export async function deleteQuiz(id: string) {
+  try {
+    const quiz = await prisma.quiz.delete({
+      where: { id },
+      include: { section: true }
+    })
+    const courseId = quiz.section.courseId
+    revalidatePath(`/dashboard/admin/courses/${courseId}/builder`)
+    revalidatePath(`/dashboard/admin/courses/${courseId}/preview`)
+    return { success: true }
+  } catch (error) {
+    return { success: false }
+  }
+}
+
 export async function reorderSections(courseId: string, sections: { id: string, order: number }[]) {
   try {
     const updates = sections.map(s => prisma.courseSection.update({
