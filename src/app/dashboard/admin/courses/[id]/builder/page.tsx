@@ -1047,7 +1047,7 @@ export default function CourseBuilderPage() {
                       handleAddLesson={handleAddLesson}
                       handleAddQuiz={handleAddQuiz}
                       onDeleteSection={(sid: string) => setDeleteDialog({ open: true, type: 'section', id: sid })}
-                      onUpdateSection={(sid: string, title: string) => setRenameDialog({ open: true, id: sid, title })}
+                      onUpdateSection={(sid: string, title: string) => setRenameDialog({ open: true, id: sid, title, type: 'section' })}
                       onDeleteItem={(type: any, id: string) => setDeleteDialog({ open: true, type, id })}
                       loadCourse={loadCourse}
                       activeItem={activeItem}
