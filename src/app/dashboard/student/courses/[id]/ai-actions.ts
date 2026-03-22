@@ -218,8 +218,8 @@ export async function generateQuizQuestions(quizId: string, counts: Record<strin
   }
 }
 
-export async function performSmartAIAction(lessonId: string, task: 'explain' | 'summarize' | 'translate', text: string) {
-  console.log(`AI Action: Smart ${task} for lesson ${lessonId}: "${text.slice(0, 50)}..."`)
+export async function performSmartAIAction(lessonId: string, task: 'explain' | 'summarize' | 'translate', text: string, targetLanguage: string = 'Somali') {
+  console.log(`AI Action: Smart ${task} for lesson ${lessonId} into ${targetLanguage}: "${text.slice(0, 50)}..."`)
   try {
     const lesson = await prisma.lesson.findUnique({
       where: { id: lessonId },
@@ -238,7 +238,7 @@ export async function performSmartAIAction(lessonId: string, task: 'explain' | '
     } else if (task === 'summarize') {
       prompt = `Soo koob qoraalkan soo socda adigoo isticmaalaya luqadda Soomaaliga. Ka dhig mid kooban oo nuxurka muhiimka ah xambaarsan. Qoraalka la doortay: "${text}"`;
     } else if (task === 'translate') {
-      prompt = `U turjum qoraalkan soo socda af Soomaali sax ah oo dabiici ah. Qoraalka la doortay: "${text}"`;
+      prompt = `U turjum qoraalkan soo socda luqadda ${targetLanguage} oo sax ah oo dabiici ah. Qoraalka la doortay: "${text}"`;
     }
 
     const res = await callGemini(prompt, context);
