@@ -1814,7 +1814,7 @@ export default function StudentCourseViewerPage() {
                 )}
                 {activeLessonTab === "ai" && (() => {
                   // Inline WhatsApp-style AI Tutor Chat
-                  const firstName = user?.name?.split(' ')[0] || "Ardayga";
+                  const firstName = user?.firstName || "Ardayga";
                   return (
                     <AiTutorChat
                       lessonId={activeLesson?.id || ""}
