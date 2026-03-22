@@ -2,18 +2,19 @@
 
 import React from "react"
 import { useChat } from "ai/react"
-import { ArrowRight } from "lucide-react"
+import { ArrowRight, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface AiTutorChatProps {
   lessonId: string
   lessonObjectives: string
   userName: string
+  onClose?: () => void
 }
 
 const now = () => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 
-export function AiTutorChat({ lessonId, lessonObjectives, userName }: AiTutorChatProps) {
+export function AiTutorChat({ lessonId, lessonObjectives, userName, onClose }: AiTutorChatProps) {
   const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
     api: "/api/chat",
     body: {
@@ -55,9 +56,17 @@ export function AiTutorChat({ lessonId, lessonObjectives, userName }: AiTutorCha
             {isLoading ? 'Wuu qorayo...' : 'Online'}
           </p>
         </div>
-        <span className="text-[9px] font-black text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 rounded-full px-2 py-0.5 uppercase tracking-widest">
+        <span className="hidden sm:inline-block text-[9px] font-black text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 rounded-full px-2 py-0.5 uppercase tracking-widest mr-2">
           AI Tutor
         </span>
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="h-10 w-10 rounded-full flex items-center justify-center text-slate-400 hover:bg-white/10 hover:text-white transition-all shrink-0"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        )}
       </div>
 
       {/* Chat Messages */}
