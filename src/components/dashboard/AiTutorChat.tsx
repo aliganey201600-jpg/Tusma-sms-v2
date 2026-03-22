@@ -16,12 +16,16 @@ interface AiTutorChatProps {
 const now = () => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 
 export function AiTutorChat({ lessonId, lessonObjectives, userName, teacherName, onClose }: AiTutorChatProps) {
-  const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
+  const { messages, input, handleInputChange, handleSubmit, isLoading, error } = useChat({
     api: "/api/chat",
     body: {
       question_text: `Lesson ID: ${lessonId}`,
       lesson_objectives: lessonObjectives,
     },
+    onError: (err) => {
+      console.error("[CHAT-ERROR]:", err);
+      // We'll show a fallback message in the UI
+    }
   })
 
   const chatEndRef = React.useRef<HTMLDivElement>(null)
@@ -112,6 +116,19 @@ export function AiTutorChat({ lessonId, lessonObjectives, userName, teacherName,
             </div>
           </div>
         ))}
+
+        {/* Error message bubble */}
+        {error && (
+          <div className="flex justify-start">
+            <div className="rounded-2xl rounded-tl-sm px-4 py-3 shadow-md bg-red-900/30 border border-red-500/20 max-w-[80%]">
+              <p className="text-red-400 text-xs font-bold uppercase tracking-widest mb-1">Cilad AI:</p>
+              <p className="text-red-200 text-xs leading-relaxed">
+                Waan ka xumahay, cilad farsamo ayaa dhacday. Fadlan hubi in GEMINI_API_KEY uu ku qoran yahay Vercel ama isku day mar kale.
+              </p>
+              <p className="text-[10px] mt-1.5 opacity-60 text-left text-red-400/60">{now()}</p>
+            </div>
+          </div>
+        )}
 
         {/* Typing indicator */}
         {isLoading && (
