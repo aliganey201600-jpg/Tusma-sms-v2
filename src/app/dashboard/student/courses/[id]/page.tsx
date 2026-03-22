@@ -395,6 +395,7 @@ function SmartSelectionTool({
   const [error, setError] = React.useState<string | null>(null)
   const [activeTask, setActiveTask] = React.useState<'explain' | 'summarize' | 'translate' | null>(null)
   const [pendingTask, setPendingTask] = React.useState<'explain' | 'summarize' | 'translate' | null>(null)
+  const [activeLang, setActiveLang] = React.useState<string>("Somali")
 
   const handleAction = async (task: 'explain' | 'summarize' | 'translate', targetLang: string = "Somali") => {
     // Diagnostic alert to confirm the button click is reaching the client logic
@@ -406,6 +407,7 @@ function SmartSelectionTool({
     setError(null)
     setResult(null)
     setActiveTask(task)
+    setActiveLang(targetLang)
     setPendingTask(null)
     
     try {
@@ -524,12 +526,19 @@ function SmartSelectionTool({
                        <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
                           <p className="text-[10px] text-slate-500 italic leading-relaxed">"{text.slice(0, 150)}{text.length > 150 ? '...' : ''}"</p>
                        </div>
-                       <div className="text-base md:text-lg leading-relaxed text-slate-200 font-medium whitespace-pre-wrap">
+                       <div 
+                         className={cn(
+                           "text-base md:text-lg leading-relaxed text-slate-200 font-medium whitespace-pre-wrap",
+                           activeLang === 'Arabic' ? "text-right text-justify" : "text-left ltr"
+                         )}
+                         dir={activeLang === 'Arabic' ? 'rtl' : 'ltr'}
+                       >
                           {result}
                        </div>
                     </div>
                  )}
               </div>
+
 
               {/* Footer */}
               {!loading && result && (
