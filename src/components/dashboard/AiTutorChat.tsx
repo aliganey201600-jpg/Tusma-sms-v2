@@ -57,9 +57,6 @@ export function AiTutorChat({ lessonId, lessonObjectives, userName, teacherName,
             {isLoading ? 'Wuu qorayo...' : 'Online'}
           </p>
         </div>
-        <span className="hidden sm:inline-block text-[9px] font-black text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 rounded-full px-2 py-0.5 uppercase tracking-widest mr-2">
-          AI Tutor
-        </span>
         {onClose && (
           <button
             onClick={onClose}
