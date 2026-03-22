@@ -533,7 +533,7 @@ function SmartSelectionTool({
                          )}
                          dir={activeLang === 'Arabic' ? 'rtl' : 'ltr'}
                        >
-                          {result.split(/(\*\*.*?\*\*)/g).map((part, i) => {
+                          {(result || "").split(/(\*\*.*?\*\*)/g).map((part, i) => {
                             if (part.startsWith('**') && part.endsWith('**')) {
                               return <strong key={i} className="text-blue-400 font-black">{part.slice(2, -2)}</strong>;
                             }
