@@ -124,7 +124,7 @@ export function AiTutorChat({ lessonId, lessonObjectives, userName, teacherName,
               <p className="text-red-400 text-[10px] font-black uppercase tracking-widest mb-1">Cilad AI:</p>
               <p className="text-red-100 text-xs leading-relaxed font-semibold">
                 {error.message.includes('404') || error.message.includes('not found') 
-                  ? "Moodalka gemini-2.5-flash lama helin. Fadlan hubi magaca moodalka."
+                  ? "Moodalka AI-ga lama helin. Fadlan hubi API Key-ga ama magaca moodalka ee Vercel."
                   : error.message.includes('403') || error.message.includes('API_KEY')
                   ? "API Key-ga Gemini waa khalad ama lama helin. Fadlan hubi Vercel Envs."
                   : error.message || "Waan ka xumahay, cilad farsamo ayaa dhacday. Isku day mar kale."}
