@@ -389,167 +389,134 @@ function SmartSelectionTool({
   const [activeTask, setActiveTask] = React.useState<'explain' | 'summarize' | 'translate' | null>(null)
 
   const handleAction = async (task: 'explain' | 'summarize' | 'translate') => {
+    // Diagnostic alert to confirm the button click is reaching the client logic
+    if (typeof window !== 'undefined') {
+       console.log(`[AI-DIAGNOSTIC] Task initiated: ${task}`);
+    }
+    
     setLoading(true)
     setError(null)
     setResult(null)
     setActiveTask(task)
+    
     try {
-      console.log(`[AI-DIAGNOSTIC] Triggering ${task} for lesson ${lessonId}...`);
       const res = await performSmartAIAction(lessonId, task, text)
-      console.log(`[AI-DIAGNOSTIC] Server response:`, res);
       if (res.error) {
-         setError(res.error)
-         console.error(`[AI-DIAGNOSTIC] Error reported:`, res.error);
+        setError(res.error)
       } else if (res.result) {
-         setResult(res.result)
+        setResult(res.result)
       }
     } catch (err: any) {
-      console.error(`[AI-DIAGNOSTIC] Fatal client-side error:`, err);
-      setError(`Critical communication failure: ${err.message}`)
+      setError(`Critical Error: ${err.message}`)
     } finally {
       setLoading(false)
     }
   }
 
-
-  if (!position) return null
+  if (!text) return null
 
   return (
-      <div className={cn(
-        "fixed z-[250] animate-in fade-in zoom-in-95 duration-200",
-        position.y < 200 ? "mt-4" : "" // Push down if too high
-      )}
-      style={{ 
-        left: Math.min(window.innerWidth - 150, Math.max(150, position.x)), 
-        top: position.y < 200 ? position.y + 20 : position.y // Show below if selection is at the top
-      }}
-    >
-      <div className={cn(
-        "bg-slate-950/95 backdrop-blur-2xl border border-white/10 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.8)] rounded-[2rem] p-3 flex flex-col gap-1 min-w-[280px] max-w-[340px] relative border-t-white/20",
-        position.y < 200 ? "" : "-translate-x-1/2 -translate-y-full mb-8" // Normal position above
-      )}>
-        {!activeTask ? (
-          <div className="flex flex-col gap-1 p-1">
-             <div className="px-5 py-3 border-b border-white/5 flex items-center justify-between">
-                <div>
-                   <p className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-400">Tusmo AI Insight</p>
-                </div>
-                <div className="h-2 w-2 rounded-full bg-indigo-500 animate-pulse shadow-[0_0_12px_rgba(99,102,241,0.8)]" />
-             </div>
-             <div className="grid grid-cols-1 gap-1 pt-2">
-                {[
-                  { id: 'explain', label: 'Fasir Tool', sub: 'Sharaxaad kooban', icon: Search, color: 'indigo' },
-                  { id: 'summarize', label: 'Soo Koob', sub: 'Nuxurka qoraalka', icon: Hash, color: 'amber' },
-                  { id: 'translate', label: 'Turjun Tool', sub: 'Af-Soomaali dhab ah', icon: Languages, color: 'emerald' }
-                ].map((act) => (
-                  <button 
-                    key={act.id}
-                    onClick={(e) => { e.stopPropagation(); handleAction(act.id as any); }}
-                    onMouseDown={(e) => e.preventDefault()}
-                    className="flex items-center gap-4 w-full px-4 py-4 text-[11px] font-black text-slate-200 hover:bg-white/10 rounded-2xl transition-all group uppercase tracking-tight text-left"
-                  >
-                    <div className={cn("h-8 w-8 rounded-xl flex items-center justify-center transition-all duration-300", 
-                      act.color === 'indigo' ? "bg-indigo-500/10 text-indigo-400 group-hover:bg-indigo-500 group-hover:text-white" :
-                      act.color === 'amber' ? "bg-amber-500/10 text-amber-400 group-hover:bg-amber-500 group-hover:text-white" :
-                      "bg-emerald-500/10 text-emerald-400 group-hover:bg-emerald-500 group-hover:text-white"
-                    )}>
-                       <act.icon className="h-4 w-4" /> 
-                    </div>
-                    <div className="flex-1">
-                        <p>{act.label}</p>
-                        <p className="text-[8px] font-medium text-slate-500 lowercase tracking-normal mt-0.5">{act.sub}</p>
-                    </div>
-                  </button>
-                ))}
-             </div>
-          </div>
-        ) : (
-          <Dialog open={!!activeTask} onOpenChange={(open) => !open && onClose()}>
-            <DialogContent className="max-w-2xl w-[95vw] sm:w-full bg-slate-950 border-white/10 p-0 overflow-hidden rounded-[2.5rem] shadow-2xl z-[300]">
-              <DialogTitle className="sr-only">AI {activeTask} Result</DialogTitle>
-              <div className="p-8 md:p-12 space-y-8 max-h-[85vh] overflow-y-auto thin-scrollbar">
-                <div className="flex items-center justify-between border-b border-white/5 pb-6">
-                   <div className="flex items-center gap-4">
-                      <div className="h-12 w-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-400">
-                         {activeTask === 'explain' && <Search className="h-6 w-6" />}
-                         {activeTask === 'summarize' && <Hash className="h-6 w-6" />}
-                         {activeTask === 'translate' && <Languages className="h-6 w-6" />}
-                      </div>
-                      <div>
-                         <h3 className="text-xl font-black text-white uppercase tracking-tight">AI Hub v3.1.5-PRO</h3>
-                         <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mt-1">Smart Academic Assistant</p>
-                      </div>
-                   </div>
-                   <Button variant="ghost" size="icon" onClick={onClose} className="h-10 w-10 rounded-2xl bg-white/5 text-slate-500 hover:text-white"><X className="h-5 w-5" /></Button>
-                </div>
-
-                <div className="relative">
-                   {loading ? (
-                      <div className="py-24 flex flex-col items-center gap-8 animate-in fade-in duration-500">
-                         <div className="relative">
-                            <div className="h-20 w-20 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin" />
-                            <Sparkles className="absolute inset-0 m-auto h-8 w-8 text-indigo-300 animate-pulse" />
-                         </div>
-                         <div className="text-center">
-                            <p className="text-sm font-black text-slate-200 uppercase tracking-widest">Processing Selection...</p>
-                            <p className="text-[10px] text-slate-500 font-medium uppercase tracking-widest mt-2 px-10">Our AI is analyzing the didactic context of this module</p>
-                         </div>
-                      </div>
-                   ) : error ? (
-                      <div className="p-8 bg-red-500/10 border border-red-500/20 rounded-[2rem] text-red-400 flex flex-col items-center gap-4 text-center">
-                         <AlertCircle className="h-10 w-10" />
-                         <div>
-                            <p className="text-xs font-black uppercase tracking-widest mb-1">Response Error</p>
-                            <p className="text-sm font-medium leading-relaxed">{error}</p>
-                         </div>
-                      </div>
-                   ) : (
-                      <div className="space-y-6">
-                         <div className="flex items-start gap-4 p-4 bg-white/5 rounded-2xl border border-white/5">
-                            <Quote className="h-4 w-4 text-slate-500 shrink-0 mt-1" />
-                            <p className="text-xs italic text-slate-400 font-medium leading-relaxed line-clamp-3">"{text}"</p>
-                         </div>
-                         <div className="text-lg leading-[1.8] text-slate-100 font-medium whitespace-pre-wrap animate-in fade-in slide-in-from-bottom-4 duration-1000">
-                            {result}
-                         </div>
-                      </div>
-                   )}
-                </div>
-
-                {!loading && result && (
-                   <div className="pt-8 border-t border-white/5 flex flex-col sm:flex-row justify-between items-center gap-6">
-                      <div className="flex items-center gap-3">
-                         <Sparkles className="h-5 w-5 text-indigo-400 animate-pulse" />
-                         <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Enhanced Somali AI Results</p>
-                      </div>
-                      <div className="flex items-center gap-3 w-full sm:w-auto">
-                          <Button 
-                            variant="outline"
-                            onClick={() => { 
-                              navigator.clipboard.writeText(result || "");
-                              toast.success("Result copied to clipboard");
-                            }}
-                            className="flex-1 sm:flex-initial h-12 px-8 rounded-2xl bg-white/5 border-white/10 text-xs font-black uppercase tracking-widest text-slate-300 hover:bg-white/10 hover:text-white"
-                           >
-                             Copy Result
-                           </Button>
-                          <Button 
-                            onClick={() => setActiveTask(null)}
-                            className="flex-1 sm:flex-initial h-12 px-10 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-indigo-500/20"
-                           >
-                             New Task
-                           </Button>
-                      </div>
-                   </div>
-                )}
+    <>
+      {/* 1. BOTTOM FLOATING ACTION BAR (The Trigger) */}
+      {!activeTask && (
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[300] animate-in slide-in-from-bottom-10 duration-500">
+           <div className="bg-slate-950/90 backdrop-blur-2xl border border-white/20 shadow-[0_20px_50px_rgba(0,0,0,0.5)] rounded-full px-2 py-2 flex items-center gap-2">
+              <div className="pl-4 pr-2 border-r border-white/10 hidden sm:block">
+                 <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Tusmo AI</p>
               </div>
-            </DialogContent>
-          </Dialog>
-        )}
-      </div>
-    </div>
+              <button onClick={() => handleAction('explain')} className="flex items-center gap-2 px-6 py-3 rounded-full hover:bg-white/10 text-white transition-all active:scale-95">
+                 <Search className="h-4 w-4 text-indigo-400" />
+                 <span className="text-[11px] font-bold uppercase tracking-tight">Fasir</span>
+              </button>
+              <button onClick={() => handleAction('summarize')} className="flex items-center gap-2 px-6 py-3 rounded-full hover:bg-white/10 text-white transition-all active:scale-95">
+                 <Hash className="h-4 w-4 text-amber-400" />
+                 <span className="text-[11px] font-bold uppercase tracking-tight">Koob</span>
+              </button>
+              <button onClick={() => handleAction('translate')} className="flex items-center gap-2 px-6 py-3 rounded-full hover:bg-white/10 text-white transition-all active:scale-95">
+                 <Languages className="h-4 w-4 text-emerald-400" />
+                 <span className="text-[11px] font-bold uppercase tracking-tight">Turjun</span>
+              </button>
+              <button onClick={onClose} className="p-3 hover:bg-white/10 rounded-full text-slate-500 hover:text-white transition-all">
+                 <X className="h-4 w-4" />
+              </button>
+           </div>
+        </div>
+      )}
+
+      {/* 2. FULL SCREEN RESULT OVERLAY (Unified Design) */}
+      {activeTask && (
+        <div className="fixed inset-0 z-[400] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4 animate-in fade-in duration-300">
+           <div className="bg-slate-900 w-full max-w-2xl rounded-t-[2.5rem] sm:rounded-[2.5rem] border border-white/10 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+              {/* Header */}
+              <div className="p-8 border-b border-white/5 flex items-center justify-between bg-slate-950/50">
+                 <div className="flex items-center gap-4">
+                    <div className="h-10 w-10 rounded-xl bg-indigo-500/20 flex items-center justify-center text-indigo-400">
+                       {activeTask === 'explain' ? <Search className="h-5 w-5" /> : 
+                        activeTask === 'summarize' ? <Hash className="h-5 w-5" /> : 
+                        <Languages className="h-5 w-5" />}
+                    </div>
+                    <div>
+                       <h3 className="text-sm font-black text-white uppercase tracking-widest">AI Hub v3.2-ULTRA</h3>
+                       <p className="text-[9px] font-bold text-indigo-400 uppercase mt-1">Intelligent Response</p>
+                    </div>
+                 </div>
+                 <button onClick={onClose} className="p-2 bg-white/5 hover:bg-white/10 rounded-full text-slate-400 hover:text-white">
+                    <X className="h-5 w-5" />
+                 </button>
+              </div>
+
+              {/* Body */}
+              <div className="flex-1 overflow-y-auto p-8 md:p-12 space-y-8 min-h-[300px]">
+                 {loading ? (
+                    <div className="py-20 flex flex-col items-center gap-6">
+                       <div className="h-12 w-12 border-2 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin" />
+                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest animate-pulse">Analyzing text context...</p>
+                    </div>
+                 ) : error ? (
+                    <div className="p-8 bg-red-500/5 border border-red-500/10 rounded-3xl text-center space-y-4">
+                       <AlertCircle className="h-12 w-12 text-red-500 mx-auto" />
+                       <p className="text-red-400 text-sm font-medium">{error}</p>
+                       <button onClick={onClose} className="px-6 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-xl text-xs font-bold uppercase">Close & Retry</button>
+                    </div>
+                 ) : (
+                    <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-700">
+                       <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
+                          <p className="text-[10px] text-slate-500 italic leading-relaxed">"{text.slice(0, 150)}{text.length > 150 ? '...' : ''}"</p>
+                       </div>
+                       <div className="text-base md:text-lg leading-relaxed text-slate-200 font-medium whitespace-pre-wrap">
+                          {result}
+                       </div>
+                    </div>
+                 )}
+              </div>
+
+              {/* Footer */}
+              {!loading && result && (
+                 <div className="p-6 bg-slate-950/50 border-t border-white/5 flex gap-3">
+                    <button 
+                      onClick={() => {
+                        navigator.clipboard.writeText(result);
+                        toast.success("Result copied!");
+                      }}
+                      className="flex-1 h-12 bg-white/5 hover:bg-white/10 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest border border-white/10"
+                    >
+                      Copy Response
+                    </button>
+                    <button 
+                      onClick={() => setActiveTask(null)}
+                      className="flex-1 h-12 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-indigo-500/20"
+                    >
+                      New Task
+                    </button>
+                 </div>
+              )}
+           </div>
+        </div>
+      )}
+    </>
   )
 }
+
 
 
 
