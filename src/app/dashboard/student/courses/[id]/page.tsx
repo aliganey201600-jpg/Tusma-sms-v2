@@ -754,7 +754,7 @@ export default function StudentCourseViewerPage() {
     if (activeQuiz) {
       setFeedbackLoading(true)
       generateFeedbackSummary(activeQuiz.title, feedback).then(res => {
-        if (res.text) setQuizFeedbackSummary(res.text)
+        if (res && 'text' in res && res.text) setQuizFeedbackSummary(res.text)
         setFeedbackLoading(false)
       }).catch(() => setFeedbackLoading(false))
     }
