@@ -1,41 +1,44 @@
 "use server"
-// Deployment: v1.3.1 - SDK Live
+import { GoogleGenerativeAI } from "@google/generative-ai";
+
 import prisma from "@/lib/prisma"
 
 async function callGemini(prompt: string, context: string) {
   const key = process.env.GEMINI_API_KEY;
-  if (!key) return { text: "⚠️ Key missing." };
+  if (!key) return { error: "XAQIIJI: GEMINI_API_KEY laguma hayo Environment-ka." };
 
-  const models = ["gemini-1.5-flash", "gemini-1.5-flash-latest", "gemini-pro"];
-  let lastError = "";
-
-  for (const model of models) {
+  try {
+    const genAI = new GoogleGenerativeAI(key);
+    
+    // Try Flash 1.5 first (Fast & Free Tier usually supports this)
+    let modelName = "gemini-1.5-flash";
+    let model = genAI.getGenerativeModel({ model: modelName });
+    
     try {
-      console.log(`[AI-RETRY] Testing model: ${model}`);
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${key}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: `Task: ${prompt}\n\nContext: ${context}\n\nCRITICAL: Respond in Somali.` }] }]
-        })
+      console.log(`[AI-HUB] Attempting with ${modelName}`);
+      const result = await model.generateContent({
+        contents: [{ role: "user", parts: [{ text: `Task: ${prompt}\nContext: ${context}\nInstructions: Respond only in Somali.` }] }]
       });
-
-      if (response.ok) {
-        const data = await response.json();
-        const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (text) return { text };
-      } else {
-        const e = await response.json().catch(() => ({}));
-        lastError = e.error?.message || "Unknown error";
-        console.error(`[AI-RETRY] Failure with ${model}:`, lastError);
-      }
-    } catch (err: any) {
-      lastError = err.message;
+      const response = result.response;
+      return { text: response.text() };
+    } catch (flashError: any) {
+      console.error("[AI-HUB] Flash failed, falling back to Pro", flashError.message);
+      
+      // Fallback to Stable Pro (Highly compatible)
+      modelName = "gemini-pro";
+      model = genAI.getGenerativeModel({ model: modelName });
+      const result = await model.generateContent({
+        contents: [{ role: "user", parts: [{ text: `Task: ${prompt}\nContext: ${context}\nInstructions: Respond only in Somali.` }] }]
+      });
+      const response = result.response;
+      return { text: response.text() };
     }
+  } catch (error: any) {
+    console.error("[AI-HUB] Fatal SDK Error:", error);
+    return { error: `AI Hub Error: ${error.message || "Xiriirka Google ayaa go'ay"}` };
   }
-
-  return { error: `All AI models failed. Final Error: ${lastError}` };
 }
+
 
 
 
