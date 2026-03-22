@@ -232,14 +232,17 @@ export async function performSmartAIAction(lessonId: string, task: 'explain' | '
     const contextBody = lesson.content?.substring(0, 10000) || "";
     const context = `Lesson Title: ${lesson.title}. \nContent: ${contextBody}`;
     
+    const langConstraint = `\n\nMUHIIM: Dhammaan jawaabtaada waa iney ahaataa luqadda ${targetLanguage} oo kaliya. Ha ku dhex darin luqado kale marka laga reebo eray-bixinada cilmiga ah (Technical terms) ee lagama maarmaanka ah.`;
+
     let prompt = "";
     if (task === 'explain') {
-      prompt = `Sharaxaad kooban oo cad ka bixi qoraalkan soo socda, adigoo isticmaalaya luqadda ${targetLanguage}. Haddii ay jiraan erayo adag, si fudud u sharax oo tusaale soo qaado. Qoraalka la doortay: "${text}"`;
+      prompt = `Sharaxaad kooban oo cad ka bixi qoraalkan soo socda, adigoo isticmaalaya luqadda ${targetLanguage}. ${langConstraint} Qoraalka la doortay: "${text}"`;
     } else if (task === 'summarize') {
-      prompt = `Soo koob qoraalkan soo socda adigoo isticmaalaya luqadda ${targetLanguage}. Ka dhig mid kooban oo nuxurka muhiimka ah xambaarsan. Qoraalka la doortay: "${text}"`;
+      prompt = `Soo koob qoraalkan soo socda adigoo isticmaalaya luqadda ${targetLanguage}. ${langConstraint} Qoraalka la doortay: "${text}"`;
     } else if (task === 'translate') {
-      prompt = `U turjum qoraalkan soo socda luqadda ${targetLanguage} oo sax ah oo dabiici ah. Qoraalka la doortay: "${text}"`;
+      prompt = `U turjum qoraalkan soo socda luqadda ${targetLanguage} oo sax ah oo dabiici ah. ${langConstraint} Qoraalka la doortay: "${text}"`;
     }
+
 
 
     const res = await callGemini(prompt, context);
