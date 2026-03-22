@@ -232,7 +232,8 @@ export async function performSmartAIAction(lessonId: string, task: 'explain' | '
     const contextBody = lesson.content?.substring(0, 10000) || "";
     const context = `Lesson Title: ${lesson.title}. \nContent: ${contextBody}`;
     
-    const langConstraint = `\n\nMUHIIM: Dhammaan jawaabtaada waa iney ahaataa luqadda ${targetLanguage} oo kaliya. Ha ku dhex darin luqado kale marka laga reebo eray-bixinada cilmiga ah (Technical terms) ee lagama maarmaanka ah.`;
+    const langConstraint = `\n\nMUHIIM: Dhammaan jawaabtaada waa iney ahaataa luqadda ${targetLanguage} oo kaliya. Ha ku dhex darin luqado kale marka laga reebo eray-bixinada cilmiga ah (Technical terms) ee lagama maarmaanka ah. Sidoo kale, erayada muhiimka ah iyo nuxurka qoraalka ku dhex dar calaamadda **...** si ay u noqdaan Bold (tusaale: **Erayga muhiimka ah**).`;
+
 
     let prompt = "";
     if (task === 'explain') {
