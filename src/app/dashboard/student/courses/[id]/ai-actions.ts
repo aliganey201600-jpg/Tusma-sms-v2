@@ -8,72 +8,39 @@ async function callGemini(prompt: string, context: string) {
   if (!key) return { error: "GEMINI_API_KEY is missing." };
 
   try {
-    console.log("AI Action: Initiating Model Discovery...");
+    const genAI = new GoogleGenerativeAI(key);
+    // Use gemini-1.5-flash as it is extremely fast and reliable for these tasks
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+    const systemPrompt = `You are an expert academic tutor for the Tusmo SMS platform. 
+    Context of the current lesson:
+    ---
+    ${context}
+    ---
+    Student Question/Task: ${prompt}
     
-    // Step 1: Discover available models for this specific key
-    const listResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}`);
-    const listData = await listResponse.json();
-    
-    if (!listResponse.ok) {
-       return { error: `Discovery Error (${listResponse.status}): ${listData.error?.message || "Failed to list models"}` };
+    Provide clear, concise, and highly educational responses. Use Markdown for formatting. 
+    CRITICAL: If the student asks in Somali or if the prompt is in Somali, you MUST respond in Somali. Keep a professional yet encouraging tone.`;
+
+    const result = await model.generateContent(systemPrompt);
+    const response = await result.response;
+    const text = response.text();
+
+    if (!text) {
+      return { error: "AI returned an empty response. This might be due to safety filters." };
     }
 
-    const availableModels = listData.models || [];
-    
-    // Priority Fallback Chain based on user's active inventory
-    let finalModelName = "gemini-2.5-flash"; // Default fallback
-    const listNames = availableModels.map((m: any) => m.name);
-
-    if (listNames.includes("models/gemini-flash-latest")) {
-      finalModelName = "gemini-flash-latest";
-    } else if (listNames.includes("models/gemini-pro-latest")) {
-      finalModelName = "gemini-pro-latest";
-    } else if (listNames.includes("models/gemini-2.5-flash")) {
-      finalModelName = "gemini-2.5-flash";
-    } else if (availableModels.length > 0) {
-      // Pick a non-2.0 model if possible to avoid the 0-limit issue
-      const nonExperimental = availableModels.find((m: any) => !m.name.includes("2.0") && !m.name.includes("2.5") && (m.name.includes("flash") || m.name.includes("pro")));
-      finalModelName = (nonExperimental ? nonExperimental.name : availableModels[0].name).replace("models/", "");
-    }
-    
-    console.log(`AI Action: Selected Safe Model: ${finalModelName}`);
-
-    // Step 2: Use the selected or discovered model
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${finalModelName}:generateContent?key=${key}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{
-          parts: [{
-            text: `You are an expert academic tutor for the Tusmo SMS platform. 
-            Context of the current lesson:
-            ---
-            ${context}
-            ---
-            Student Question/Task: ${prompt}
-            
-            Provide clear, concise, and highly educational responses. Use Markdown for formatting. 
-            CRITICAL: If the student asks in Somali, you MUST respond in Somali. Keep a professional yet encouraging tone.`
-          }]
-        }]
-      }),
-    });
-
-    if (!response.ok) {
-       const err = await response.json();
-       return { error: `Gemini API Error (${response.status}): ${err.error?.message || "Unknown error"}` };
-    }
-
-    const data = await response.json();
-    if (data.candidates && data.candidates[0]?.content?.parts) {
-        return { text: data.candidates[0].content.parts[0].text };
-    }
-    return { error: "AI returned an empty response." };
+    return { text };
   } catch (error: any) {
     console.error("AI Action: Fatal Error:", error);
-    return { error: `Fatal Error: ${error.message}` };
+    // Check for specific SDK errors
+    if (error.message?.includes("API_KEY_INVALID")) {
+      return { error: "Your AI API Key is invalid. Please check your .env settings." };
+    }
+    return { error: `AI Error: ${error.message || "Something went wrong while thinking."}` };
   }
 }
+
 
 export async function generateLessonSummary(lessonId: string) {
   console.log("AI Action: Generating summary for", lessonId)
