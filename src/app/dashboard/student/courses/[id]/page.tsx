@@ -38,6 +38,8 @@ import { useCurrentUser } from "@/hooks/use-current-user"
 import { LessonDiscussions } from "./lesson-discussions"
 import { cn } from "@/lib/utils"
 import { format } from "date-fns"
+import { toast } from "sonner"
+
 import { 
   XAxis, 
   YAxis, 
