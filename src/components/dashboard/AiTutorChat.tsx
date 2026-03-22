@@ -22,13 +22,6 @@ export function AiTutorChat({ lessonId, lessonObjectives, userName, teacherName,
       question_text: `Lesson ID: ${lessonId}`,
       lesson_objectives: lessonObjectives,
     },
-    initialMessages: [
-      {
-        id: "welcome",
-        role: "assistant",
-        content: `Soo dhawow ${userName}! 👋\n\nAniga waxaan ahay Macalinkaaga AI-ga. Waxaan kaa caawin karaa:\n\n• **Su'aalaha** adiga kugu adagtahay\n• **Sharaxaada** fikradaha adag\n• **Diyaarinta** imtixaannada\n\nMaxaan kaa caawiyaa maanta?`,
-      }
-    ]
   })
 
   const chatEndRef = React.useRef<HTMLDivElement>(null)
@@ -69,11 +62,24 @@ export function AiTutorChat({ lessonId, lessonObjectives, userName, teacherName,
 
       {/* Chat Messages */}
       <div
-        className="flex-1 overflow-y-auto px-4 py-4 space-y-2"
+        className="flex-1 overflow-y-auto px-4 py-4 space-y-4"
         style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.02'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
+          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
         }}
       >
+        {/* Welcome Message (Static UI only, not in history) */}
+        <div className="flex justify-start">
+          <div className="max-w-[80%] sm:max-w-[65%] rounded-2xl rounded-tl-sm px-4 py-3 shadow-md relative" style={{ background: '#202c33' }}>
+            <div className="absolute -left-1.5 top-0 w-3 h-3 overflow-hidden">
+              <div className="w-4 h-4 rounded-br-full" style={{ background: '#202c33', marginRight: '-4px' }} />
+            </div>
+            <p className="text-slate-100 text-sm leading-relaxed whitespace-pre-wrap">
+              {renderText(`Soo dhawow ${userName}! 👋\n\nAniga waxaan ahay Macalinkaaga AI-ga. Waxaan kaa caawin karaa:\n\n• **Su'aalaha** adiga kugu adagtahay\n• **Sharaxaada** fikradaha adag\n• **Diyaarinta** imtixaannada\n\nMaxaan kaa caawiyaa maanta?`)}
+            </p>
+            <p className="text-[10px] mt-1.5 opacity-60 text-left" style={{ color: '#aebac1' }}>{now()}</p>
+          </div>
+        </div>
+
         {messages.map((msg, i) => (
           <div key={msg.id || i} className={cn("flex", msg.role === 'user' ? "justify-end" : "justify-start")}>
             <div

@@ -17,27 +17,18 @@ export async function POST(req: Request) {
 
     const { messages, question_text, lesson_objectives } = await req.json();
 
-    // Vercel AI SDK handles multi-turn beautifully but Gemini strictly refuses 
-    // an initial assistant message. We filter it out carefully.
-    const safeMessages = messages.filter((m: any) => m.id !== 'welcome');
-    console.log(`[CHAT-DEBUG] Sending ${safeMessages.length} messages to Gemini. Input: "${messages[messages.length-1]?.content.slice(0, 50)}..."`);
+    console.log(`[CHAT-DEBUG] Processing ${messages.length} messages. User: ${messages[messages.length-1]?.content.slice(0, 30)}`);
 
     const result = streamText({
       model: google('gemini-1.5-flash'),
-      system: `Halkan waxaa jooga Tusmo AI Tutor. Magacaaga waa Tusmo AI.
-Hada waxaad caawineysaa arday cashar baranaya.
-
-MAUDUCA casharka: ${lesson_objectives}
-SU'AASHA ardayga (hadii ay jirto): ${question_text}
+      system: `Magacaaga waa Tusmo AI. Waxaad tahay kaaliyaha ardayda koorsadan: "${lesson_objectives}".
+Current Activity: ${question_text}
 
 CONSTRAINTS:
-1. Ha siin ardayga jawaabta tooska ah haddii ay tahay imtixaan ama weydiin.
-2. Isticmaal habka loo yaqaan 'Socratic Method': weydii su'aalo hage u ah, siiya tilmaamo, fududee hadalka.
-3. Luqaddu waa Somali iyo English oo la isku daray si ardaygu u fahmo.
-4. Ha isticmaalin erayo adag, hadii aad isticmaashidna u turjun.
-
-Jawaabtaadu ha ahaato mid dhiirigelin leh (Encouraging).`,
-      messages: safeMessages,
+1. Ha siin jawaabta tooska ah.
+2. Isticmaal 'Socratic Method' (Su'aalo hage ah).
+3. Luqadda: Somali iyo English.`,
+      messages: messages,
     });
 
     return result.toDataStreamResponse();
