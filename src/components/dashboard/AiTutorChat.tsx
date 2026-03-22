@@ -120,12 +120,16 @@ export function AiTutorChat({ lessonId, lessonObjectives, userName, teacherName,
         {/* Error message bubble */}
         {error && (
           <div className="flex justify-start">
-            <div className="rounded-2xl rounded-tl-sm px-4 py-3 shadow-md bg-red-900/30 border border-red-500/20 max-w-[80%]">
-              <p className="text-red-400 text-xs font-bold uppercase tracking-widest mb-1">Cilad AI:</p>
-              <p className="text-red-200 text-xs leading-relaxed">
-                Waan ka xumahay, cilad farsamo ayaa dhacday. Fadlan hubi in GEMINI_API_KEY uu ku qoran yahay Vercel ama isku day mar kale.
+            <div className="rounded-2xl rounded-tl-sm px-4 py-3 shadow-md bg-red-900/40 border border-red-500/30 max-w-[80%]">
+              <p className="text-red-400 text-[10px] font-black uppercase tracking-widest mb-1">Cilad AI:</p>
+              <p className="text-red-100 text-xs leading-relaxed font-semibold">
+                {error.message.includes('404') || error.message.includes('not found') 
+                  ? "Moodalka gemini-2.5-flash lama helin. Fadlan hubi magaca moodalka."
+                  : error.message.includes('403') || error.message.includes('API_KEY')
+                  ? "API Key-ga Gemini waa khalad ama lama helin. Fadlan hubi Vercel Envs."
+                  : error.message || "Waan ka xumahay, cilad farsamo ayaa dhacday. Isku day mar kale."}
               </p>
-              <p className="text-[10px] mt-1.5 opacity-60 text-left text-red-400/60">{now()}</p>
+              <p className="text-[10px] mt-1.5 opacity-60 text-left text-red-500/60">{now()}</p>
             </div>
           </div>
         )}
