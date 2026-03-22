@@ -732,7 +732,170 @@ export default function CourseBuilderPage() {
         </div>
       </header>
 
-      <main className="max-w-[1700px] mx-auto p-12 grid grid-cols-12 gap-12">
+      <main className="max-w-[1700px] mx-auto p-12">
+        {!activeItem ? (
+          /* Master Roadmap (Full-width) */
+          <div className="max-w-6xl mx-auto space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-1000">
+             <div className="flex flex-col md:flex-row items-center justify-between gap-8 bg-white p-10 rounded-[50px] shadow-2xl shadow-slate-100 border border-slate-50">
+                <div className="space-y-4 text-center md:text-left">
+                   <div className="flex items-center justify-center md:justify-start gap-4">
+                      <div className="h-3 w-12 rounded-full bg-indigo-600" />
+                      <p className="text-[11px] font-black uppercase tracking-[0.5em] text-indigo-600">Curriculum Strategy Lab</p>
+                   </div>
+                   <h2 className="text-5xl font-black text-slate-900 tracking-tight uppercase leading-none">Course Roadmap</h2>
+                   <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">Select a specialized node to begin structural engineering</p>
+                </div>
+                <div className="flex gap-6">
+                   <div className="bg-slate-50 px-10 py-6 rounded-[35px] text-center min-w-[160px] border border-slate-100">
+                      <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Chapters</div>
+                      <div className="text-4xl font-black text-slate-900 leading-none">{course?.sections?.length || 0}</div>
+                   </div>
+                   <div className="bg-indigo-600 px-10 py-6 rounded-[35px] text-center min-w-[160px] shadow-2xl shadow-indigo-100">
+                      <div className="text-[10px] font-black text-indigo-100 uppercase tracking-widest mb-1.5">Total Nodes</div>
+                      <div className="text-4xl font-black text-white leading-none">
+                         {(course?.sections || []).reduce((acc: number, s: any) => acc + (s.lessons?.length || 0) + (s.quizzes?.length || 0), 0)}
+                      </div>
+                   </div>
+                </div>
+             </div>
+
+             <Card className="border-none shadow-[0_80px_150px_-40px_rgba(0,0,0,0.1)] rounded-[70px] overflow-hidden bg-white ring-1 ring-slate-100 p-4">
+                <div className="bg-slate-50/50 rounded-[60px] p-8 lg:p-12">
+                   <div className="overflow-x-auto">
+                      <table className="w-full text-left border-separate border-spacing-y-6">
+                         <thead>
+                            <tr className="text-[12px] font-black text-slate-400 uppercase tracking-[0.3em]">
+                               <th className="px-8 pb-4">Idx</th>
+                               <th className="px-8 pb-4">Chapter Designation</th>
+                               <th className="px-8 pb-4">Construction</th>
+                               <th className="px-8 pb-4">Budgeted Time</th>
+                               <th className="px-8 pb-4 text-right">Engineering</th>
+                            </tr>
+                         </thead>
+                         <tbody>
+                            {(course?.sections || []).map((section: any, idx: number) => {
+                               const totalMinutes = [
+                                  ...(section.lessons || []).map((l: any) => l.duration || 0),
+                                  ...(section.quizzes || []).map((q: any) => q.timeLimit || 0)
+                               ].reduce((a, b) => a + b, 0);
+
+                               return (
+                                  <React.Fragment key={section.id}>
+                                    <tr className="group transition-all">
+                                       <td className="px-8 py-8 bg-white rounded-l-[40px] border-y border-l border-transparent group-hover:border-indigo-100 shadow-sm">
+                                          <div className="h-16 w-16 rounded-[22px] bg-slate-950 text-white shadow-2xl flex items-center justify-center font-black text-xl">
+                                             {idx + 1}
+                                          </div>
+                                       </td>
+                                       <td className="px-8 py-8 bg-white border-y border-transparent group-hover:border-indigo-100 shadow-sm">
+                                          <div className="space-y-2">
+                                             <div className="text-lg font-black text-slate-900 uppercase tracking-tight group-hover:text-indigo-600 transition-colors">{section.title}</div>
+                                             <div className="flex items-center gap-3">
+                                                <Badge className="bg-emerald-50 text-emerald-600 border-none font-black text-[9px] uppercase tracking-widest px-3 py-1.5 rounded-lg">Operational</Badge>
+                                             </div>
+                                          </div>
+                                       </td>
+                                       <td className="px-8 py-8 bg-white border-y border-transparent group-hover:border-indigo-100 shadow-sm">
+                                          <div className="flex gap-4">
+                                             <div className="flex flex-col gap-1.5">
+                                                <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Lectures</span>
+                                                <span className="text-xs font-black text-slate-900">{section.lessons?.length || 0} Nodes</span>
+                                             </div>
+                                             <div className="flex flex-col gap-1.5">
+                                                <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Quizzes</span>
+                                                <span className="text-xs font-black text-slate-900">{section.quizzes?.length || 0} Units</span>
+                                             </div>
+                                          </div>
+                                       </td>
+                                       <td className="px-8 py-8 bg-white border-y border-transparent group-hover:border-indigo-100 shadow-sm">
+                                          <div className="flex items-center gap-4">
+                                             <div className="h-12 w-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                                                <Clock className="h-6 w-6" />
+                                             </div>
+                                             <div>
+                                                <div className="text-lg font-black text-slate-900 tracking-tight leading-none mb-1">{totalMinutes}m</div>
+                                             </div>
+                                          </div>
+                                       </td>
+                                       <td className="px-8 py-8 bg-white rounded-r-[40px] border-y border-r border-transparent group-hover:border-indigo-100 shadow-sm text-right">
+                                          <Button 
+                                             variant="ghost" 
+                                             className={cn(
+                                                "h-16 px-10 rounded-2xl font-black uppercase tracking-widest text-[11px] transition-all gap-4 group/btn shadow-sm",
+                                                expandedSectionId === section.id ? "bg-indigo-600 text-white" : "bg-slate-50 text-slate-400 hover:bg-slate-900 hover:text-white"
+                                             )}
+                                             onClick={() => setExpandedSectionId(expandedSectionId === section.id ? null : section.id)}
+                                          >
+                                             {expandedSectionId === section.id ? "Close Assets" : "Open Assets"} 
+                                             <ChevronDown className={cn("h-5 w-5 transition-transform duration-500", expandedSectionId === section.id && "rotate-180")} />
+                                          </Button>
+                                       </td>
+                                    </tr>
+
+                                    {/* Expanded Node List Inline */}
+                                    {expandedSectionId === section.id && (
+                                       <tr className="animate-in slide-in-from-top-4 duration-500">
+                                          <td colSpan={5} className="px-8 pt-2 pb-10">
+                                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                                {(section.lessons || []).map((lesson: any) => (
+                                                   <button 
+                                                      key={lesson.id}
+                                                      onClick={() => handleSelectItem('lesson', lesson)}
+                                                      className="p-8 bg-white rounded-[40px] border-2 border-slate-50 hover:border-indigo-500 hover:shadow-2xl hover:shadow-indigo-100 transition-all text-left group/node relative overflow-hidden"
+                                                   >
+                                                      <div className="h-12 w-12 rounded-2xl bg-indigo-600 text-white flex items-center justify-center mb-4 shadow-xl shadow-indigo-100">
+                                                         <Video className="h-6 w-6" />
+                                                      </div>
+                                                      <div className="text-[10px] font-black uppercase text-indigo-400 tracking-widest mb-1">Lecture Node</div>
+                                                      <div className="text-base font-black text-slate-900 uppercase group-hover/node:text-indigo-600">{lesson.title}</div>
+                                                   </button>
+                                                ))}
+                                                {(section.quizzes || []).map((quiz: any) => (
+                                                   <button 
+                                                      key={quiz.id}
+                                                      onClick={() => handleSelectItem('quiz', quiz)}
+                                                      className="p-8 bg-white rounded-[40px] border-2 border-slate-50 hover:border-amber-500 hover:shadow-2xl hover:shadow-amber-100 transition-all text-left group/node relative overflow-hidden"
+                                                   >
+                                                      <div className="h-12 w-12 rounded-2xl bg-amber-500 text-white flex items-center justify-center mb-4 shadow-xl shadow-amber-100">
+                                                         <Zap className="h-6 w-6" />
+                                                      </div>
+                                                      <div className="text-[10px] font-black uppercase text-amber-500 tracking-widest mb-1">Assessment Unit</div>
+                                                      <div className="text-base font-black text-slate-900 uppercase group-hover/node:text-amber-600">{quiz.title}</div>
+                                                   </button>
+                                                ))}
+                                                <button 
+                                                   onClick={() => handleAddLesson(section.id)}
+                                                   className="h-full min-h-[160px] border-4 border-dashed border-slate-100 rounded-[40px] flex flex-col items-center justify-center gap-4 text-slate-300 hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50/20 transition-all group"
+                                                >
+                                                   <Plus className="h-12 w-12 group-hover:scale-110 transition-transform" />
+                                                   <span className="text-[11px] font-black uppercase tracking-[0.2em]">Append Node</span>
+                                                </button>
+                                             </div>
+                                          </td>
+                                       </tr>
+                                    )}
+                                  </React.Fragment>
+                               );
+                            })}
+                         </tbody>
+                      </table>
+                   </div>
+                </div>
+             </Card>
+
+             <div className="flex justify-center pt-10">
+                <Button 
+                   onClick={() => setIsAddingSection(true)}
+                   className="h-24 px-20 rounded-[40px] bg-slate-950 text-white font-black uppercase tracking-[0.4em] text-[13px] shadow-[0_40px_80px_-20px_rgba(0,0,0,0.4)] hover:scale-105 active:scale-95 transition-all gap-8 border-b-[10px] border-slate-800"
+                >
+                   <Plus className="h-8 w-8" />
+                   Initialize Strategic Chapter
+                </Button>
+             </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-12 gap-12">
+
         {/* Left: Hierarchy */}
         <div className="col-span-12 lg:col-span-5 space-y-10">
           <div className="flex items-center justify-between bg-white p-6 rounded-[32px] shadow-sm border border-slate-50">
@@ -800,8 +963,7 @@ export default function CourseBuilderPage() {
         </div>
 
         {/* Right: Workspace */}
-        <div className="col-span-12 lg:col-span-7">
-          {activeItem ? (
+        <div className="col-span-12 lg:col-span-8">
             <div className="sticky top-32 animate-in fade-in slide-in-from-right-12 duration-1000">
                <Card className="border-none shadow-[0_40px_100px_-20px_rgba(0,0,0,0.06)] rounded-[60px] overflow-hidden bg-white ring-1 ring-slate-100">
                   <header className="p-12 border-b border-slate-50 flex items-center justify-between bg-white relative">
@@ -1093,132 +1255,10 @@ export default function CourseBuilderPage() {
                   </CardContent>
                </Card>
             </div>
-          ) : (
-            <div className="sticky top-32 animate-in fade-in slide-in-from-right-12 duration-1000">
-               <div className="space-y-8">
-                  <div className="flex items-center justify-between">
-                     <div className="space-y-3">
-                        <div className="flex items-center gap-3">
-                           <div className="h-2 w-10 rounded-full bg-indigo-600" />
-                           <p className="text-[10px] font-black uppercase tracking-[0.4em] text-indigo-600">Curriculum Strategy</p>
-                        </div>
-                        <h2 className="text-4xl font-black text-slate-900 tracking-tight uppercase leading-none">Course Roadmap</h2>
-                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Structural Architecture Overview</p>
-                     </div>
-                     <div className="flex gap-4">
-                        <div className="bg-white px-8 py-5 rounded-[32px] shadow-2xl shadow-indigo-100/20 border border-slate-50 text-center min-w-[140px] group hover:scale-105 transition-transform">
-                           <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Chapters</div>
-                           <div className="text-3xl font-black text-slate-900 leading-none">{course?.sections?.length || 0}</div>
-                        </div>
-                        <div className="bg-white px-8 py-5 rounded-[32px] shadow-2xl shadow-amber-100/20 border border-slate-50 text-center min-w-[140px] group hover:scale-105 transition-transform">
-                           <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Nodes</div>
-                           <div className="text-3xl font-black text-amber-500 leading-none">
-                              {(course?.sections || []).reduce((acc: number, s: any) => acc + (s.lessons?.length || 0) + (s.quizzes?.length || 0), 0)}
-                           </div>
-                        </div>
-                     </div>
-                  </div>
-
-                  <Card className="border-none shadow-[0_60px_100px_-30px_rgba(0,0,0,0.08)] rounded-[60px] overflow-hidden bg-white ring-1 ring-slate-100 p-2">
-                     <div className="bg-slate-50/50 rounded-[54px] p-6 lg:p-10">
-                        <div className="overflow-x-auto">
-                           <table className="w-full text-left border-separate border-spacing-y-4">
-                              <thead>
-                                 <tr className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">
-                                    <th className="px-6 pb-2">Structure</th>
-                                    <th className="px-6 pb-2">Chapter Designation</th>
-                                    <th className="px-6 pb-2">Node Matrix</th>
-                                    <th className="px-6 pb-2">Efficiency</th>
-                                    <th className="px-6 pb-2 text-right">Action</th>
-                                 </tr>
-                              </thead>
-                              <tbody>
-                                 {(course?.sections || []).map((section: any, idx: number) => {
-                                    const totalMinutes = [
-                                       ...(section.lessons || []).map((l: any) => l.duration || 0),
-                                       ...(section.quizzes || []).map((q: any) => q.timeLimit || 0)
-                                    ].reduce((a, b) => a + b, 0);
-
-                                    return (
-                                       <tr key={section.id} className="group transition-all">
-                                          <td className="px-6 py-6 bg-white rounded-l-[32px] border-y border-l border-transparent group-hover:border-slate-100 shadow-sm">
-                                             <div className="h-14 w-14 rounded-2xl bg-slate-950 text-white shadow-xl flex items-center justify-center font-black text-lg">
-                                                {idx + 1}
-                                             </div>
-                                          </td>
-                                          <td className="px-6 py-6 bg-white border-y border-transparent group-hover:border-slate-100 shadow-sm">
-                                             <div>
-                                                <div className="text-sm font-black text-slate-900 uppercase tracking-tight mb-1.5 group-hover:text-indigo-600 transition-colors">{section.title}</div>
-                                                <div className="flex items-center gap-2">
-                                                   <Badge className="bg-green-50 text-green-600 border-none font-black text-[8px] uppercase tracking-widest px-2.5 py-1 rounded-md">Architecturally Valid</Badge>
-                                                   <span className="text-[8px] font-black text-slate-300 uppercase tracking-widest">• Updated Just Now</span>
-                                                </div>
-                                             </div>
-                                          </td>
-                                          <td className="px-6 py-6 bg-white border-y border-transparent group-hover:border-slate-100 shadow-sm">
-                                             <div className="grid grid-cols-1 gap-1">
-                                                <div className="flex items-center gap-2">
-                                                   <div className="h-1.5 w-1.5 rounded-full bg-indigo-500" />
-                                                   <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{section.lessons?.length || 0} Lectures</span>
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                   <div className="h-1.5 w-1.5 rounded-full bg-amber-500" />
-                                                   <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{section.quizzes?.length || 0} Assessments</span>
-                                                </div>
-                                             </div>
-                                          </td>
-                                          <td className="px-6 py-6 bg-white border-y border-transparent group-hover:border-slate-100 shadow-sm">
-                                             <div className="flex items-center gap-3">
-                                                <div className="h-10 w-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-indigo-50 group-hover:text-indigo-500 transition-colors">
-                                                   <Clock className="h-5 w-5" />
-                                                </div>
-                                                <div>
-                                                   <div className="text-sm font-black text-slate-900 tracking-tight leading-none mb-1">{totalMinutes}m</div>
-                                                   <div className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Allocated</div>
-                                                </div>
-                                             </div>
-                                          </td>
-                                          <td className="px-6 py-6 bg-white rounded-r-[32px] border-y border-r border-transparent group-hover:border-slate-100 shadow-sm text-right">
-                                             <Button 
-                                                variant="ghost" 
-                                                className="h-14 px-8 rounded-2xl bg-slate-50 hover:bg-slate-950 hover:text-white text-slate-400 font-black uppercase tracking-widest text-[9px] transition-all gap-2"
-                                                onClick={() => setExpandedSectionId(section.id)}
-                                             >
-                                                Configure <ArrowRight className="h-4 w-4" />
-                                             </Button>
-                                          </td>
-                                       </tr>
-                                    );
-                                 })}
-
-                                 {/* Empty State Table Row */}
-                                 {(!course?.sections || course.sections.length === 0) && (
-                                    <tr>
-                                       <td colSpan={5} className="py-24 text-center">
-                                          <div className="h-24 w-24 rounded-[40px] bg-white shadow-xl flex items-center justify-center mx-auto mb-8 border border-slate-50">
-                                             <LayoutGrid className="h-10 w-10 text-slate-200" />
-                                          </div>
-                                          <h5 className="text-xl font-black text-slate-900 uppercase tracking-tight mb-2">Architectural Void Detected</h5>
-                                          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-300">Start by deploying the first structural chapter node</p>
-                                          <Button 
-                                             onClick={() => setIsAddingSection(true)} 
-                                             className="mt-8 h-14 rounded-2xl bg-indigo-600 px-10 text-white font-black uppercase tracking-widest text-[10px]"
-                                          >
-                                             Initialize Infrastructure
-                                          </Button>
-                                       </td>
-                                    </tr>
-                                 )}
-                              </tbody>
-                           </table>
-                        </div>
-                     </div>
-                  </Card>
-               </div>
-            </div>
-          )}
+          </div>
         </div>
-      </main>
+      )}
+    </main>
 
       {/* AI Content Wizard Modal (Global) */}
       <Dialog open={isAIModalOpen} onOpenChange={setIsAIModalOpen}>
