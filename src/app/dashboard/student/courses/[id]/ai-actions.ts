@@ -236,9 +236,13 @@ export async function performSmartAIAction(lessonId: string, task: 'explain' | '
     const lesson = await prisma.lesson.findUnique({
       where: { id: lessonId },
       select: { title: true, content: true }
-    })
+    });
 
-    const context = lesson?.content || "No detailed context available yet.";
+    if (!lesson) return { error: "Could not find the lesson data to provide context." };
+
+    // Truncate context for performance if needed
+    const contextBody = lesson.content?.substring(0, 10000) || "";
+    const context = `Lesson Title: ${lesson.title}. \nContent: ${contextBody}`;
     
     let prompt = "";
     if (task === 'explain') {
@@ -251,7 +255,6 @@ export async function performSmartAIAction(lessonId: string, task: 'explain' | '
 
     const res = await callGemini(prompt, context);
 
-
     if (res.text) {
       return { result: res.text };
     }
@@ -259,6 +262,6 @@ export async function performSmartAIAction(lessonId: string, task: 'explain' | '
     return { error: res.error || "AI was unable to process this specific fragment." };
   } catch (error: any) {
     console.error("Smart AI Action Error:", error)
-    return { error: `Smart AI Error: ${error.message}` }
+    return { error: `Smart AI Error: ${error.message || "Unknown error occurred"}` }
   }
 }
