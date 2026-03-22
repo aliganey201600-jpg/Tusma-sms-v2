@@ -275,14 +275,15 @@ export async function performSmartAIAction(lessonId: string, task: 'explain' | '
     
     let prompt = "";
     if (task === 'explain') {
-      prompt = `Provide a thorough but simple explanation for the following text. Break down any complex terminology and provide a relatable example if possible. Selected text: "${text}"`;
+      prompt = `Sharaxaad kooban oo cad ka bixi qoraalkan soo socda, adigoo isticmaalaya luqadda Soomaaliga. Haddii ay jiraan erayo adag, si fudud u sharax oo tusaale soo qaado. Qoraalka la doortay: "${text}"`;
     } else if (task === 'summarize') {
-      prompt = `Summarize the following text concisely while preserving the most important meaning. Keep it under two sentences. Selected text: "${text}"`;
+      prompt = `Soo koob qoraalkan soo socda adigoo isticmaalaya luqadda Soomaaliga. Ka dhig mid kooban oo nuxurka muhiimka ah xambaarsan. Qoraalka la doortay: "${text}"`;
     } else if (task === 'translate') {
-      prompt = `Translate the following text into Somali. Ensure the translation is natural, grammatically correct, and preserves the educational meaning. Selected text: "${text}"`;
+      prompt = `U turjum qoraalkan soo socda af Soomaali sax ah oo dabiici ah. Qoraalka la doortay: "${text}"`;
     }
 
     const res = await callGemini(prompt, context);
+
 
     if (res.text) {
       return { result: res.text };
