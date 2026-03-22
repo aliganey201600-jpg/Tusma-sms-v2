@@ -20,7 +20,7 @@ export async function POST(req: Request) {
     console.log(`[CHAT-DEBUG] Processing ${messages.length} messages. User: ${messages[messages.length-1]?.content.slice(0, 30)}`);
 
     const result = streamText({
-      model: google('gemini-1.5-flash'),
+      model: google('gemini-2.5-flash'),
       system: `Magacaaga waa Tusmo AI. Waxaad tahay kaaliyaha ardayda koorsadan: "${lesson_objectives}".
 Current Activity: ${question_text}
 
