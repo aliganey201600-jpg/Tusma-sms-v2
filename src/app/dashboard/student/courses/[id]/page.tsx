@@ -419,8 +419,12 @@ function SmartSelectionTool({
     <>
       {/* 1. BOTTOM FLOATING ACTION BAR (The Trigger) */}
       {!activeTask && (
-        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[300] animate-in slide-in-from-bottom-10 duration-500">
+        <div 
+          id="ai-toolkit-container"
+          className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[300] animate-in slide-in-from-bottom-10 duration-500"
+        >
            <div className="bg-slate-950/90 backdrop-blur-2xl border border-white/20 shadow-[0_20px_50px_rgba(0,0,0,0.5)] rounded-full px-2 py-2 flex items-center gap-2">
+
               <div className="pl-4 pr-2 border-r border-white/10 hidden sm:block">
                  <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Tusmo AI</p>
               </div>
@@ -445,7 +449,11 @@ function SmartSelectionTool({
 
       {/* 2. FULL SCREEN RESULT OVERLAY (Unified Design) */}
       {activeTask && (
-        <div className="fixed inset-0 z-[400] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4 animate-in fade-in duration-300">
+        <div 
+          id="ai-toolkit-container"
+          className="fixed inset-0 z-[400] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4 animate-in fade-in duration-300"
+        >
+
            <div className="bg-slate-900 w-full max-w-2xl rounded-t-[2.5rem] sm:rounded-[2.5rem] border border-white/10 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
               {/* Header */}
               <div className="p-8 border-b border-white/5 flex items-center justify-between bg-slate-950/50">
