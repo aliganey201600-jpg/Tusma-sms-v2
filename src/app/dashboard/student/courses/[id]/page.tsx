@@ -32,7 +32,13 @@ import {
   issueCertificate,
   getCertificate
 } from "../../../admin/courses/builder-actions"
-import { generateLessonSummary, askAIQuestion, performSmartAIAction } from "./ai-actions"
+import { 
+  generateLessonSummary, 
+  askAIQuestion, 
+  performSmartAIAction,
+  generateFeedbackSummary 
+} from "./ai-actions"
+import { AIQuizTutor } from "@/components/dashboard/AIQuizTutor"
 import { useParams, useRouter } from "next/navigation"
 import { useCurrentUser } from "@/hooks/use-current-user"
 import { LessonDiscussions } from "./lesson-discussions"
@@ -93,6 +99,7 @@ interface BaseQuiz {
   order: number;
   sectionId?: string;
   description?: string;
+  lesson?: { id: string; title: string; objectives?: string };
 }
 
 interface Quiz extends BaseQuiz {
@@ -566,6 +573,10 @@ export default function StudentCourseViewerPage() {
   const [aiQuestion, setAiQuestion] = React.useState("")
   const [aiError, setAiError] = React.useState<string | null>(null)
 
+  // AI Quiz Tutor & Feedback
+  const [quizFeedbackSummary, setQuizFeedbackSummary] = React.useState<string | null>(null)
+  const [feedbackLoading, setFeedbackLoading] = React.useState(false)
+
   // Selection AI State
   const [selection, setSelection] = React.useState<{ text: string; position: { x: number; y: number } | null }>({ text: "", position: null })
 
@@ -737,6 +748,16 @@ export default function StudentCourseViewerPage() {
     setScore(finalScore)
     setSubmitted(true)
     setTimeLeft(null)
+    setQuizFeedbackSummary(null)
+
+    // Generate AI Feedback Summary
+    if (activeQuiz) {
+      setFeedbackLoading(true)
+      generateFeedbackSummary(activeQuiz.title, feedback).then(res => {
+        if (res.text) setQuizFeedbackSummary(res.text)
+        setFeedbackLoading(false)
+      }).catch(() => setFeedbackLoading(false))
+    }
 
     if (user?.studentId && activeQuiz) {
       await saveQuizAttempt({
@@ -896,6 +917,8 @@ export default function StudentCourseViewerPage() {
       setMode("quiz")
       setViolations(0)
       setShowViolationWarning(false)
+      setQuizFeedbackSummary(null)
+      setFeedbackLoading(false)
       startTimeRef.current = Date.now()
     }
     setQuizLoading(false)
@@ -912,6 +935,8 @@ export default function StudentCourseViewerPage() {
     setQuizViewState("overview")
     setViolations(0)
     setShowViolationWarning(false)
+    setQuizFeedbackSummary(null)
+    setFeedbackLoading(false)
     startTimeRef.current = Date.now()
   }
 
@@ -1082,6 +1107,37 @@ export default function StudentCourseViewerPage() {
                          <Badge variant="outline" className="rounded-full px-4 text-[10px] font-bold text-slate-400 border-slate-100">Feedback Breakdown</Badge>
                       </div>
 
+                      {/* AI Feedback Summary Section */}
+                      {(feedbackLoading || quizFeedbackSummary) && (
+                        <div className="bg-slate-950 rounded-[2.5rem] p-8 md:p-12 text-white relative overflow-hidden shadow-2xl border border-white/10 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+                          <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-indigo-500/10 to-transparent pointer-events-none" />
+                          <div className="flex flex-col md:flex-row gap-8 items-start relative z-10">
+                            <div className="h-14 w-14 rounded-2xl bg-indigo-600 flex items-center justify-center text-white shadow-xl shadow-indigo-500/30 shrink-0">
+                              <Sparkles className="h-8 w-8" />
+                            </div>
+                            <div className="space-y-4 flex-1">
+                              <div>
+                                <h3 className="text-xl font-black uppercase tracking-tighter">Tusmo AI Performance Analytics</h3>
+                                <p className="text-[11px] font-black text-indigo-400 uppercase tracking-[.3em] mt-1">Intelligent Pedagogical Feedback</p>
+                              </div>
+                              
+                              {feedbackLoading ? (
+                                  <div className="space-y-3 pt-4">
+                                     <div className="h-3 w-full bg-white/5 rounded-full animate-pulse" />
+                                     <div className="h-3 w-[90%] bg-white/5 rounded-full animate-pulse" />
+                                     <div className="h-3 w-[80%] bg-white/5 rounded-full animate-pulse" />
+                                     <p className="text-[9px] font-black text-indigo-500/50 uppercase tracking-widest animate-pulse mt-4">AI Tutor is analyzing your conceptual gaps...</p>
+                                  </div>
+                              ) : (
+                                  <div className="text-sm md:text-base leading-relaxed text-slate-200 font-medium whitespace-pre-wrap border-l-2 border-indigo-500/30 pl-6 py-2">
+                                    {quizFeedbackSummary}
+                                  </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
                       <div className="grid gap-4">
                         {results.map((res, idx) => (
                           <div key={idx} className={cn("group rounded-[2rem] border-2 transition-all p-6 md:p-10", res.manual ? "bg-amber-50/10 border-amber-100 hover:border-amber-200" : res.isCorrect ? "bg-white border-emerald-50 hover:border-emerald-100" : "bg-white border-red-50 hover:border-red-100")}>
@@ -1227,7 +1283,12 @@ export default function StudentCourseViewerPage() {
                           <span className="h-1.5 w-1.5 rounded-full bg-slate-200" />
                           <span className="text-[10px] font-black text-slate-400 uppercase tracking-[.2em]">{sectionMeta?.label || 'Question'}</span>
                         </div>
-                        <h2 className="text-2xl md:text-5xl font-black text-slate-900 tracking-tight leading-[1.1]">{q?.question}</h2>
+                        <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
+                           <h2 className="text-2xl md:text-5xl font-black text-slate-900 tracking-tight leading-[1.1] flex-1">{q?.question}</h2>
+                           <div className="shrink-0 pt-2">
+                             <AIQuizTutor questionText={q?.question} lessonObjectives={activeQuiz?.lesson?.objectives || ""} />
+                           </div>
+                        </div>
                       </div>
 
                       <div className="space-y-4">

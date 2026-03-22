@@ -5,12 +5,12 @@ import prisma from "@/lib/prisma"
 
 async function callGemini(prompt: string, context: string) {
   const key = process.env.GEMINI_API_KEY;
-  if (!key) return { error: "XAQIIJI: Furaha AI-ga (API KEY) laguma helin Vercel. Fadlan ku dar Settings-ka." };
+  if (!key) return { error: "XAQIIJI: Furaha AI-ga (API KEY) laguma helin Vercel." };
 
   try {
-    // Force latest production model
     const genAI = new GoogleGenerativeAI(key);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
+    // Use the specific model that is working for the rest of the app
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     const result = await model.generateContent({
       contents: [{ role: "user", parts: [{ text: `Lesson Context: ${context}\n\nTask: ${prompt}\n\nLanguage: Somali.` }] }]
@@ -20,17 +20,10 @@ async function callGemini(prompt: string, context: string) {
     return { text: response.text() };
   } catch (error: any) {
     console.error("[AI-FINAL-ERROR]:", error.message);
-    
-    // Check for specific common fails
-    if (error.message.includes("404") || error.message.includes("not found")) {
-      return { 
-        error: "Cilaad: Key-gaaga ma haysto ogolaansho Model-ka (404). \n\nFADLAN: Tag aistudio.google.com, sameey 'API Key' cusub, ka dibna ku dar Vercel Settings." 
-      };
-    }
-    
-    return { error: `Cilad Farsamo: ${error.message}` };
+    return { error: `Cilad AI: ${error.message}` };
   }
 }
+
 
 
 
@@ -260,3 +253,34 @@ export async function performSmartAIAction(lessonId: string, task: 'explain' | '
     return { error: `Smart AI Error: ${error.message || "Unknown error occurred"}` }
   }
 }
+
+export async function generateFeedbackSummary(quizTitle: string, results: any[]) {
+  console.log(`AI Action: Generating feedback summary for ${quizTitle}`)
+  
+  // Only context for questions they got wrong
+  const wrongQuestions = results.filter(r => !r.isCorrect && !r.manual).map(r => ({
+    question: r.question,
+    answer: r.studentAnswer,
+    correct: r.correctAnswer
+  }));
+
+  if (wrongQuestions.length === 0) {
+    return { text: "Masha'Allah! Waxaad si weyn ugu guulaysatay dhammaan su'aalaha. Waxaad muujisay faham aad u sarreeya oo ah mawduucan. Keep up the great work!" };
+  }
+
+  const prompt = `Based on these results from a quiz titled "${quizTitle}", provide a pedagogical feedback summary for the student.
+  Focus on identifying conceptual gaps and explaining WHY certain ideas might be confusing. 
+  DO NOT just list the correct answers. 
+  Encourage them to review specific areas.
+  Respond in a mix of Somali and English for clarity and impact.
+  
+  Wrong Questions Data: ${JSON.stringify(wrongQuestions)}`;
+
+  try {
+     const res = await callGemini(prompt, "Student Quiz Performance Record");
+     return res;
+  } catch (err: any) {
+     return { error: err.message };
+  }
+}
+

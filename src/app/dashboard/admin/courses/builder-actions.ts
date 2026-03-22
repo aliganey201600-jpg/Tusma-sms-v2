@@ -175,7 +175,7 @@ export async function getQuizWithQuestions(quizId: string, studentId?: string) {
           include: { options: { orderBy: { order: 'asc' } } }
         },
         section: { select: { courseId: true } },
-        lesson: { select: { id: true, title: true } }, 
+        lesson: { select: { id: true, title: true, objectives: true } }, 
         attempts: studentId ? {
           where: { studentId },
           orderBy: { createdAt: 'desc' },
