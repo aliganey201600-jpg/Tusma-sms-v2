@@ -840,7 +840,7 @@ export default function CourseBuilderPage() {
                                                 {(section.lessons || []).map((lesson: any) => (
                                                    <button 
                                                       key={lesson.id}
-                                                      onClick={() => handleSelectItem('lesson', lesson)}
+                                                      onClick={() => handleSelectItem({ type: 'lesson', data: lesson })}
                                                       className="p-8 bg-white rounded-[40px] border-2 border-slate-50 hover:border-indigo-500 hover:shadow-2xl hover:shadow-indigo-100 transition-all text-left group/node relative overflow-hidden"
                                                    >
                                                       <div className="h-12 w-12 rounded-2xl bg-indigo-600 text-white flex items-center justify-center mb-4 shadow-xl shadow-indigo-100">
@@ -853,7 +853,7 @@ export default function CourseBuilderPage() {
                                                 {(section.quizzes || []).map((quiz: any) => (
                                                    <button 
                                                       key={quiz.id}
-                                                      onClick={() => handleSelectItem('quiz', quiz)}
+                                                      onClick={() => handleSelectItem({ type: 'quiz', data: quiz })}
                                                       className="p-8 bg-white rounded-[40px] border-2 border-slate-50 hover:border-amber-500 hover:shadow-2xl hover:shadow-amber-100 transition-all text-left group/node relative overflow-hidden"
                                                    >
                                                       <div className="h-12 w-12 rounded-2xl bg-amber-500 text-white flex items-center justify-center mb-4 shadow-xl shadow-amber-100">
