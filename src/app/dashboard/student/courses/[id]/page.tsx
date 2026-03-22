@@ -394,7 +394,7 @@ function SmartSelectionTool({
   const [loading, setLoading] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
   const [activeTask, setActiveTask] = React.useState<'explain' | 'summarize' | 'translate' | null>(null)
-  const [showLangOptions, setShowLangOptions] = React.useState(false)
+  const [pendingTask, setPendingTask] = React.useState<'explain' | 'summarize' | 'translate' | null>(null)
 
   const handleAction = async (task: 'explain' | 'summarize' | 'translate', targetLang: string = "Somali") => {
     // Diagnostic alert to confirm the button click is reaching the client logic
@@ -406,7 +406,7 @@ function SmartSelectionTool({
     setError(null)
     setResult(null)
     setActiveTask(task)
-    setShowLangOptions(false)
+    setPendingTask(null)
     
     try {
       const res = await performSmartAIAction(lessonId, task, text, targetLang)
@@ -438,32 +438,32 @@ function SmartSelectionTool({
                  <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Tusmo AI</p>
               </div>
 
-              {!showLangOptions ? (
+              {!pendingTask ? (
                 <>
-                  <button onClick={() => handleAction('explain')} className="flex items-center gap-2 px-6 py-3 rounded-full hover:bg-white/10 text-white transition-all active:scale-95">
+                  <button onClick={() => setPendingTask('explain')} className="flex items-center gap-2 px-6 py-3 rounded-full hover:bg-white/10 text-white transition-all active:scale-95">
                     <Search className="h-4 w-4 text-indigo-400" />
                     <span className="text-[11px] font-bold uppercase tracking-tight">Fasir</span>
                   </button>
-                  <button onClick={() => handleAction('summarize')} className="flex items-center gap-2 px-6 py-3 rounded-full hover:bg-white/10 text-white transition-all active:scale-95">
+                  <button onClick={() => setPendingTask('summarize')} className="flex items-center gap-2 px-6 py-3 rounded-full hover:bg-white/10 text-white transition-all active:scale-95">
                     <Hash className="h-4 w-4 text-amber-400" />
                     <span className="text-[11px] font-bold uppercase tracking-tight">Koob</span>
                   </button>
-                  <button onClick={() => setShowLangOptions(true)} className="flex items-center gap-2 px-6 py-3 rounded-full hover:bg-white/10 text-white transition-all active:scale-95">
+                  <button onClick={() => setPendingTask('translate')} className="flex items-center gap-2 px-6 py-3 rounded-full hover:bg-white/10 text-white transition-all active:scale-95">
                     <Languages className="h-4 w-4 text-emerald-400" />
                     <span className="text-[11px] font-bold uppercase tracking-tight">Turjun</span>
                   </button>
                 </>
               ) : (
                 <div className="flex items-center animate-in slide-in-from-right-4 duration-300">
-                  <button onClick={() => setShowLangOptions(false)} className="p-3 hover:bg-white/10 rounded-full text-slate-500 hover:text-white mr-2">
+                  <button onClick={() => setPendingTask(null)} className="p-3 hover:bg-white/10 rounded-full text-slate-500 hover:text-white mr-2">
                     <ArrowRight className="h-4 w-4 rotate-180" />
                   </button>
                   <div className="flex bg-slate-900 rounded-full p-1 border border-white/10 gap-1 mr-2">
                     {['Somali', 'Arabic', 'English'].map((lang) => (
                       <button 
                         key={lang}
-                        onClick={() => handleAction('translate', lang)}
-                        className="px-4 py-2 rounded-full hover:bg-white/10 text-[10px] font-black uppercase tracking-widest text-emerald-400 transition-all active:scale-95"
+                        onClick={() => handleAction(pendingTask, lang)}
+                        className="px-4 py-2 rounded-full hover:bg-white/10 text-[10px] font-black uppercase tracking-widest text-indigo-400 transition-all active:scale-95"
                       >
                         {lang}
                       </button>
@@ -478,6 +478,7 @@ function SmartSelectionTool({
            </div>
         </div>
       )}
+
 
       {/* 2. FULL SCREEN RESULT OVERLAY (Unified Design) */}
       {activeTask && (
