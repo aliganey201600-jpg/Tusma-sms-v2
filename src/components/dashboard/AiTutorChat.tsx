@@ -43,8 +43,8 @@ export function AiTutorChat({ lessonId, lessonObjectives, userName }: AiTutorCha
 
   return (
     <div
-      className="flex flex-col rounded-2xl overflow-hidden"
-      style={{ height: '70vh', background: '#0b141a' }}
+      className="flex-1 flex flex-col h-full w-full overflow-hidden"
+      style={{ background: '#0b141a' }}
     >
       {/* WhatsApp Header */}
       <div className="flex items-center gap-3 px-4 py-3 shrink-0" style={{ background: '#202c33' }}>

@@ -1710,9 +1710,10 @@ export default function StudentCourseViewerPage() {
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto pb-32">
-          <div className="max-w-4xl mx-auto px-6 py-10 space-y-10">
+        <div className={cn("flex-1 overflow-y-auto flex flex-col", activeLessonTab !== "ai" && "pb-32")}>
+          <div className={cn("mx-auto flex-1 flex flex-col", activeLessonTab === "ai" ? "h-full w-full max-w-none p-0" : "max-w-4xl px-6 py-10 space-y-10")}>
             {/* ── Lesson Banner ── */}
+            {activeLessonTab !== "ai" && (
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-indigo-600 font-black text-[10px] uppercase tracking-[0.2em] animate-in fade-in slide-in-from-left-4 duration-500">
                 <Layers className="h-3 w-3" />
@@ -1724,8 +1725,10 @@ export default function StudentCourseViewerPage() {
                 {activeLesson?.title}
               </h1>
             </div>
+            )}
 
             {/* ── Learning Outcomes & Objectives ── */}
+            {activeLessonTab !== "ai" && (
             <div className="bg-white rounded-[2.5rem] p-8 md:p-12 border-2 border-slate-50 shadow-2xl shadow-slate-100/50 relative overflow-hidden group animate-in zoom-in-95 duration-700">
                <div className="relative z-10 space-y-8">
                 <div className="flex items-center gap-4">
@@ -1753,9 +1756,10 @@ export default function StudentCourseViewerPage() {
                 </div>
               </div>
             </div>
+            )}
 
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-              <div className="flex items-center border-b border-slate-100">
+            <div className={cn("bg-white overflow-hidden flex flex-col flex-1", activeLessonTab !== "ai" && "rounded-2xl shadow-sm border border-slate-100")}>
+              <div className="flex items-center border-b border-slate-100 shrink-0">
                 {[
                   { key: "body", label: "Lesson Body", icon: BookOpen },
                   { key: "materials", label: "Materials", icon: FileText },
@@ -1766,7 +1770,7 @@ export default function StudentCourseViewerPage() {
                   <button key={tab.key} onClick={() => setActiveLessonTab(tab.key)} className={cn("flex-1 flex items-center justify-center gap-2 py-4 px-3 text-xs font-bold uppercase tracking-wider transition-all border-b-2", activeLessonTab === tab.key ? "border-indigo-600 text-indigo-600 bg-indigo-50/40" : "border-transparent text-slate-400 hover:text-slate-600 hover:bg-slate-50")}><tab.icon className="h-4 w-4" /><span className="hidden sm:inline">{tab.label}</span></button>
                 ))}
               </div>
-              <div className="p-8">
+              <div className={cn("flex-1 flex flex-col", activeLessonTab !== "ai" && "p-8")}>
                 {activeLessonTab === "body" && (
                   <div className="space-y-8">
                     <div className="flex items-center justify-between">
