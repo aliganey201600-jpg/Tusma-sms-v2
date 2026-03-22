@@ -404,10 +404,11 @@ function SmartSelectionTool({
 
   return (
     <div 
+      id="ai-toolkit-container"
       className="fixed z-[200] animate-in fade-in zoom-in-95 duration-200"
       style={{ left: position.x, top: position.y }}
     >
-      <div className="bg-slate-950 border border-slate-800 shadow-2xl rounded-3xl p-2 flex flex-col gap-1 min-w-[220px] max-w-[340px] -translate-x-1/2 -translate-y-full mb-6">
+      <div className="bg-slate-950 border border-slate-800 shadow-2xl rounded-3xl p-2 flex flex-col gap-1 min-w-[220px] max-w-[340px] -translate-x-1/2 -translate-y-full mb-6 relative">
         {!activeTask ? (
           <div className="flex flex-col gap-1">
              <div className="px-4 py-3 border-b border-white/5 flex items-center justify-between">
@@ -542,14 +543,18 @@ export default function StudentCourseViewerPage() {
   // Selection AI State
   const [selection, setSelection] = React.useState<{ text: string; position: { x: number; y: number } | null }>({ text: "", position: null })
 
-  const handleSelectionChange = () => {
+  const handleSelectionChange = (e: MouseEvent) => {
+    // If clicking inside the toolkit, do nothing and let the toolkit handle its own clicks
+    if ((e.target as HTMLElement).closest('#ai-toolkit-container')) {
+      return
+    }
+
     const s = window.getSelection()
-    if (!s || s.rangeCount === 0 || s.toString().trim() === "") {
+    if (!s || s.rangeCount === 0 || s.toString().trim() === "" || s.toString().trim().length < 2) {
         if (selection.position) setSelection({ text: "", position: null })
         return
     }
     
-    // Only trigger if selection is in the lesson content area
     const range = s.getRangeAt(0)
     const rect = range.getBoundingClientRect()
     
