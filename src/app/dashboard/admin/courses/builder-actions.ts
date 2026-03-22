@@ -464,18 +464,26 @@ export async function getCourseProgress(courseId: string, studentId: string) {
 
 export async function updateLastAccessed(courseId: string, studentId: string, lessonId: string) {
   try {
-    await prisma.enrollment.update({
+    // Upsert to handle cases where enrollment record doesn't exist yet
+    await prisma.enrollment.upsert({
       where: {
         studentId_courseId: { studentId, courseId }
       },
-      data: {
+      update: {
+        lastAccessedAt: new Date(),
+        lastLessonId: lessonId
+      },
+      create: {
+        studentId,
+        courseId,
+        lastAccessedAt: new Date(),
         lastLessonId: lessonId,
-        lastAccessedAt: new Date()
+        progress: 0 // Default progress for new enrollment
       }
     })
     return { success: true }
   } catch (error) {
-    console.error("Error updating last accessed:", error)
+    console.error("DEBUG: Silent LastAccessed error", error)
     return { success: false }
   }
 }

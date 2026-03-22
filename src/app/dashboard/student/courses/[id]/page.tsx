@@ -394,13 +394,23 @@ function SmartSelectionTool({
     setResult(null)
     setActiveTask(task)
     try {
+      console.log(`[AI-DIAGNOSTIC] Triggering ${task} for lesson ${lessonId}...`);
       const res = await performSmartAIAction(lessonId, task, text)
-      if (res.error) setError(res.error)
-      else if (res.result) setResult(res.result)
+      console.log(`[AI-DIAGNOSTIC] Server response:`, res);
+      if (res.error) {
+         setError(res.error)
+         console.error(`[AI-DIAGNOSTIC] Error reported:`, res.error);
+      } else if (res.result) {
+         setResult(res.result)
+      }
+    } catch (err: any) {
+      console.error(`[AI-DIAGNOSTIC] Fatal client-side error:`, err);
+      setError(`Critical communication failure: ${err.message}`)
     } finally {
       setLoading(false)
     }
   }
+
 
   if (!position) return null
 
@@ -466,7 +476,7 @@ function SmartSelectionTool({
                          {activeTask === 'translate' && <Languages className="h-6 w-6" />}
                       </div>
                       <div>
-                         <h3 className="text-xl font-black text-white uppercase tracking-tight">AI {activeTask} Hub</h3>
+                         <h3 className="text-xl font-black text-white uppercase tracking-tight">AI Hub v3.1.5-PRO</h3>
                          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mt-1">Smart Academic Assistant</p>
                       </div>
                    </div>
