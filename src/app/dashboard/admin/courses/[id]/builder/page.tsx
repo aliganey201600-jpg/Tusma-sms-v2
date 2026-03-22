@@ -307,7 +307,7 @@ function SortableSection({
             <div className="flex items-center gap-3" onClick={e => e.stopPropagation()}>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-10 w-10 text-slate-200 hover:text-indigo-500 hover:bg-indigo-50 rounded-[14px] transition-all opacity-0 group-hover/header:opacity-100">
+                  <Button variant="ghost" size="icon" className="h-10 w-10 text-slate-200 hover:text-indigo-500 hover:bg-indigo-50 rounded-[14px] transition-all">
                     <MoreVertical className="h-5 w-5" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -922,7 +922,7 @@ export default function CourseBuilderPage() {
                                                       <div className="absolute top-4 right-4">
                                                          <DropdownMenu>
                                                             <DropdownMenuTrigger asChild>
-                                                               <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-200 hover:text-indigo-600 hover:bg-white rounded-lg opacity-0 group-hover/node:opacity-100 transition-all">
+                                                               <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-300 hover:text-indigo-600 hover:bg-white rounded-lg transition-all">
                                                                   <MoreVertical className="h-4 w-4" />
                                                                </Button>
                                                             </DropdownMenuTrigger>
@@ -961,7 +961,7 @@ export default function CourseBuilderPage() {
                                                       <div className="absolute top-4 right-4">
                                                          <DropdownMenu>
                                                             <DropdownMenuTrigger asChild>
-                                                               <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-200 hover:text-amber-600 hover:bg-white rounded-lg opacity-0 group-hover/node:opacity-100 transition-all">
+                                                               <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-300 hover:text-amber-600 hover:bg-white rounded-lg transition-all">
                                                                   <MoreVertical className="h-4 w-4" />
                                                                </Button>
                                                             </DropdownMenuTrigger>
