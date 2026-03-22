@@ -9,12 +9,13 @@ interface AiTutorChatProps {
   lessonId: string
   lessonObjectives: string
   userName: string
+  teacherName?: string
   onClose?: () => void
 }
 
 const now = () => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 
-export function AiTutorChat({ lessonId, lessonObjectives, userName, onClose }: AiTutorChatProps) {
+export function AiTutorChat({ lessonId, lessonObjectives, userName, teacherName, onClose }: AiTutorChatProps) {
   const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
     api: "/api/chat",
     body: {
@@ -51,7 +52,7 @@ export function AiTutorChat({ lessonId, lessonObjectives, userName, onClose }: A
       <div className="flex items-center gap-3 px-4 py-3 shrink-0" style={{ background: '#202c33' }}>
         <div className="h-10 w-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-black text-sm shrink-0">AI</div>
         <div className="flex-1 min-w-0">
-          <p className="text-white font-semibold text-sm leading-tight">Tusmo AI Tutor</p>
+          <p className="text-white font-semibold text-sm leading-tight">{teacherName || "Tusmo AI Tutor"}</p>
           <p className="text-[11px] leading-tight" style={{ color: isLoading ? '#f59e0b' : '#25d366' }}>
             {isLoading ? 'Wuu qorayo...' : 'Online'}
           </p>

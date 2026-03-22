@@ -1898,11 +1898,13 @@ export default function StudentCourseViewerPage() {
           <div className="fixed inset-0 z-[200] bg-[#0b141a] flex flex-col animate-in fade-in duration-300">
              {(() => {
                 const firstName = user?.firstName || "Ardayga";
+                const teacherName = course?.teacher ? `${course.teacher.firstName} ${course.teacher.lastName}` : "Tusmo AI Tutor";
                 return (
                   <AiTutorChat
                     lessonId={activeLesson?.id || ""}
                     lessonObjectives={activeLesson?.objectives || ""}
                     userName={firstName}
+                    teacherName={teacherName}
                     onClose={() => setActiveLessonTab("body")}
                   />
                 );

@@ -16,7 +16,7 @@ export async function POST(req: Request) {
     const safeMessages = messages.filter((m: any) => m.id !== 'welcome');
 
     const result = streamText({
-      model: google('gemini-2.5-flash'),
+      model: google('gemini-1.5-flash'),
       system: `You are an AI Tutor for a School Management System. Your goal is to guide students through quiz questions or lesson concepts.
 
 Constraints: Never give the final answer directly during an active quiz. Use the Socratic Method: ask guiding questions, provide hints, simplify complex terminology, and explain the underlying concepts (e.g., historical context or logic rules).
