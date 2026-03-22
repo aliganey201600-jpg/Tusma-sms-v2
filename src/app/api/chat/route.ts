@@ -11,11 +11,9 @@ export async function POST(req: Request) {
   try {
     const { messages, question_text, lesson_objectives } = await req.json();
 
-    // Flatten history to avoid Gemini strict role alternation errors 
-    // This provides the reliability the user wants by turning multi-turn into a single monolithic user prompt.
-    const historyText = messages
-      .map((m: any) => `${m.role === 'user' ? 'STUDENT' : 'AI TUTOR'}:\n${m.content}`)
-      .join("\n\n---\n\n");
+    // Vercel AI SDK handles multi-turn beautifully but Gemini strictly refuses 
+    // an initial assistant message. We filter it out carefully.
+    const safeMessages = messages.filter((m: any) => m.id !== 'welcome');
 
     const result = streamText({
       model: google('gemini-2.5-flash'),
@@ -30,19 +28,11 @@ Context for this interaction:
 Language: Respond in a mix of Somali and English (or based on the question's language) to ensure clarity. 
 Translate complex terms into Somali but keep academic terms in English where appropriate.
 
-Tone: Encouraging, academic, and supportive. Use "Tusmo AI" as your identity. 
-
-Read the conversation history below and provide the next AI TUTOR response. Do not include 'AI TUTOR:' in your response text.`,
-      prompt: historyText,
+Tone: Encouraging, academic, and supportive. Use "Tusmo AI" as your identity.`,
+      messages: safeMessages,
     });
 
-    return result.toTextStreamResponse({
-      headers: {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
-      }
-    });
+    return result.toDataStreamResponse();
   } catch (error: any) {
     console.error("[CHAT-API-ERROR]:", error);
     return new Response(JSON.stringify({ error: error.message }), { status: 500 });
