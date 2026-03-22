@@ -8,36 +8,34 @@ async function callGemini(prompt: string, context: string) {
   if (!key) return { error: "XAQIIJI: GEMINI_API_KEY laguma hayo Environment-ka." };
 
   try {
+    // Explicitly use v1beta as some keys prefer it for newer models
     const genAI = new GoogleGenerativeAI(key);
     
-    // Try Flash 1.5 first (Fast & Free Tier usually supports this)
-    let modelName = "gemini-1.5-flash";
-    let model = genAI.getGenerativeModel({ model: modelName });
-    
-    try {
-      console.log(`[AI-HUB] Attempting with ${modelName}`);
-      const result = await model.generateContent({
-        contents: [{ role: "user", parts: [{ text: `Task: ${prompt}\nContext: ${context}\nInstructions: Respond only in Somali.` }] }]
-      });
-      const response = result.response;
-      return { text: response.text() };
-    } catch (flashError: any) {
-      console.error("[AI-HUB] Flash failed, falling back to Pro", flashError.message);
-      
-      // Fallback to Stable Pro (Highly compatible)
-      modelName = "gemini-pro";
-      model = genAI.getGenerativeModel({ model: modelName });
-      const result = await model.generateContent({
-        contents: [{ role: "user", parts: [{ text: `Task: ${prompt}\nContext: ${context}\nInstructions: Respond only in Somali.` }] }]
-      });
-      const response = result.response;
-      return { text: response.text() };
+    const modelsToTry = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-pro"];
+    let lastError = "";
+
+    for (const mName of modelsToTry) {
+      try {
+        console.log(`[AI-DIAGNOSTIC] Trying model: ${mName}`);
+        const model = genAI.getGenerativeModel({ model: mName });
+        const result = await model.generateContent({
+           contents: [{ role: "user", parts: [{ text: `Context: ${context}\n\nTask: ${prompt}\n\nRespond in Somali.` }] }]
+        });
+        const response = await result.response;
+        return { text: response.text() };
+      } catch (err: any) {
+        lastError = err.message;
+        console.error(`[AI-DIAGNOSTIC] ${mName} failed:`, lastError);
+      }
     }
+
+    return { error: `Dhammaan AI-yada waa fashilmeen. Cilada ugu dambeysa: ${lastError}` };
   } catch (error: any) {
-    console.error("[AI-HUB] Fatal SDK Error:", error);
-    return { error: `AI Hub Error: ${error.message || "Xiriirka Google ayaa go'ay"}` };
+    console.error("[AI-DIAGNOSTIC] Global Failure:", error);
+    return { error: `Fatal Connectivity Error: ${error.message}` };
   }
 }
+
 
 
 
