@@ -416,6 +416,7 @@ function SmartSelectionTool({
              </div>
              <button 
                onClick={(e) => { e.stopPropagation(); handleAction('explain'); }}
+               onMouseDown={(e) => e.preventDefault()}
                className="flex items-center gap-4 w-full px-5 py-4 text-[11px] font-black text-slate-200 hover:bg-white/10 rounded-2xl transition-all group uppercase tracking-tight"
              >
                <Search className="h-4 w-4 text-indigo-400 group-hover:scale-125 transition-transform" /> 
@@ -426,6 +427,7 @@ function SmartSelectionTool({
              </button>
              <button 
                onClick={(e) => { e.stopPropagation(); handleAction('summarize'); }}
+               onMouseDown={(e) => e.preventDefault()}
                className="flex items-center gap-4 w-full px-5 py-4 text-[11px] font-black text-slate-200 hover:bg-white/10 rounded-2xl transition-all group uppercase tracking-tight"
              >
                <Hash className="h-4 w-4 text-amber-400 group-hover:scale-125 transition-transform" />
@@ -436,6 +438,7 @@ function SmartSelectionTool({
              </button>
              <button 
                onClick={(e) => { e.stopPropagation(); handleAction('translate'); }}
+               onMouseDown={(e) => e.preventDefault()}
                className="flex items-center gap-4 w-full px-5 py-4 text-[11px] font-black text-slate-200 hover:bg-white/10 rounded-2xl transition-all group uppercase tracking-tight"
              >
                <Languages className="h-4 w-4 text-emerald-400 group-hover:scale-125 transition-transform" />
