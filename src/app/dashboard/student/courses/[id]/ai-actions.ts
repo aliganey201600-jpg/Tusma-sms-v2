@@ -4,53 +4,39 @@ import prisma from "@/lib/prisma"
 
 async function callGemini(prompt: string, context: string) {
   const key = process.env.GEMINI_API_KEY;
-  
-  if (!key) {
-    console.error("DEBUG: GEMINI_API_KEY is not configured.");
-    // Fallback Mock for local testing/fixing if key is missing - but clearly marked
-    return { 
-      text: `### ⚠️ Configuration Required\n\nAI actions are ready, but your **GEMINI_API_KEY** is not set in your Vercel/Environment settings. \n\n**To fix this:**\n1. Go to Vercel Dashboard\n2. Settings > Environment Variables\n3. Add \`GEMINI_API_KEY\` with your value.\n\n*This is a diagnostic message.*` 
-    };
+  if (!key) return { text: "⚠️ Key missing." };
+
+  const models = ["gemini-1.5-flash", "gemini-1.5-flash-latest", "gemini-pro"];
+  let lastError = "";
+
+  for (const model of models) {
+    try {
+      console.log(`[AI-RETRY] Testing model: ${model}`);
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${key}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: `Task: ${prompt}\n\nContext: ${context}\n\nCRITICAL: Respond in Somali.` }] }]
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (text) return { text };
+      } else {
+        const e = await response.json().catch(() => ({}));
+        lastError = e.error?.message || "Unknown error";
+        console.error(`[AI-RETRY] Failure with ${model}:`, lastError);
+      }
+    } catch (err: any) {
+      lastError = err.message;
+    }
   }
 
-  try {
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${key}`, {
-
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{
-          parts: [{
-            text: `You are an expert tutor.
-            ---
-            Context: ${context}
-            ---
-            Task: ${prompt}
-            ---
-            CRITICAL: Respond in Somali (Af-Soomaali).`
-          }]
-        }]
-      })
-    });
-
-    if (!response.ok) {
-       const err = await response.json().catch(() => ({}));
-       return { error: `Gemini API Error: ${err.error?.message || response.statusText}` };
-    }
-
-    const data = await response.json();
-    const resultText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-
-    if (!resultText) {
-      return { error: "Waan ka xunnahay, AI-ga ayaa ku hakoobay (No response content)." };
-    }
-
-    return { text: resultText };
-  } catch (error: any) {
-    console.error("Fatal AI failure:", error);
-    return { error: `Server Connection Error: ${error.message || "Failed to reach AI hub"}` };
-  }
+  return { error: `All AI models failed. Final Error: ${lastError}` };
 }
+
 
 
 export async function generateLessonSummary(lessonId: string) {
