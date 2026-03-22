@@ -34,7 +34,10 @@ import {
   Clock,
   Link as LinkIcon,
   Maximize2,
-  RefreshCw
+  RefreshCw,
+  Eye,
+  EyeOff,
+  Edit3
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -160,27 +163,44 @@ function SortableItem({ id, item, activeId, onClick, type, onDelete }: any) {
               <MoreVertical className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48 rounded-xl shadow-2xl border-slate-100">
-            <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400">Node Strategy</DropdownMenuLabel>
-            <DropdownMenuItem onClick={onClick} className="gap-2 text-xs font-bold py-2.5 cursor-pointer">
-              <Settings2 className="h-3.5 w-3.5 text-indigo-500" /> Open Editor
+          <DropdownMenuContent align="end" className="w-56 rounded-2xl shadow-2xl border-slate-100 p-2">
+            <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-3 py-2">Node Governance</DropdownMenuLabel>
+            <DropdownMenuItem onClick={onClick} className="gap-3 text-xs font-black uppercase tracking-tight py-3 px-3 rounded-xl cursor-pointer">
+              <Edit3 className="h-4 w-4 text-indigo-500" /> Edit Content
             </DropdownMenuItem>
+            
+            <DropdownMenuItem 
+              onClick={(e) => {
+                e.stopPropagation();
+                // This will trigger the global rename dialog
+                window.dispatchEvent(new CustomEvent('trigger-rename', { detail: { id: item.id, title: item.title, type } }));
+              }}
+              className="gap-3 text-xs font-black uppercase tracking-tight py-3 px-3 rounded-xl cursor-pointer"
+            >
+              <PenLine className="h-4 w-4 text-slate-400" /> Rename Node
+            </DropdownMenuItem>
+
+            <DropdownMenuItem className="gap-3 text-xs font-black uppercase tracking-tight py-3 px-3 rounded-xl cursor-pointer">
+              <Eye className="h-4 w-4 text-emerald-500" /> Publish Node
+            </DropdownMenuItem>
+
             {isQuiz && (
-              <DropdownMenuItem className="gap-2 text-xs font-bold py-2.5 cursor-pointer" asChild>
+              <DropdownMenuItem className="gap-3 text-xs font-black uppercase tracking-tight py-3 px-3 rounded-xl cursor-pointer" asChild>
                 <Link href={`/dashboard/admin/courses/${item.courseId}/quiz/${item.id}`}>
-                  <HelpCircle className="h-3.5 w-3.5 text-amber-500" /> Edit Questions
+                  <HelpCircle className="h-4 w-4 text-amber-500" /> Question Architect
                 </Link>
               </DropdownMenuItem>
             )}
+            
             <DropdownMenuSeparator />
             <DropdownMenuItem 
               onClick={(e) => {
                 e.stopPropagation();
                 onDelete();
               }} 
-              className="gap-2 text-xs font-bold py-2.5 cursor-pointer text-red-600 focus:text-red-700 focus:bg-red-50"
+              className="gap-3 text-xs font-black uppercase tracking-tight py-3 px-3 rounded-xl cursor-pointer text-red-600 focus:text-red-700 focus:bg-red-50"
             >
-              <Trash2 className="h-3.5 w-3.5" /> Decommission Node
+              <Trash2 className="h-4 w-4" /> Decommission
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -298,6 +318,9 @@ function SortableSection({
                     className="gap-3 text-xs font-black uppercase tracking-tight py-3 px-3 rounded-xl cursor-pointer"
                   >
                     <PenLine className="h-4 w-4 text-indigo-500" /> Rename Chapter
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="gap-3 text-xs font-black uppercase tracking-tight py-3 px-3 rounded-xl cursor-pointer">
+                    <Eye className="h-4 w-4 text-emerald-500" /> Publish Chapter
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem 
@@ -430,7 +453,16 @@ export default function CourseBuilderPage() {
 
   // Modern Dialog States
   const [deleteDialog, setDeleteDialog] = React.useState<{ open: boolean; type: 'section' | 'lesson' | 'quiz' | null; id: string | null }>({ open: false, type: null, id: null })
-  const [renameDialog, setRenameDialog] = React.useState<{ open: boolean; id: string | null; title: string }>({ open: false, id: null, title: "" })
+  const [renameDialog, setRenameDialog] = React.useState<{ open: boolean; id: string | null; title: string; type: 'section' | 'lesson' | 'quiz' | null }>({ open: false, id: null, title: "", type: null })
+
+  React.useEffect(() => {
+    const handleTriggerRename = (e: any) => {
+      const { id, title, type } = e.detail;
+      setRenameDialog({ open: true, id, title, type });
+    };
+    window.addEventListener('trigger-rename', handleTriggerRename);
+    return () => window.removeEventListener('trigger-rename', handleTriggerRename);
+  }, []);
 
   const handleGenerateObjectivesAI = async () => {
     if (!editData?.title) return toast.error("Please enter a Lesson Title first")
@@ -551,13 +583,22 @@ export default function CourseBuilderPage() {
     }
   }
 
-  const handleUpdateSection = async () => {
+  const handleUpdateRename = async () => {
     if (!renameDialog.id || !renameDialog.title) return
-    const res = await updateSection(renameDialog.id, renameDialog.title)
+    
+    let res;
+    if (!renameDialog.type || renameDialog.type === 'section') {
+       res = await updateSection(renameDialog.id, renameDialog.title)
+    } else if (renameDialog.type === 'lesson') {
+       res = await updateLesson(renameDialog.id, { title: renameDialog.title })
+    } else {
+       res = await updateQuiz(renameDialog.id, { title: renameDialog.title })
+    }
+
     if (res.success) {
       loadCourse()
-      setRenameDialog({ open: false, id: null, title: "" })
-      toast.success("Chapter Recalibrated Successfully")
+      setRenameDialog({ open: false, id: null, title: "", type: null })
+      toast.success("Strategic Designation Recalibrated")
     } else {
       toast.error("Strategy Update Failed")
     }
@@ -817,17 +858,46 @@ export default function CourseBuilderPage() {
                                           </div>
                                        </td>
                                        <td className="px-6 py-6 bg-white rounded-r-[28px] md:rounded-r-[40px] border-y border-r border-transparent group-hover:border-indigo-100 shadow-sm text-right">
-                                          <Button 
-                                             variant="ghost" 
-                                             className={cn(
-                                                "h-12 md:h-14 px-4 md:px-8 rounded-xl md:rounded-2xl font-black uppercase tracking-widest text-[9px] md:text-[10px] transition-all gap-2 md:gap-3 group/btn shadow-sm",
-                                                expandedSectionId === section.id ? "bg-indigo-600 text-white" : "bg-slate-50 text-slate-400 hover:bg-slate-900 hover:text-white"
-                                             )}
-                                             onClick={() => setExpandedSectionId(expandedSectionId === section.id ? null : section.id)}
-                                          >
-                                             <span className="hidden md:inline">{expandedSectionId === section.id ? "Close Assets" : "Open Assets"}</span>
-                                             <ChevronDown className={cn("h-4 w-4 md:h-5 md:w-5 transition-transform duration-500", expandedSectionId === section.id && "rotate-180")} />
-                                          </Button>
+                                          <div className="flex items-center justify-end gap-2">
+                                             <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                   <Button variant="ghost" size="icon" className="h-10 w-10 text-slate-300 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl">
+                                                      <MoreVertical className="h-5 w-5" />
+                                                   </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end" className="w-56 rounded-2xl shadow-2xl border-slate-100 p-2">
+                                                   <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-3 py-2">Chapter Actions</DropdownMenuLabel>
+                                                   <DropdownMenuItem 
+                                                      onClick={() => setRenameDialog({ open: true, id: section.id, title: section.title, type: 'section' })}
+                                                      className="gap-3 text-xs font-black uppercase tracking-tight py-3 px-3 rounded-xl cursor-pointer"
+                                                   >
+                                                      <PenLine className="h-4 w-4 text-indigo-500" /> Rename
+                                                   </DropdownMenuItem>
+                                                   <DropdownMenuItem className="gap-3 text-xs font-black uppercase tracking-tight py-3 px-3 rounded-xl cursor-pointer">
+                                                      <Eye className="h-4 w-4 text-emerald-500" /> Publish Chapter
+                                                   </DropdownMenuItem>
+                                                   <DropdownMenuSeparator />
+                                                   <DropdownMenuItem 
+                                                      onClick={() => setDeleteDialog({ open: true, type: 'section', id: section.id })}
+                                                      className="gap-3 text-xs font-black uppercase tracking-tight py-3 px-3 rounded-xl cursor-pointer text-red-600 focus:text-red-700 focus:bg-red-50"
+                                                   >
+                                                      <Trash2 className="h-4 w-4" /> Delete Chapter
+                                                   </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                             </DropdownMenu>
+
+                                             <Button 
+                                                variant="ghost" 
+                                                className={cn(
+                                                   "h-12 md:h-14 px-4 md:px-8 rounded-xl md:rounded-2xl font-black uppercase tracking-widest text-[9px] md:text-[10px] transition-all gap-2 md:gap-3 group/btn shadow-sm",
+                                                   expandedSectionId === section.id ? "bg-indigo-600 text-white" : "bg-slate-50 text-slate-400 hover:bg-slate-900 hover:text-white"
+                                                )}
+                                                onClick={() => setExpandedSectionId(expandedSectionId === section.id ? null : section.id)}
+                                             >
+                                                <span className="hidden md:inline">{expandedSectionId === section.id ? "Close" : "Open"}</span>
+                                                <ChevronDown className={cn("h-4 w-4 md:h-5 md:w-5 transition-transform duration-500", expandedSectionId === section.id && "rotate-180")} />
+                                             </Button>
+                                          </div>
                                        </td>
                                     </tr>
 
@@ -836,31 +906,86 @@ export default function CourseBuilderPage() {
                                        <tr className="animate-in slide-in-from-top-4 duration-500">
                                           <td colSpan={5} className="px-8 pt-2 pb-10">
                                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                                {(section.lessons || []).map((lesson: any) => (
-                                                   <button 
-                                                      key={lesson.id}
-                                                      onClick={() => handleSelectItem({ type: 'lesson', data: lesson })}
-                                                      className="p-8 bg-white rounded-[40px] border-2 border-slate-50 hover:border-indigo-500 hover:shadow-2xl hover:shadow-indigo-100 transition-all text-left group/node relative overflow-hidden"
-                                                   >
-                                                      <div className="h-12 w-12 rounded-2xl bg-indigo-600 text-white flex items-center justify-center mb-4 shadow-xl shadow-indigo-100">
-                                                         <Video className="h-6 w-6" />
+                                                   <div key={lesson.id} className="relative group/node">
+                                                      <button 
+                                                         onClick={() => handleSelectItem({ type: 'lesson', data: lesson })}
+                                                         className="w-full p-6 bg-white rounded-[32px] border-2 border-slate-50 hover:border-indigo-500 hover:shadow-2xl hover:shadow-indigo-100 transition-all text-left group relative overflow-hidden"
+                                                      >
+                                                         <div className="h-10 w-10 rounded-2xl bg-indigo-600 text-white flex items-center justify-center mb-4 shadow-xl shadow-indigo-100">
+                                                            <Video className="h-5 w-5" />
+                                                         </div>
+                                                         <div className="text-[9px] font-black uppercase text-indigo-400 tracking-widest mb-1">Lecture Node</div>
+                                                         <div className="text-sm font-black text-slate-900 uppercase group-hover:text-indigo-600 line-clamp-1">{lesson.title}</div>
+                                                      </button>
+                                                      
+                                                      <div className="absolute top-4 right-4">
+                                                         <DropdownMenu>
+                                                            <DropdownMenuTrigger asChild>
+                                                               <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-200 hover:text-indigo-600 hover:bg-white rounded-lg opacity-0 group-hover/node:opacity-100 transition-all">
+                                                                  <MoreVertical className="h-4 w-4" />
+                                                               </Button>
+                                                            </DropdownMenuTrigger>
+                                                            <DropdownMenuContent align="end" className="w-48 rounded-2xl shadow-2xl border-slate-100 p-2">
+                                                               <DropdownMenuItem onClick={() => handleSelectItem({ type: 'lesson', data: lesson })} className="gap-3 text-xs font-black uppercase tracking-tight py-2.5 px-3 rounded-xl cursor-pointer">
+                                                                  <Edit3 className="h-4 w-4 text-indigo-500" /> Edit
+                                                               </DropdownMenuItem>
+                                                               <DropdownMenuItem onClick={() => setRenameDialog({ open: true, id: lesson.id, title: lesson.title, type: 'lesson' })} className="gap-3 text-xs font-black uppercase tracking-tight py-2.5 px-3 rounded-xl cursor-pointer">
+                                                                  <PenLine className="h-4 w-4 text-slate-400" /> Rename
+                                                               </DropdownMenuItem>
+                                                               <DropdownMenuItem className="gap-3 text-xs font-black uppercase tracking-tight py-2.5 px-3 rounded-xl cursor-pointer">
+                                                                  <Eye className="h-4 w-4 text-emerald-500" /> Publish
+                                                               </DropdownMenuItem>
+                                                               <DropdownMenuSeparator />
+                                                               <DropdownMenuItem onClick={() => setDeleteDialog({ open: true, type: 'lesson', id: lesson.id })} className="gap-3 text-xs font-black uppercase tracking-tight py-2.5 px-3 rounded-xl cursor-pointer text-red-600">
+                                                                  <Trash2 className="h-4 w-4" /> Delete
+                                                               </DropdownMenuItem>
+                                                            </DropdownMenuContent>
+                                                         </DropdownMenu>
                                                       </div>
-                                                      <div className="text-[10px] font-black uppercase text-indigo-400 tracking-widest mb-1">Lecture Node</div>
-                                                      <div className="text-base font-black text-slate-900 uppercase group-hover/node:text-indigo-600">{lesson.title}</div>
-                                                   </button>
-                                                ))}
+                                                   </div>
                                                 {(section.quizzes || []).map((quiz: any) => (
-                                                   <button 
-                                                      key={quiz.id}
-                                                      onClick={() => handleSelectItem({ type: 'quiz', data: quiz })}
-                                                      className="p-8 bg-white rounded-[40px] border-2 border-slate-50 hover:border-amber-500 hover:shadow-2xl hover:shadow-amber-100 transition-all text-left group/node relative overflow-hidden"
-                                                   >
-                                                      <div className="h-12 w-12 rounded-2xl bg-amber-500 text-white flex items-center justify-center mb-4 shadow-xl shadow-amber-100">
-                                                         <Zap className="h-6 w-6" />
+                                                   <div key={quiz.id} className="relative group/node">
+                                                      <button 
+                                                         onClick={() => handleSelectItem({ type: 'quiz', data: quiz })}
+                                                         className="w-full p-6 bg-white rounded-[32px] border-2 border-slate-50 hover:border-amber-500 hover:shadow-2xl hover:shadow-amber-100 transition-all text-left group relative overflow-hidden"
+                                                      >
+                                                         <div className="h-10 w-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center mb-4 shadow-xl shadow-amber-100">
+                                                            <Zap className="h-5 w-5" />
+                                                         </div>
+                                                         <div className="text-[9px] font-black uppercase text-amber-500 tracking-widest mb-1">Assessment Unit</div>
+                                                         <div className="text-sm font-black text-slate-900 uppercase group-hover:text-amber-600 line-clamp-1">{quiz.title}</div>
+                                                      </button>
+
+                                                      <div className="absolute top-4 right-4">
+                                                         <DropdownMenu>
+                                                            <DropdownMenuTrigger asChild>
+                                                               <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-200 hover:text-amber-600 hover:bg-white rounded-lg opacity-0 group-hover/node:opacity-100 transition-all">
+                                                                  <MoreVertical className="h-4 w-4" />
+                                                               </Button>
+                                                            </DropdownMenuTrigger>
+                                                            <DropdownMenuContent align="end" className="w-48 rounded-2xl shadow-2xl border-slate-100 p-2">
+                                                               <DropdownMenuItem onClick={() => handleSelectItem({ type: 'quiz', data: quiz })} className="gap-3 text-xs font-black uppercase tracking-tight py-2.5 px-3 rounded-xl cursor-pointer">
+                                                                  <Edit3 className="h-4 w-4 text-indigo-500" /> Edit
+                                                               </DropdownMenuItem>
+                                                               <DropdownMenuItem onClick={() => setRenameDialog({ open: true, id: quiz.id, title: quiz.title, type: 'quiz' })} className="gap-3 text-xs font-black uppercase tracking-tight py-2.5 px-3 rounded-xl cursor-pointer">
+                                                                  <PenLine className="h-4 w-4 text-slate-400" /> Rename
+                                                               </DropdownMenuItem>
+                                                               <DropdownMenuItem className="gap-3 text-xs font-black uppercase tracking-tight py-2.5 px-3 rounded-xl cursor-pointer" asChild>
+                                                                  <Link href={`/dashboard/admin/courses/${id}/quiz/${quiz.id}`}>
+                                                                     <HelpCircle className="h-4 w-4 text-amber-500" /> Questions
+                                                                  </Link>
+                                                               </DropdownMenuItem>
+                                                               <DropdownMenuItem className="gap-3 text-xs font-black uppercase tracking-tight py-2.5 px-3 rounded-xl cursor-pointer">
+                                                                  <Eye className="h-4 w-4 text-emerald-500" /> Publish
+                                                               </DropdownMenuItem>
+                                                               <DropdownMenuSeparator />
+                                                               <DropdownMenuItem onClick={() => setDeleteDialog({ open: true, type: 'quiz', id: quiz.id })} className="gap-3 text-xs font-black uppercase tracking-tight py-2.5 px-3 rounded-xl cursor-pointer text-red-600">
+                                                                  <Trash2 className="h-4 w-4" /> Delete
+                                                               </DropdownMenuItem>
+                                                            </DropdownMenuContent>
+                                                         </DropdownMenu>
                                                       </div>
-                                                      <div className="text-[10px] font-black uppercase text-amber-500 tracking-widest mb-1">Assessment Unit</div>
-                                                      <div className="text-base font-black text-slate-900 uppercase group-hover/node:text-amber-600">{quiz.title}</div>
-                                                   </button>
+                                                   </div>
                                                 ))}
                                                 <button 
                                                    onClick={() => handleAddLesson(section.id)}
@@ -1361,8 +1486,8 @@ export default function CourseBuilderPage() {
             />
           </div>
           <DialogFooter className="gap-3">
-            <Button variant="ghost" onClick={() => setRenameDialog({ open: false, id: null, title: "" })} className="h-14 rounded-2xl px-8 font-black uppercase tracking-widest text-[10px] text-slate-400">Cancel</Button>
-            <Button onClick={handleUpdateSection} className="h-14 rounded-2xl px-10 bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase tracking-widest text-[10px] shadow-xl shadow-indigo-100">Apply Changes</Button>
+            <Button variant="ghost" onClick={() => setRenameDialog({ open: false, id: null, title: "", type: null })} className="h-14 rounded-2xl px-8 font-black uppercase tracking-widest text-[10px] text-slate-400">Cancel</Button>
+            <Button onClick={handleUpdateRename} className="h-14 rounded-2xl px-10 bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase tracking-widest text-[10px] shadow-xl shadow-indigo-100">Apply Changes</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
