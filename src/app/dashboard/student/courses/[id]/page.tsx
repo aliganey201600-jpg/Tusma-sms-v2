@@ -396,31 +396,68 @@ function SmartSelectionTool({
   const [activeTask, setActiveTask] = React.useState<'explain' | 'summarize' | 'translate' | null>(null)
   const [pendingTask, setPendingTask] = React.useState<'explain' | 'summarize' | 'translate' | null>(null)
   const [activeLang, setActiveLang] = React.useState<string>("Somali")
+  const [chatMessages, setChatMessages] = React.useState<{ role: 'user' | 'ai'; text: string; time: string }[]>([])
+  const [followUp, setFollowUp] = React.useState("")
+  const [followUpLoading, setFollowUpLoading] = React.useState(false)
+  const chatEndRef = React.useRef<HTMLDivElement>(null)
+
+  const now = () => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+
+  const renderText = (str: string, lang: string) => (
+    <span
+      dir={lang === 'Arabic' ? 'rtl' : 'ltr'}
+      className={cn("whitespace-pre-wrap", lang === 'Arabic' ? "text-right block" : "text-left block")}
+    >
+      {str.split(/(\*\*.*?\*\*)/g).map((p, i) =>
+        p.startsWith('**') && p.endsWith('**')
+          ? <strong key={i} className="text-blue-400 font-black">{p.slice(2, -2)}</strong>
+          : p
+      )}
+    </span>
+  )
 
   const handleAction = async (task: 'explain' | 'summarize' | 'translate', targetLang: string = "Somali") => {
-    // Diagnostic alert to confirm the button click is reaching the client logic
-    if (typeof window !== 'undefined') {
-       console.log(`[AI-DIAGNOSTIC] Task initiated: ${task} into ${targetLang}`);
-    }
-    
+    if (typeof window !== 'undefined') console.log(`[AI-DIAGNOSTIC] Task: ${task} → ${targetLang}`)
     setLoading(true)
     setError(null)
     setResult(null)
     setActiveTask(task)
     setActiveLang(targetLang)
     setPendingTask(null)
-    
+    setChatMessages([{ role: 'user', text: text.slice(0, 500), time: now() }])
+
     try {
       const res = await performSmartAIAction(lessonId, task, text, targetLang)
       if (res.error) {
         setError(res.error)
       } else if (res.result) {
         setResult(res.result)
+        setChatMessages(prev => [...prev, { role: 'ai', text: res.result!, time: now() }])
       }
     } catch (err: any) {
       setError(`Critical Error: ${err.message}`)
     } finally {
       setLoading(false)
+      setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100)
+    }
+  }
+
+  const handleFollowUp = async () => {
+    const q = followUp.trim()
+    if (!q || followUpLoading) return
+    setFollowUp("")
+    setFollowUpLoading(true)
+    setChatMessages(prev => [...prev, { role: 'user', text: q, time: now() }])
+    setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50)
+    try {
+      const res = await performSmartAIAction(lessonId, 'explain', q, activeLang)
+      if (res.result) setChatMessages(prev => [...prev, { role: 'ai', text: res.result!, time: now() }])
+      else setChatMessages(prev => [...prev, { role: 'ai', text: res.error || "Waan ka xumahay, isku day markale.", time: now() }])
+    } catch {
+      setChatMessages(prev => [...prev, { role: 'ai', text: "Cilad ayaa dhacday. Isku day markale.", time: now() }])
+    } finally {
+      setFollowUpLoading(false)
+      setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100)
     }
   }
 
@@ -428,18 +465,13 @@ function SmartSelectionTool({
 
   return (
     <>
-      {/* 1. BOTTOM FLOATING ACTION BAR (The Trigger) */}
+      {/* 1. BOTTOM FLOATING ACTION BAR */}
       {!activeTask && (
-        <div 
-          id="ai-toolkit-container"
-          className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[300] animate-in slide-in-from-bottom-10 duration-500"
-        >
+        <div id="ai-toolkit-container" className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[300] animate-in slide-in-from-bottom-10 duration-500">
            <div className="bg-slate-950/90 backdrop-blur-2xl border border-white/20 shadow-[0_20px_50px_rgba(0,0,0,0.5)] rounded-full px-2 py-2 flex items-center gap-2">
-
               <div className="pl-4 pr-2 border-r border-white/10 hidden sm:block">
                  <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Tusmo AI</p>
               </div>
-
               {!pendingTask ? (
                 <>
                   <button onClick={() => setPendingTask('explain')} className="flex items-center gap-2 px-6 py-3 rounded-full hover:bg-white/10 text-white transition-all active:scale-95">
@@ -462,18 +494,14 @@ function SmartSelectionTool({
                   </button>
                   <div className="flex bg-slate-900 rounded-full p-1 border border-white/10 gap-1 mr-2">
                     {['Somali', 'Arabic', 'English'].map((lang) => (
-                      <button 
-                        key={lang}
-                        onClick={() => handleAction(pendingTask, lang)}
-                        className="px-4 py-2 rounded-full hover:bg-white/10 text-[10px] font-black uppercase tracking-widest text-indigo-400 transition-all active:scale-95"
-                      >
+                      <button key={lang} onClick={() => handleAction(pendingTask, lang)}
+                        className="px-4 py-2 rounded-full hover:bg-white/10 text-[10px] font-black uppercase tracking-widest text-indigo-400 transition-all active:scale-95">
                         {lang}
                       </button>
                     ))}
                   </div>
                 </div>
               )}
-
               <button onClick={onClose} className="p-3 hover:bg-white/10 rounded-full text-slate-500 hover:text-white transition-all">
                  <X className="h-4 w-4" />
               </button>
@@ -481,97 +509,122 @@ function SmartSelectionTool({
         </div>
       )}
 
-
-      {/* 2. FULL SCREEN RESULT OVERLAY (Unified Design) */}
+      {/* 2. FULL-SCREEN WHATSAPP-STYLE CHAT */}
       {activeTask && (
-        <div 
-          id="ai-toolkit-container"
-          className="fixed inset-0 z-[400] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4 animate-in fade-in duration-300"
-        >
+        <div id="ai-toolkit-container" className="fixed inset-0 z-[400] flex flex-col animate-in fade-in duration-200" style={{ background: '#0b141a' }}>
 
-           <div className="bg-slate-900 w-full max-w-2xl rounded-t-[2.5rem] sm:rounded-[2.5rem] border border-white/10 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-              {/* Header */}
-              <div className="p-8 border-b border-white/5 flex items-center justify-between bg-slate-950/50">
-                 <div className="flex items-center gap-4">
-                    <div className="h-10 w-10 rounded-xl bg-indigo-500/20 flex items-center justify-center text-indigo-400">
-                       {activeTask === 'explain' ? <Search className="h-5 w-5" /> : 
-                        activeTask === 'summarize' ? <Hash className="h-5 w-5" /> : 
-                        <Languages className="h-5 w-5" />}
+          {/* WhatsApp Header */}
+          <div className="flex items-center gap-3 px-4 py-3 shrink-0" style={{ background: '#202c33' }}>
+            <button onClick={() => { setActiveTask(null); setChatMessages([]); }} className="p-1 rounded-full hover:bg-white/10 text-slate-300 mr-1">
+              <ArrowRight className="h-5 w-5 rotate-180" />
+            </button>
+            <div className="h-10 w-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-black text-sm shrink-0">AI</div>
+            <div className="flex-1 min-w-0">
+              <p className="text-white font-semibold text-sm leading-tight truncate">Tusmo AI Hub</p>
+              <p className="text-[11px] text-emerald-400 leading-tight">
+                {followUpLoading ? 'Wuu qorayo...' : loading ? 'Wuu falanqeynayaa...' : 'Online'}
+              </p>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="text-[9px] font-black text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 rounded-full px-2 py-0.5 uppercase tracking-widest">
+                {activeLang}
+              </span>
+            </div>
+          </div>
+
+          {/* Chat Messages */}
+          <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23ffffff\' fill-opacity=\'0.02\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")' }}>
+
+            {chatMessages.map((msg, i) => (
+              <div key={i} className={cn("flex", msg.role === 'user' ? "justify-end" : "justify-start")}>
+                <div
+                  className={cn(
+                    "max-w-[80%] sm:max-w-[65%] rounded-2xl px-4 py-3 shadow-md relative",
+                    msg.role === 'user'
+                      ? "rounded-tr-sm text-white text-sm leading-relaxed"
+                      : "rounded-tl-sm text-slate-100 text-sm leading-relaxed"
+                  )}
+                  style={{
+                    background: msg.role === 'user' ? '#005c4b' : '#202c33',
+                  }}
+                >
+                  {/* Tail for user bubble */}
+                  {msg.role === 'user' && (
+                    <div className="absolute -right-1.5 top-0 w-3 h-3 overflow-hidden">
+                      <div className="w-4 h-4 rounded-bl-full" style={{ background: '#005c4b', marginLeft: '-4px' }} />
                     </div>
-                    <div>
-                       <h3 className="text-sm font-black text-white uppercase tracking-widest">AI Hub v3.2-ULTRA</h3>
-                       <p className="text-[9px] font-bold text-indigo-400 uppercase mt-1">Intelligent Response</p>
+                  )}
+                  {/* Tail for AI bubble */}
+                  {msg.role === 'ai' && (
+                    <div className="absolute -left-1.5 top-0 w-3 h-3 overflow-hidden">
+                      <div className="w-4 h-4 rounded-br-full" style={{ background: '#202c33', marginRight: '-4px' }} />
                     </div>
-                 </div>
-                 <button onClick={onClose} className="p-2 bg-white/5 hover:bg-white/10 rounded-full text-slate-400 hover:text-white">
-                    <X className="h-5 w-5" />
-                 </button>
+                  )}
+                  <div className={cn(activeLang === 'Arabic' && msg.role === 'ai' ? "text-right" : "text-left")}>
+                    {renderText(msg.text, activeLang)}
+                  </div>
+                  <p className={cn("text-[10px] mt-1.5 opacity-60", msg.role === 'user' ? "text-right" : "text-left")}>
+                    {msg.time}
+                    {msg.role === 'user' && <span className="ml-1 text-emerald-300">✓✓</span>}
+                  </p>
+                </div>
               </div>
+            ))}
 
-              {/* Body */}
-              <div className="flex-1 overflow-y-auto p-8 md:p-12 space-y-8 min-h-[300px]">
-                 {loading ? (
-                    <div className="py-20 flex flex-col items-center gap-6">
-                       <div className="h-12 w-12 border-2 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin" />
-                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest animate-pulse">Analyzing text context...</p>
-                    </div>
-                 ) : error ? (
-                    <div className="p-8 bg-red-500/5 border border-red-500/10 rounded-3xl text-center space-y-4">
-                       <AlertCircle className="h-12 w-12 text-red-500 mx-auto" />
-                       <p className="text-red-400 text-sm font-medium">{error}</p>
-                       <button onClick={onClose} className="px-6 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-xl text-xs font-bold uppercase">Close & Retry</button>
-                    </div>
-                 ) : (
-                    <div className="space-y-6 animate-in slide-in-from-bottom-4 duration-700">
-                       <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
-                          <p className="text-[10px] text-slate-500 italic leading-relaxed">"{text.slice(0, 150)}{text.length > 150 ? '...' : ''}"</p>
-                       </div>
-                       <div 
-                         className={cn(
-                           "text-base md:text-lg leading-relaxed text-slate-200 font-medium whitespace-pre-wrap",
-                           activeLang === 'Arabic' ? "text-right text-justify" : "text-left ltr"
-                         )}
-                         dir={activeLang === 'Arabic' ? 'rtl' : 'ltr'}
-                       >
-                          {(result || "").split(/(\*\*.*?\*\*)/g).map((part, i) => {
-                            if (part.startsWith('**') && part.endsWith('**')) {
-                              return <strong key={i} className="text-blue-400 font-black">{part.slice(2, -2)}</strong>;
-                            }
-                            return part;
-                          })}
-                       </div>
-                    </div>
-                 )}
+            {/* Loading spinner as AI typing indicator */}
+            {(loading || followUpLoading) && (
+              <div className="flex justify-start">
+                <div className="rounded-2xl rounded-tl-sm px-5 py-4 shadow-md" style={{ background: '#202c33' }}>
+                  <div className="flex gap-1 items-center h-4">
+                    <div className="w-2 h-2 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '0ms' }} />
+                    <div className="w-2 h-2 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '150ms' }} />
+                    <div className="w-2 h-2 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+                  </div>
+                </div>
               </div>
+            )}
 
+            {/* Error bubble */}
+            {error && (
+              <div className="flex justify-start">
+                <div className="max-w-[80%] rounded-2xl rounded-tl-sm px-4 py-3 shadow-md bg-red-900/40 border border-red-500/20">
+                  <p className="text-red-400 text-sm">{error}</p>
+                  <p className="text-[10px] text-red-500/60 mt-1">{now()}</p>
+                </div>
+              </div>
+            )}
 
+            <div ref={chatEndRef} />
+          </div>
 
-              {/* Footer */}
-              {!loading && result && (
-                 <div className="p-6 bg-slate-950/50 border-t border-white/5 flex gap-3">
-                    <button 
-                      onClick={() => {
-                        navigator.clipboard.writeText(result);
-                        toast.success("Result copied!");
-                      }}
-                      className="flex-1 h-12 bg-white/5 hover:bg-white/10 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest border border-white/10"
-                    >
-                      Copy Response
-                    </button>
-                    <button 
-                      onClick={() => setActiveTask(null)}
-                      className="flex-1 h-12 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-indigo-500/20"
-                    >
-                      New Task
-                    </button>
-                 </div>
-              )}
-           </div>
+          {/* WhatsApp Input Bar */}
+          <div className="shrink-0 px-3 py-3 flex items-center gap-3" style={{ background: '#202c33' }}>
+            <div className="flex-1 flex items-center rounded-full px-4 py-2.5 gap-3" style={{ background: '#2a3942' }}>
+              <input
+                type="text"
+                value={followUp}
+                onChange={e => setFollowUp(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleFollowUp()}
+                placeholder="Su'aal ku weydii AI-ga..."
+                disabled={loading || followUpLoading}
+                className="flex-1 bg-transparent text-white text-sm placeholder:text-slate-500 outline-none"
+              />
+            </div>
+            <button
+              onClick={handleFollowUp}
+              disabled={!followUp.trim() || loading || followUpLoading}
+              className="h-12 w-12 rounded-full flex items-center justify-center shrink-0 transition-all active:scale-95 disabled:opacity-40"
+              style={{ background: '#00a884' }}
+            >
+              <ArrowRight className="h-5 w-5 text-white" />
+            </button>
+          </div>
         </div>
       )}
     </>
   )
 }
+
 
 
 
