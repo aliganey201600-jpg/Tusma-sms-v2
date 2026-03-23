@@ -4,6 +4,9 @@ import { getPublicProfile } from "./actions"
 import ProfileClient from "./ProfileClient"
 import { Trophy } from "lucide-react"
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 type Props = {
   params: { username: string }
   searchParams: { [key: string]: string | string[] | undefined }

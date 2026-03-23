@@ -6,56 +6,59 @@ import prisma from "@/lib/prisma"
 import { awardPoints } from "@/lib/gamification"
 
 export async function getPublicProfile(username: string) {
+  if (!username) return { success: false }
+  
   try {
-    const student = await prisma.student.findFirst({
-      where: { 
-        // @ts-ignore
-        username: {
-          equals: username,
-          mode: 'insensitive'
-        }
-      },
-      include: {
-        class: { select: { name: true } },
-        // @ts-ignore
-        badges: {
-          include: { badge: true },
-          orderBy: { earnedAt: 'desc' }
-        },
-        // @ts-ignore
-        certificates: {
-          include: { course: { select: { name: true } } },
-          orderBy: { issuedAt: 'desc' },
-          take: 3
-        },
-        // Correct selection path for subject name
-        grades: {
-          select: { 
-            score: true, 
-            assignment: { 
-              select: { 
-                course: { select: { name: true } } 
-              } 
-            } 
-          }
-        }
-      }
-    })
+    // 1. Fetch Student using Raw SQL to bypass client sync issues
+    const students: any[] = await prisma.$queryRawUnsafe(
+      'SELECT * FROM "Student" WHERE "username" ILIKE $1 LIMIT 1',
+      username
+    )
 
-    if (!student) return { success: false }
+    if (!students || students.length === 0) return { success: false }
+    const student = students[0]
+    const studentId = student.id
 
-    // 1. Calculate Global Rank using raw SQL (Bypass client sync)
+    // 2. Fetch related data using Raw SQL
+    const results = await Promise.all([
+      prisma.$queryRawUnsafe(
+        'SELECT sb.*, b.name as "badgeName", b.description as "badgeDescription", b.icon as "badgeIcon" FROM "StudentBadge" sb JOIN "Badge" b ON sb."badgeId" = b.id WHERE sb."studentId" = $1 ORDER BY sb."earnedAt" DESC',
+        studentId
+      ),
+      prisma.$queryRawUnsafe(
+        'SELECT c.*, cr.name as "courseName" FROM "Certificate" c JOIN "Course" cr ON c."courseId" = cr.id WHERE c."studentId" = $1 ORDER BY c."issuedAt" DESC LIMIT 3',
+        studentId
+      ),
+      prisma.$queryRawUnsafe(
+        'SELECT g.score, cr.name as "courseName" FROM "Grade" g JOIN "Assignment" a ON g."assignmentId" = a.id JOIN "Course" cr ON a."courseId" = cr.id WHERE g."studentId" = $1',
+        studentId
+      )
+    ])
+
+    const badges = (results[0] as any[] || []).map(b => ({ 
+      ...b, 
+      earnedAt: b.earnedAt,
+      badge: { name: b.badgeName, description: b.badgeDescription, icon: b.badgeIcon } 
+    }))
+
+    const certificates = (results[1] as any[] || []).map(c => ({ 
+      ...c, 
+      course: { name: c.courseName } 
+    }))
+
+    const grades = results[2] as any[] || []
+
+    // Calculate Global Rank using raw SQL
     const rankResult: any[] = await prisma.$queryRawUnsafe(
       'SELECT count(*) + 1 as rank FROM "Student" WHERE "totalXp" > $1',
       student.totalXp || 0
     )
     const globalRank = Number(rankResult[0]?.rank || 1)
 
-    // 2. Calculate Subject Mastery (Realistic average based on grades)
+    // Calculate Subject Mastery
     const subjectAverages: Record<string, { total: number, count: number }> = {}
-    // @ts-ignore
-    student.grades.forEach((g: any) => {
-      const sName = g.assignment?.course?.name || "General"
+    grades.forEach((g: any) => {
+      const sName = g.courseName || "General"
       if (!subjectAverages[sName]) subjectAverages[sName] = { total: 0, count: 0 }
       subjectAverages[sName].total += g.score || 0
       subjectAverages[sName].count += 1
@@ -71,6 +74,8 @@ export async function getPublicProfile(username: string) {
       success: true, 
       profile: {
         ...student,
+        badges,
+        certificates,
         globalRank,
         subjectMastery: subjectMastery.length > 0 ? subjectMastery : [
           { subject: 'Mathematics', percentage: 0, color: 'violet' },
