@@ -86,6 +86,7 @@ model Student {
   pointTransactions PointTransaction[]
   badges            StudentBadge[]
   inventory         StudentItem[]
+  hasSharedRank     Boolean  @default(false)
 }
 
 

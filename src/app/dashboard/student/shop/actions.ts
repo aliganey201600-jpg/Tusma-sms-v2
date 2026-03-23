@@ -2,6 +2,7 @@
 
 import prisma from "@/lib/prisma"
 import { awardPoints } from "@/lib/gamification"
+import { revalidatePath } from "next/cache"
 
 export async function getShopItems() {
   try {
@@ -39,7 +40,8 @@ export async function buyShopItem(studentId: string, itemId: string) {
     // 1. Fetch student and item
     const student = await prisma.student.findUnique({
       where: { id: studentId },
-      select: { totalXp: true }
+      // @ts-ignore
+      select: { totalXp: true, username: true }
     })
 
     // @ts-ignore
@@ -50,6 +52,7 @@ export async function buyShopItem(studentId: string, itemId: string) {
     if (!student || !item) return { success: false, error: "Data not found" }
 
     // 2. Check balance
+    // @ts-ignore
     if (student.totalXp < item.priceXp) {
       return { success: false, error: "Not enough XP! Keep studying! 📚" }
     }
@@ -69,6 +72,7 @@ export async function buyShopItem(studentId: string, itemId: string) {
       prisma.student.update({
         where: { id: studentId },
         data: {
+          // @ts-ignore
           totalXp: { decrement: item.priceXp }
         }
       }),
@@ -80,6 +84,11 @@ export async function buyShopItem(studentId: string, itemId: string) {
         }
       })
     ])
+
+    // 5. Revalidate Cache
+    // @ts-ignore
+    if (student.username) revalidatePath(`/student/${student.username}`)
+    revalidatePath(`/dashboard/student`)
 
     return { success: true }
   } catch (error: any) {

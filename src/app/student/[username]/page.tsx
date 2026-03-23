@@ -161,23 +161,23 @@ export default function StudentPublicProfile() {
                        <div className="h-10 w-px bg-white/10" />
                        <div>
                          <p className="text-[10px] uppercase font-black text-slate-500 tracking-widest mb-2">Rank</p>
-                         <p className="text-3xl font-black tracking-tighter text-indigo-400">#1</p>
+                         <p className="text-3xl font-black tracking-tighter text-indigo-400">#{profile.globalRank}</p>
                        </div>
                     </div>
                     
                     <div className="space-y-4">
                        <p className="text-[11px] uppercase font-bold text-slate-500 tracking-[0.2em] mb-4">Subject Mastery</p>
-                       {['Mathematics', 'Physics', 'Arabic'].map((skill, index) => (
-                         <div key={skill} className="space-y-2">
+                       {profile.mastery?.map((skill: any, index: number) => (
+                         <div key={skill.name} className="space-y-2">
                            <div className="flex justify-between text-xs font-bold text-slate-300">
-                             <span>{skill}</span>
-                             <span>{90 - (index * 15)}%</span>
+                             <span>{skill.name}</span>
+                             <span>{skill.progress}%</span>
                            </div>
                            <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
                               <motion.div 
                                 initial={{ width: 0 }}
-                                animate={{ width: `${90 - (index * 15)}%` }}
-                                transition={{ duration: 1.5, delay: index * 0.2 }}
+                                animate={{ width: `${skill.progress}%` }}
+                                transition={{ duration: 1.5, delay: index * 0.1 }}
                                 className="h-full bg-indigo-500 rounded-full shadow-[0_0_10px_rgba(99,102,241,0.5)]" 
                               />
                            </div>
@@ -252,26 +252,27 @@ export default function StudentPublicProfile() {
                  </div>
                  
                  <div className="space-y-4">
-                    <div className="bg-slate-900/40 p-6 rounded-3xl border border-white/5 flex items-center justify-between group hover:bg-slate-900/60 transition-colors">
-                       <div className="flex items-center gap-6">
-                          <div className="h-12 w-12 rounded-2xl bg-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0 font-black">CS</div>
-                          <div>
-                             <p className="font-bold text-lg group-hover:text-indigo-400 transition-colors uppercase">Computer Science Certificate</p>
-                             <p className="text-xs text-slate-500 font-medium">Completed Modern Web Architecture with 94%</p>
-                          </div>
-                       </div>
-                       <div className="text-xs text-slate-600 font-bold uppercase tracking-widest hidden md:block">Mar 15</div>
-                    </div>
-                    <div className="bg-slate-900/40 p-6 rounded-3xl border border-white/5 flex items-center justify-between group hover:bg-slate-900/60 transition-colors">
-                       <div className="flex items-center gap-6">
-                          <div className="h-12 w-12 rounded-2xl bg-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0 font-black">MA</div>
-                          <div>
-                             <p className="font-bold text-lg group-hover:text-emerald-400 transition-colors uppercase">Calculus Mastery</p>
-                             <p className="text-xs text-slate-500 font-medium">Aced the mid-term with a perfect score!</p>
-                          </div>
-                       </div>
-                       <div className="text-xs text-slate-600 font-bold uppercase tracking-widest hidden md:block">Mar 10</div>
-                    </div>
+                    {profile.certificates?.map((cert: any, i: number) => (
+                      <div key={i} className="bg-slate-900/40 p-6 rounded-3xl border border-white/5 flex items-center justify-between group hover:bg-slate-900/60 transition-colors">
+                         <div className="flex items-center gap-6">
+                            <div className="h-12 w-12 rounded-2xl bg-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0 font-black">
+                               {cert.course?.name?.substring(0, 2).toUpperCase()}
+                            </div>
+                            <div>
+                               <p className="font-bold text-lg group-hover:text-indigo-400 transition-colors uppercase">{cert.course?.name} Certificate</p>
+                               <p className="text-xs text-slate-500 font-medium">Verified Mastery • ID: {cert.certificateUniqueId}</p>
+                            </div>
+                         </div>
+                         <div className="text-xs text-slate-600 font-bold uppercase tracking-widest hidden md:block">
+                            {new Date(cert.issuedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                         </div>
+                      </div>
+                    ))}
+                    {(!profile.certificates || profile.certificates.length === 0) && (
+                      <div className="py-8 text-center bg-white/5 rounded-3xl border border-dashed border-white/10 italic text-slate-500 text-sm">
+                         No certificates issued yet. Keep studying! 📚
+                      </div>
+                    )}
                  </div>
               </div>
 

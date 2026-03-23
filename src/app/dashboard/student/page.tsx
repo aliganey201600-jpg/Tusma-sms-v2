@@ -26,24 +26,45 @@ import {
   Flame,
   ChevronRight,
   PlayCircle,
-  Bell
+  Bell,
+  UserCircle, 
+  Sparkles, 
+  Trophy, 
+  Calendar,
+  ArrowRight, 
+  MapPin, 
+  ShieldCheck, 
+  ShoppingCart,
+  Users, 
+  Share2, 
+  Loader2, 
+  Image as ImageIcon
 } from "lucide-react"
 import { useCurrentUser } from "@/hooks/use-current-user"
-import { verifyStudentId, getStudentDashboardOverview, redeemXpForShieldAction } from "./actions"
+import { ShareRankCard } from "@/components/dashboard/ShareRankCard"
+import { 
+  getStudentDashboardOverview, 
+  verifyStudentId, 
+  redeemXpForShieldAction, 
+  claimShareBonus 
+} from "./actions"
 import { updateStudentSocialProfile } from "@/app/student/[username]/actions"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import * as z from "zod"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { AnimatePresence, motion } from "framer-motion"
 import { fetchStudentCourses } from "./courses/actions"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "sonner"
-import { Loader2, ShieldCheck, ShoppingCart, UserCircle, Image as ImageIcon, Sparkles } from "lucide-react"
-import { motion } from "framer-motion"
 import confetti from "canvas-confetti"
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogTrigger 
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger
 } from "@/components/ui/dialog"
 
 // ─── Fallback Mock Data ────────────────────────────────────────────────────────
@@ -71,7 +92,9 @@ export default function StudentDashboardPage() {
   const firstName = user?.firstName || (userLoading ? null : "Student")
   const [verifying, setVerifying] = React.useState(false)
   const [studentIdInput, setStudentIdInput] = React.useState("")
-  
+  const [isRefreshing, setIsRefreshing] = React.useState(false)
+  const [isShareModalOpen, setIsShareModalOpen] = React.useState(false)
+
   const [realCourses, setRealCourses] = React.useState<any[]>([])
   const [loadingCourses, setLoadingCourses] = React.useState(true)
   const [overview, setOverview] = React.useState<any>(null)
@@ -179,11 +202,10 @@ export default function StudentDashboardPage() {
     }
   }
 
-  const isUnverified = false // Disabled per user request to allow immediate access
-
-  if (userLoading) {
+  if (userLoading || loadingOverview) {
     return (
-      <div className="p-4 space-y-8 max-w-[1600px] mx-auto min-h-screen">
+      <div className="p-8 space-y-8 animate-pulse">
+        <div className="h-48 w-full bg-slate-100 rounded-[36px]" />
         <div className="h-24 w-full bg-slate-100 animate-pulse rounded-3xl" />
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[1, 2, 3, 4].map(i => <div key={i} className="h-32 bg-slate-50 animate-pulse rounded-3xl" />)}
@@ -192,10 +214,8 @@ export default function StudentDashboardPage() {
     )
   }
 
-
-  // displayCourses is already declared above
-
   return (
+    <>
     <div className="pb-24 pt-4 md:py-8 px-4 md:px-8 space-y-8 max-w-[1600px] mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700">
 
       {/* ── App-style Header for Mobile & Desktop ── */}
@@ -233,6 +253,14 @@ export default function StudentDashboardPage() {
 
         {/* Action Button for mobile header */}
         <div className="relative z-10 mt-2 md:mt-0 w-full md:w-auto flex flex-col md:flex-row gap-3">
+          <Button 
+            onClick={() => setIsShareModalOpen(true)}
+            className="w-full md:w-auto rounded-2xl bg-amber-400 text-slate-950 hover:bg-amber-300 font-bold h-12 px-6 shadow-xl shadow-amber-900/20 border-none group transition-transform active:scale-95"
+          >
+            <Share2 className="mr-2 h-5 w-5 group-hover:rotate-12 transition-transform" />
+            Share My Rank
+          </Button>
+          
           <Dialog>
             <DialogTrigger asChild>
               <Button className="w-full md:w-auto rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 text-white hover:bg-white hover:text-indigo-700 font-bold h-12 px-6 shadow-lg transition-all">
@@ -318,7 +346,7 @@ export default function StudentDashboardPage() {
         />
         <StatCard
           title="Total XP"
-          value={loadingOverview ? "..." : (user?.totalXp || overview?.totalXp || 0).toLocaleString()}
+          value={loadingOverview ? "..." : (overview?.totalXp || 0).toLocaleString()}
           icon={<Star className="h-5 w-5 md:h-6 md:w-6" />}
           color="emerald"
           href="/dashboard/student/leaderboard"
@@ -479,6 +507,22 @@ export default function StudentDashboardPage() {
         </div>
       </div>
     </div>
+    
+    <AnimatePresence>
+      {isShareModalOpen && (
+        <ShareRankCard 
+          student={{ 
+            ...user?.student, 
+            id: user?.studentId || "",
+            globalRank: overview?.globalRank || 1, 
+            totalXp: overview?.totalXp || 0,
+            username: user?.username || user?.firstName?.toLowerCase() || 'student'
+          }} 
+          onClose={() => setIsShareModalOpen(false)} 
+        />
+      )}
+    </AnimatePresence>
+    </>
   )
 }
 
@@ -567,7 +611,7 @@ function DeadlineItem({ task }: any) {
     medium: { icon: "bg-orange-50 text-orange-500", text: "text-orange-600" },
     low: { icon: "bg-slate-50 text-slate-500", text: "text-slate-500" },
   }
-  const u = urgencyMap[task.urgency]
+  const u = urgencyMap[task.urgency || 'low']
   return (
     <div className="flex items-center gap-4 group">
       <div className={cn("h-12 w-12 rounded-[20px] flex items-center justify-center shrink-0 transition-colors", u.icon)}>

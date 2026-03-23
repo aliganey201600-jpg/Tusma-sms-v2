@@ -2,6 +2,7 @@
 
 import prisma from "@/lib/prisma"
 import { revalidatePath } from "next/cache"
+import { awardPoints } from "@/lib/gamification"
 
 export async function verifyStudentId(userId: string, studentId: string) {
   try {
@@ -258,3 +259,36 @@ export async function redeemXpForShieldAction(studentId: string) {
   }
 }
 
+/**
+ * Rewards the student +50 XP for their first share (Viral Loop)
+ */
+export async function claimShareBonus(studentId: string) {
+  try {
+    const student = await prisma.student.findUnique({
+      where: { id: studentId },
+      // @ts-ignore
+      select: { hasSharedRank: true }
+    })
+
+    if (!student) return { success: false, error: "Not found" }
+    // @ts-ignore
+    if (student.hasSharedRank) return { success: false, error: "Already claimed" }
+
+    await prisma.student.update({
+      where: { id: studentId },
+      data: {
+        // @ts-ignore
+        hasSharedRank: true
+      }
+    })
+
+    // Log points awarding (This handles increment, level-up and logging)
+    await awardPoints(studentId, 50, "VIRAL_SHARE", studentId)
+
+    revalidatePath(`/dashboard/student`)
+    return { success: true, message: "Viral Genius! +50 XP added for sharing! 🔥" }
+  } catch (error: any) {
+    console.error("Share bonus error:", error)
+    return { success: false, error: error.message }
+  }
+}
