@@ -120,6 +120,8 @@ export async function getStudentDashboardOverview(userId: string) {
         level: true,
         // @ts-ignore
         currentStreak: true,
+        // @ts-ignore
+        streakShields: true,
         lessonCompletions: {
           select: { lessonId: true }
         },
@@ -242,11 +244,25 @@ export async function getStudentDashboardOverview(userId: string) {
       // @ts-ignore
       level: student.level,
       // @ts-ignore
-      currentStreak: student.currentStreak
+      currentStreak: student.currentStreak,
+      // @ts-ignore
+      streakShields: student.streakShields
     }
   } catch (error) {
     console.error("Dashboard overview error:", error)
     return null
+  }
+}
+
+/**
+ * Action: Redeem XP for a Streak Shield
+ */
+export async function redeemXpForShieldAction(studentId: string) {
+  try {
+    const { redeemXpForShield } = await import("@/lib/gamification")
+    return await redeemXpForShield(studentId)
+  } catch (error: any) {
+    return { success: false, error: error.message || "Failed to redeem shield" }
   }
 }
 

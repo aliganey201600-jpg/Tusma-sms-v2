@@ -29,13 +29,22 @@ import {
   Bell
 } from "lucide-react"
 import { useCurrentUser } from "@/hooks/use-current-user"
-import { verifyStudentId, getStudentDashboardOverview } from "./actions"
+import { verifyStudentId, getStudentDashboardOverview, redeemXpForShieldAction } from "./actions"
+import { updateStudentSocialProfile } from "@/app/student/[username]/actions"
 import { fetchStudentCourses } from "./courses/actions"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { toast } from "sonner"
-import { Loader2 } from "lucide-react"
+import { Loader2, ShieldCheck, ShoppingCart, UserCircle, Image as ImageIcon, Sparkles } from "lucide-react"
 import { motion } from "framer-motion"
 import confetti from "canvas-confetti"
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogTrigger 
+} from "@/components/ui/dialog"
 
 // ─── Fallback Mock Data ────────────────────────────────────────────────────────
 const mockCourses = [
@@ -134,6 +143,42 @@ export default function StudentDashboardPage() {
     }
   }
 
+  // Profile Edit State
+  const [profileForm, setProfileForm] = React.useState({
+    username: user?.username || "",
+    bio: user?.bio || "",
+    coverImage: user?.coverImage || ""
+  })
+  const [savingProfile, setSavingProfile] = React.useState(false)
+
+  React.useEffect(() => {
+    if (user) {
+      setProfileForm({
+        username: user.username || "",
+        bio: user.bio || "",
+        coverImage: user.coverImage || ""
+      })
+    }
+  }, [user])
+
+  const handleUpdateProfile = async () => {
+    if (!user?.studentId) return toast.error("Please verify your account first!")
+    setSavingProfile(true)
+    try {
+      const res = await updateStudentSocialProfile(user.studentId, profileForm)
+      if (res.success) {
+        toast.success(res.message)
+        window.location.reload()
+      } else {
+        toast.error(res.error || "Update failed")
+      }
+    } catch (err) {
+      toast.error("An error occurred")
+    } finally {
+      setSavingProfile(false)
+    }
+  }
+
   const isUnverified = !userLoading && user && 
     (!user.studentId || user.studentId === "N/A" || user.status === "PENDING")
 
@@ -207,7 +252,15 @@ export default function StudentDashboardPage() {
               <span className="text-[10px] font-black uppercase tracking-widest text-white">Student Portal</span>
             </div>
             {!loadingOverview && overview?.currentStreak > 0 && (
-              <StreakFlame streak={overview.currentStreak} />
+              <div className="flex items-center gap-2">
+                <StreakFlame streak={overview.currentStreak} />
+                {overview?.streakShields > 0 && (
+                  <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500 border border-indigo-400/50 shadow-lg text-white">
+                    <ShieldCheck className="h-4 w-4" />
+                    <span className="text-xs font-black">{overview.streakShields}</span>
+                  </div>
+                )}
+              </div>
             )}
           </div>
           <h1 className="text-4xl md:text-5xl font-black tracking-tighter shrink-0 break-words max-w-full">
@@ -220,9 +273,74 @@ export default function StudentDashboardPage() {
         </div>
 
         {/* Action Button for mobile header */}
-        <div className="relative z-10 mt-2 md:mt-0 w-full md:w-auto">
-          <Button className="w-full md:w-auto rounded-2xl bg-white text-violet-700 hover:bg-slate-50 font-bold h-12 px-6 shadow-lg shadow-black/10" asChild>
-            <Link href="/dashboard/student/courses">
+        <div className="relative z-10 mt-2 md:mt-0 w-full md:w-auto flex flex-col md:flex-row gap-3">
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button className="w-full md:w-auto rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 text-white hover:bg-white hover:text-indigo-700 font-bold h-12 px-6 shadow-lg transition-all">
+                <UserCircle className="mr-2 h-5 w-5" />
+                Edit Profile
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-md bg-slate-950 border-white/10 rounded-[2.5rem] text-white overflow-hidden p-0">
+               <div className="p-8 space-y-6 relative">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-bl-[60px] blur-2xl" />
+                  <DialogHeader className="text-left space-y-2">
+                    <div className="h-12 w-12 rounded-2xl bg-indigo-600 flex items-center justify-center mb-1">
+                      <Sparkles className="h-6 w-6" />
+                    </div>
+                    <DialogTitle className="text-3xl font-black tracking-tighter uppercase leading-none">Gamer Profile</DialogTitle>
+                    <p className="text-slate-500 text-sm font-medium">Complete your profile to earn +200 XP! 🏆</p>
+                  </DialogHeader>
+
+                  <div className="space-y-4 pt-2">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-indigo-400 ml-1">Unique Username</label>
+                      <Input 
+                        placeholder="gamer_pro_2024"
+                        className="bg-white/5 border-white/10 h-12 rounded-xl focus:ring-indigo-500"
+                        value={profileForm.username}
+                        onChange={(e) => setProfileForm({ ...profileForm, username: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-indigo-400 ml-1">Your Bio / Motto</label>
+                      <Textarea 
+                        placeholder="Consistency is key to mastery. 🔥"
+                        className="bg-white/5 border-white/10 rounded-xl min-h-[100px] focus:ring-indigo-500"
+                        value={profileForm.bio}
+                        onChange={(e) => setProfileForm({ ...profileForm, bio: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-indigo-400 ml-1">Cover Image URL</label>
+                      <div className="relative">
+                        <Input 
+                          placeholder="https://images.unsplash.com/..."
+                          className="bg-white/5 border-white/10 h-12 rounded-xl pl-10 focus:ring-indigo-500"
+                          value={profileForm.coverImage}
+                          onChange={(e) => setProfileForm({ ...profileForm, coverImage: e.target.value })}
+                        />
+                        <ImageIcon className="absolute left-3 top-3.5 h-5 w-5 text-slate-500" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-4">
+                    <Button 
+                      className="w-full h-14 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-base shadow-xl shadow-indigo-900/40 transition-transform active:scale-95 group disabled:opacity-50"
+                      onClick={handleUpdateProfile}
+                      disabled={savingProfile}
+                    >
+                      {savingProfile ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Sparkles className="h-5 w-5 mr-2" />}
+                      Save Multi-player Profile
+                    </Button>
+                  </div>
+               </div>
+            </DialogContent>
+          </Dialog>
+
+          <Button className="w-full md:w-auto rounded-2xl bg-white text-violet-700 hover:bg-slate-50 font-black h-12 px-6 shadow-lg shadow-black/10" asChild>
+            <Link href="/dashboard/student/courses" scroll={false}>
               <PlayCircle className="mr-2 h-5 w-5" />
               Continue Learning
             </Link>
@@ -234,14 +352,14 @@ export default function StudentDashboardPage() {
       <div className="flex overflow-x-auto pb-4 -mx-4 px-4 md:mx-0 md:px-0 md:grid md:grid-cols-4 gap-4 no-scrollbar snap-x">
         <StatCard
           title="User Level"
-          value={loadingOverview ? "..." : (overview?.level || 1).toString()}
+          value={loadingOverview ? "..." : (user?.level || overview?.level || 1).toString()}
           icon={<Zap className="h-5 w-5 md:h-6 md:w-6" />}
           color="amber"
           href="#"
         />
         <StatCard
           title="Total XP"
-          value={loadingOverview ? "..." : (overview?.totalXp || 0).toLocaleString()}
+          value={loadingOverview ? "..." : (user?.totalXp || overview?.totalXp || 0).toLocaleString()}
           icon={<Star className="h-5 w-5 md:h-6 md:w-6" />}
           color="emerald"
           href="/dashboard/student/leaderboard"
@@ -327,7 +445,7 @@ export default function StudentDashboardPage() {
                 <CardDescription className="text-slate-400 font-medium">Latest results</CardDescription>
               </div>
               <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-slate-700 text-white" asChild>
-                <Link href="/dashboard/student/grades">
+                <Link href="/dashboard/student/grades" scroll={false}>
                   <ArrowUpRight className="h-5 w-5" />
                 </Link>
               </Button>
@@ -345,6 +463,49 @@ export default function StudentDashboardPage() {
                 ))
               )}
             </CardContent>
+          </Card>
+
+          {/* XP Economy: Streak Shield Shop */}
+          <Card className="border-none shadow-xl shadow-indigo-100/50 rounded-[32px] overflow-hidden bg-gradient-to-br from-indigo-600 to-violet-700 text-white p-1">
+             <div className="bg-white/5 backdrop-blur-3xl p-6 md:p-8 rounded-[30px] h-full space-y-6">
+                <div className="flex items-center gap-4">
+                   <div className="h-12 w-12 rounded-[22px] bg-white/10 flex items-center justify-center border border-white/20">
+                      <ShieldCheck className="h-6 w-6 text-white" />
+                   </div>
+                   <div>
+                     <h3 className="font-black text-xl leading-tight">Streak Shield</h3>
+                     <p className="text-xs text-white/60 font-medium">Protect your hard-earned streak!</p>
+                   </div>
+                </div>
+
+                <div className="space-y-4 pt-2">
+                   <div className="flex justify-between items-center text-sm font-bold bg-white/10 p-4 rounded-2xl border border-white/5">
+                      <span className="text-white/70">Cost per Shield</span>
+                      <span className="text-yellow-300 flex items-center gap-1.5 font-black">
+                        <Star className="h-4 w-4 fill-yellow-300" />
+                        250 XP
+                      </span>
+                   </div>
+
+                   <Button 
+                    variant="secondary"
+                    className="w-full h-14 rounded-2xl bg-white text-indigo-700 hover:bg-slate-100 font-black shadow-xl shadow-indigo-900/40 transition-transform active:scale-95 group"
+                    onClick={async () => {
+                      if (!user?.studentId) return toast.error("Please verify your account first!");
+                      const res = await redeemXpForShieldAction(user.studentId);
+                      if (res.success) {
+                        toast.success("Woohoo! Streak Shield added to your inventory! 🛡️");
+                        window.location.reload(); 
+                      } else {
+                        toast.error(res.error);
+                      }
+                    }}
+                   >
+                     <ShoppingCart className="mr-2 h-4 w-4 group-hover:animate-bounce" />
+                     Redeem XP Now
+                   </Button>
+                </div>
+             </div>
           </Card>
 
         </div>

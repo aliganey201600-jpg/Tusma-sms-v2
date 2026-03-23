@@ -20,6 +20,16 @@ export async function GET(request: Request) {
             status: true,
             classId: true,
             totalXp: true,
+            // @ts-ignore
+            level: true,
+            // @ts-ignore
+            currentStreak: true,
+            // @ts-ignore
+            username: true,
+            // @ts-ignore
+            bio: true,
+            // @ts-ignore
+            coverImage: true,
           }
         }
       }
@@ -32,6 +42,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ 
       success: true, 
+      // @ts-ignore
       student: user.student 
     })
   } catch (error) {

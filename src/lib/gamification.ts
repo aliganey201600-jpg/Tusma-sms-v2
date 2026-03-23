@@ -10,6 +10,7 @@ import prisma from "@/lib/prisma";
  */
 export async function awardPoints(studentId: string, points: number, reason: string, relatedId?: string) {
   // Save transaction to DB
+  // @ts-ignore
   await prisma.pointTransaction.create({
     data: { studentId, points, reason, relatedId },
   });
@@ -17,22 +18,84 @@ export async function awardPoints(studentId: string, points: number, reason: str
   const student = await prisma.student.findUnique({ where: { id: studentId } });
   if (!student) return;
 
-  const newTotalXp = student.totalXp + points;
+  const currentTotalXp = student.totalXp + points;
   
-  // Leveling Up Formula (E.g. Every 500 XP = 1 Level)
-  const newLevel = Math.floor(newTotalXp / 500) + 1;
+  // Dynamic Leveling Formula: RequiredXP = 100 * (currentLevel ^ 1.5)
+  // We calculate the level by checking if the total XP exceeds the cumulative sum
+  let calculatedLevel = 1;
+  let remainingXp = currentTotalXp;
+  
+  while (true) {
+    const xpNeededForNextLevel = Math.floor(100 * Math.pow(calculatedLevel, 1.5));
+    if (remainingXp >= xpNeededForNextLevel) {
+      remainingXp -= xpNeededForNextLevel;
+      calculatedLevel++;
+    } else {
+      break;
+    }
+  }
 
   await prisma.student.update({
     where: { id: studentId },
     data: {
-      totalXp: newTotalXp,
-      level: newLevel > student.level ? newLevel : student.level,
+      totalXp: currentTotalXp,
+      // @ts-ignore
+      level: calculatedLevel > student.level ? calculatedLevel : student.level,
     },
   });
 
-  if (newLevel > student.level) {
+  // @ts-ignore
+  if (calculatedLevel > student.level) {
     // TODO: Trigger Notification ("Congratulations on reaching Level X! 🎉")
   }
+}
+
+/**
+ * 1b. XP Economy: Redeem XP for Streak Shields
+ * Allows students to spend their hard-earned XP to protect their streaks.
+ * Cost: 250 XP per Shield
+ */
+export async function redeemXpForShield(studentId: string) {
+  const student = await prisma.student.findUnique({
+    where: { id: studentId },
+    // @ts-ignore
+    select: { id: true, totalXp: true, streakShields: true, level: true }
+  });
+
+  if (!student) return { success: false, error: "Student not found" };
+
+  const SHIELD_COST = 250;
+
+  if (student.totalXp < SHIELD_COST) {
+    return { success: false, error: "Not enough XP. Keep learning to earn more!" };
+  }
+
+  // Deduct XP and add Shield
+  const updatedStudent = await prisma.student.update({
+    where: { id: studentId },
+    data: {
+      totalXp: { decrement: SHIELD_COST },
+      // @ts-ignore
+      streakShields: { increment: 1 }
+    }
+  });
+
+  // Log the transaction
+  // @ts-ignore
+  await prisma.pointTransaction.create({
+    data: {
+      studentId,
+      points: -SHIELD_COST,
+      reason: "REDEEM_STREAK_SHIELD",
+    }
+  });
+
+  return { 
+    success: true, 
+    newXp: updatedStudent.totalXp, 
+    // @ts-ignore
+    newShields: updatedStudent.streakShields 
+  };
 }
 
 /**

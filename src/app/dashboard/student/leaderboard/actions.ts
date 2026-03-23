@@ -17,7 +17,6 @@ export async function getLeaderboardData() {
     })
 
     // 2. Fetch Students for Academic Leaderboard (Avg Score)
-    // To keep it performant, we'll fetch students who have at least some grades
     const studentsWithGrades = await prisma.student.findMany({
       select: {
         id: true,
@@ -34,19 +33,16 @@ export async function getLeaderboardData() {
       let totalPct = 0
       let count = 0
 
-      // Quizzes
       s.quizAttempts.forEach((a: any) => {
         totalPct += parseFloat(a.score.toString())
         count++
       })
 
-      // Exams
       s.examResults.forEach((er: any) => {
         totalPct += (er.marksObtained / er.exam.maxMarks) * 100
         count++
       })
 
-      // Assignments
       s.grades.forEach((ag: any) => {
         totalPct += parseFloat(ag.score.toString())
         count++
@@ -66,6 +62,30 @@ export async function getLeaderboardData() {
     .slice(0, 50)
     .map((s, i) => ({ ...s, rank: i + 1 }))
 
+    // 3. Fetch Class/Department Rankings
+    const classes = await prisma.class.findMany({
+      select: {
+        id: true,
+        name: true,
+        students: { select: { totalXp: true } }
+      }
+    })
+
+    const classRankings = classes.map(c => {
+      // @ts-ignore
+      const studentXPs = c.students.map(s => s.totalXp)
+      const totalXp = studentXPs.reduce((a, b) => a + b, 0)
+      const avgXp = studentXPs.length > 0 ? totalXp / studentXPs.length : 0
+      return {
+        id: c.id,
+        name: c.name,
+        xp: Math.round(avgXp),
+        rank: 0 
+      }
+    })
+    .sort((a, b) => b.xp - a.xp)
+    .map((c, i) => ({ ...c, rank: i + 1 }))
+
     return {
       success: true,
       xpStudents: (xpStudents as any[]).map((s, index) => ({
@@ -75,10 +95,11 @@ export async function getLeaderboardData() {
         avatarUrl: null,
         rank: index + 1
       })),
-      academicStudents: academicRankings
+      academicStudents: academicRankings,
+      classRankings: classRankings
     }
   } catch (error) {
     console.error("Failed to fetch leaderboard", error)
-    return { success: false, xpStudents: [], academicStudents: [] }
+    return { success: false, xpStudents: [], academicStudents: [], classRankings: [] }
   }
 }

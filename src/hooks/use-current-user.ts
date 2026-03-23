@@ -15,8 +15,12 @@ interface CurrentUser {
   status?: string
   classId?: string | null
   totalXp?: number
+  level?: number
+  currentStreak?: number
+  username?: string
+  bio?: string
+  coverImage?: string
 }
-
 
 export function useCurrentUser() {
   const [user, setUser] = React.useState<CurrentUser | null>(null)
@@ -35,22 +39,18 @@ export function useCurrentUser() {
           return
         }
 
-        // Pull name from user_metadata (set during sign-up) or from Prisma DB
         const meta = authUser.user_metadata || {}
-        
-        // Try to get name from metadata fields (common patterns)
         const fullName =
           meta.full_name ||
           meta.fullName ||
           meta.name ||
           [meta.first_name, meta.last_name].filter(Boolean).join(" ") ||
-          authUser.email?.split("@")[0] || // fallback: part before @
+          authUser.email?.split("@")[0] ||
           "User"
 
         const firstName = fullName.split(" ")[0]
         const lastName = fullName.split(" ").slice(1).join(" ")
 
-        // Fetch extended data from API to be sure
         try {
           const res = await fetch(`/api/user/profile?id=${authUser.id}`)
           const data = await res.json()
@@ -66,11 +66,15 @@ export function useCurrentUser() {
               studentId: data.student?.id || data.student?.studentId,
               status: data.student?.status,
               classId: data.student?.classId,
-              totalXp: data.student?.totalXp || 0
+              totalXp: data.student?.totalXp || 0,
+              level: data.student?.level || 1,
+              currentStreak: data.student?.currentStreak || 0,
+              username: data.student?.username,
+              bio: data.student?.bio,
+              coverImage: data.student?.coverImage
             })
 
           } else {
-            // Fallback if API fails but Auth succeeds
             setUser({
               id: authUser.id,
               email: authUser.email,
@@ -96,15 +100,12 @@ export function useCurrentUser() {
 
     loadUser()
 
-    // Listen for auth state changes (login/logout)
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event: string, session: any) => {
-      // Only react to actual auth events that change the user
       if (event === "SIGNED_OUT") {
         setUser(null)
       } else if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
-        // Instead of overriding with partial info, re-fetch the profile if we have a user
         if (session?.user) {
           try {
             const res = await fetch(`/api/user/profile?id=${session.user.id}`)
@@ -131,7 +132,12 @@ export function useCurrentUser() {
                 studentId: data.student?.id || data.student?.studentId,
                 status: data.student?.status,
                 classId: data.student?.classId,
-                totalXp: data.student?.totalXp || 0
+                totalXp: data.student?.totalXp || 0,
+                level: data.student?.level || 1,
+                currentStreak: data.student?.currentStreak || 0,
+                username: data.student?.username,
+                bio: data.student?.bio,
+                coverImage: data.student?.coverImage
               })
             } else {
               setUser({

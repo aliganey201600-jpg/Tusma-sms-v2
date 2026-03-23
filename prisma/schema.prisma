@@ -79,6 +79,9 @@ model Student {
   longestStreak   Int      @default(0)
   lastLoginDate   DateTime?
   streakShields   Int      @default(0)
+  username        String?  @unique
+  bio             String?  @db.Text
+  coverImage      String?
 
   pointTransactions PointTransaction[]
   badges            StudentBadge[]
@@ -635,6 +638,7 @@ model StudentBadge {
   badge       Badge    @relation(fields: [badgeId], references: [id], onDelete: Cascade)
   
   earnedAt    DateTime @default(now())
+  isFeatured  Boolean  @default(false)
 
   @@unique([studentId, badgeId])
 }
