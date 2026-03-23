@@ -39,15 +39,12 @@ export async function getPublicProfile(username: string) {
 
     if (!student) return { success: false }
 
-    // 1. Calculate Global Rank
-    // @ts-ignore
-    const betterStudents = await prisma.student.count({
-      where: {
-        // @ts-ignore
-        totalXp: { gt: student.totalXp }
-      }
-    })
-    const globalRank = betterStudents + 1
+    // 1. Calculate Global Rank using raw SQL (Bypass client sync)
+    const rankResult: any[] = await prisma.$queryRawUnsafe(
+      'SELECT count(*) + 1 as rank FROM "Student" WHERE "totalXp" > $1',
+      student.totalXp || 0
+    )
+    const globalRank = Number(rankResult[0]?.rank || 1)
 
     // 2. Calculate Subject Mastery (Realistic average based on grades)
     const subjectAverages: Record<string, { total: number, count: number }> = {}
@@ -55,27 +52,25 @@ export async function getPublicProfile(username: string) {
     student.grades.forEach((g: any) => {
       const sName = g.assignment?.course?.name || "General"
       if (!subjectAverages[sName]) subjectAverages[sName] = { total: 0, count: 0 }
-      subjectAverages[sName].total += g.score
+      subjectAverages[sName].total += g.score || 0
       subjectAverages[sName].count += 1
     })
 
-    const mastery = Object.entries(subjectAverages).map(([name, data]) => ({
-      name,
-      progress: Math.min(100, Math.round((data.total / (data.count * 100)) * 100))
+    const subjectMastery = Object.entries(subjectAverages).map(([subject, data]) => ({
+      subject,
+      percentage: Math.min(100, Math.round((data.total / (data.count * 100)) * 100)),
+      color: ['violet', 'blue', 'emerald', 'amber'][Math.floor(Math.random() * 4)]
     }))
-
-    // Sort by progress desc
-    mastery.sort((a,b) => b.progress - a.progress)
 
     return { 
       success: true, 
       profile: {
         ...student,
         globalRank,
-        mastery: mastery.length > 0 ? mastery : [
-          { name: 'Mathematics', progress: 0 },
-          { name: 'Arabic', progress: 0 },
-          { name: 'Computer Science', progress: 0 }
+        subjectMastery: subjectMastery.length > 0 ? subjectMastery : [
+          { subject: 'Mathematics', percentage: 0, color: 'violet' },
+          { subject: 'Arabic', percentage: 0, color: 'blue' },
+          { subject: 'Computer Science', percentage: 0, color: 'emerald' }
         ]
       } 
     }

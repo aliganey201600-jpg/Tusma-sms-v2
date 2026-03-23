@@ -264,25 +264,24 @@ export async function redeemXpForShieldAction(studentId: string) {
  */
 export async function claimShareBonus(studentId: string) {
   try {
-    const student = await prisma.student.findUnique({
-      where: { id: studentId },
-      // @ts-ignore
-      select: { hasSharedRank: true }
-    })
+    // 1. Fetch current status using Raw SQL to bypass outdated Prisma Client
+    const students: any[] = await prisma.$queryRawUnsafe(
+      'SELECT "hasSharedRank" FROM "Student" WHERE id = $1',
+      studentId
+    )
 
-    if (!student) return { success: false, error: "Not found" }
-    // @ts-ignore
+    if (!students || students.length === 0) return { success: false, error: "Student not found" }
+    const student = students[0]
+
     if (student.hasSharedRank) return { success: false, error: "Already claimed" }
 
-    await prisma.student.update({
-      where: { id: studentId },
-      data: {
-        // @ts-ignore
-        hasSharedRank: true
-      }
-    })
+    // 2. Mark as shared using Raw SQL
+    await prisma.$executeRawUnsafe(
+      'UPDATE "Student" SET "hasSharedRank" = TRUE WHERE id = $1',
+      studentId
+    )
 
-    // Log points awarding (This handles increment, level-up and logging)
+    // 3. Award Points (This handles increment, level-up and logging)
     await awardPoints(studentId, 50, "VIRAL_SHARE", studentId)
 
     revalidatePath(`/dashboard/student`)

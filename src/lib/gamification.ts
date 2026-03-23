@@ -15,23 +15,18 @@ import prisma from "@/lib/prisma"
  */
 export async function awardPoints(studentId: string, points: number, reason: string, relatedId?: string) {
   try {
-    const student = await prisma.student.findUnique({
-      where: { id: studentId },
-      select: { 
-        id: true, 
-        totalXp: true, 
-        level: true,
-        firstName: true,
-        // @ts-ignore
-        classId: true
-      }
-    })
+    // 1. Fetch current status using Raw SQL to bypass outdated Prisma Client
+    const students: any[] = await prisma.$queryRawUnsafe(
+      'SELECT id, "totalXp", "level", "firstName", "classId" FROM "Student" WHERE id = $1',
+      studentId
+    )
 
-    if (!student) return
+    if (!students || students.length === 0) return { success: false, error: "Student not found" }
+    const student = students[0]
 
-    const oldXp = student.totalXp
+    const oldXp = student.totalXp || 0
     const newXp = oldXp + points
-    let currentLevel = student.level
+    let currentLevel = student.level || 1
 
     // Level up logic (Dynamic Scaling)
     const getRequiredXp = (lvl: number) => Math.floor(100 * Math.pow(lvl, 1.5))
@@ -42,24 +37,24 @@ export async function awardPoints(studentId: string, points: number, reason: str
       nextLevelXp = getRequiredXp(currentLevel)
     }
 
-    // Update Student
-    await prisma.student.update({
-      where: { id: studentId },
-      data: {
-        totalXp: newXp,
-        level: currentLevel,
-      }
-    })
+    // 2. Update Student using Raw SQL
+    await prisma.$executeRawUnsafe(
+      'UPDATE "Student" SET "totalXp" = $1, "level" = $2 WHERE id = $3',
+      newXp, currentLevel, studentId
+    )
 
-    // Record Transaction
-    await prisma.pointTransaction.create({
-      data: {
-        studentId,
-        points,
-        reason,
-        relatedId
-      }
-    })
+    // 3. Record Transaction using Raw SQL
+    try {
+      await prisma.$executeRawUnsafe(
+        'INSERT INTO "PointTransaction" (id, "studentId", points, reason, "relatedId", "createdAt") VALUES ($1, $2, $3, $4, $5, NOW())',
+        crypto.randomUUID(), studentId, points, reason, relatedId || null
+      )
+    } catch (e) {
+      console.error("PointTransaction log failed:", e)
+      // We don't return false here, as the XP was already awarded
+    }
+
+    console.log(`[XP_REWARD] ${student.firstName} earned ${points} XP! (Total: ${newXp})`)
 
     // Squad Live Notification (Simulation logic - In a real app we'd use WebSockets/Pusher)
     if (points >= 50 && student.classId) {
