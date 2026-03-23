@@ -15,8 +15,8 @@ export async function GET() {
     `);
     results.push('Col hasSharedRank added/verified');
 
-    // 2. Diagnostic: List all usernames
-    const allStudents = await prisma.$queryRawUnsafe('SELECT username, "firstName" FROM "Student"');
+    // 2. Diagnostic: List all usernames with XP
+    const allStudents = await prisma.$queryRawUnsafe('SELECT username, "firstName", "totalXp", id FROM "Student" WHERE username IS NOT NULL');
     
     return NextResponse.json({ 
       success: true, 

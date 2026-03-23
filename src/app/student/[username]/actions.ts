@@ -9,11 +9,10 @@ export async function getPublicProfile(username: string) {
   if (!username) return { success: false }
   
   try {
-    // 1. Fetch Student using Raw SQL to bypass client sync issues
-    const students: any[] = await prisma.$queryRawUnsafe(
-      'SELECT * FROM "Student" WHERE "username" ILIKE $1 LIMIT 1',
-      username
-    )
+    // 1. Fetch Student using Raw SQL (Template version for reliability)
+    const students: any[] = await prisma.$queryRaw`
+      SELECT * FROM "Student" WHERE "username" ILIKE ${username} LIMIT 1
+    `
 
     if (!students || students.length === 0) return { success: false }
     const student = students[0]
