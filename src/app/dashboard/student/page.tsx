@@ -179,8 +179,7 @@ export default function StudentDashboardPage() {
     }
   }
 
-  const isUnverified = !userLoading && user && 
-    (!user.studentId || user.studentId === "N/A" || user.status === "PENDING")
+  const isUnverified = false // Disabled per user request to allow immediate access
 
   if (userLoading) {
     return (
@@ -193,46 +192,6 @@ export default function StudentDashboardPage() {
     )
   }
 
-  if (isUnverified) {
-    return (
-      <div className="min-h-[80vh] flex items-center justify-center p-4">
-        <Card className="max-w-md w-full border-none shadow-2xl shadow-violet-200/50 rounded-[40px] p-8 md:p-12 text-center space-y-8 bg-white overflow-hidden relative">
-          <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-violet-500 to-indigo-500" />
-          
-          <div className="space-y-4">
-            <div className="h-20 w-20 bg-violet-100 rounded-3xl flex items-center justify-center mx-auto mb-6">
-              <GraduationCap className="h-10 w-10 text-violet-600" />
-            </div>
-            <h2 className="text-3xl font-black text-slate-900 tracking-tighter leading-tight">
-              Verify Your Account
-            </h2>
-            <p className="text-slate-500 font-medium max-w-xs mx-auto text-sm leading-relaxed">
-              Please enter your Student ID to access your classes, courses, and grades.
-            </p>
-          </div>
-
-          <form onSubmit={handleVerify} className="space-y-4">
-            <div className="space-y-2 text-left">
-              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Student Identification ID</label>
-              <Input 
-                placeholder="TUSMO-2024-XXX" 
-                className="h-14 rounded-2xl border-slate-100 bg-slate-50 px-5 font-bold text-slate-700 focus-visible:ring-violet-500 text-lg md:text-base"
-                value={studentIdInput}
-                onChange={(e) => setStudentIdInput(e.target.value)}
-              />
-            </div>
-            <Button 
-              className="w-full h-14 rounded-2xl bg-violet-600 hover:bg-violet-700 text-white font-black text-base shadow-xl shadow-violet-200 transition-all hover:scale-[1.02] disabled:opacity-50"
-              disabled={verifying}
-            >
-              {verifying ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <CheckCircle2 className="h-5 w-5 mr-2" />}
-              Verify Now
-            </Button>
-          </form>
-        </Card>
-      </div>
-    )
-  }
 
   // displayCourses is already declared above
 
@@ -475,6 +434,15 @@ export default function StudentDashboardPage() {
                    <div>
                      <h3 className="font-black text-xl leading-tight">Streak Shield</h3>
                      <p className="text-xs text-white/60 font-medium">Protect your hard-earned streak!</p>
+                     {/* Dynamic Shield Count */}
+                     <p className={cn(
+                       "text-[10px] font-black uppercase tracking-wider mt-1.5 px-2 py-0.5 rounded-md w-fit",
+                       (overview?.streakShields || 0) > 0 ? "bg-emerald-500/20 text-emerald-300" : "bg-white/10 text-white/40"
+                     )}>
+                       {(overview?.streakShields || 0) > 0 
+                         ? `Active Shields: ${overview.streakShields} 🛡️` 
+                         : "No Shields active. Protect your streak now!"}
+                     </p>
                    </div>
                 </div>
 

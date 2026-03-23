@@ -20,6 +20,7 @@ interface CurrentUser {
   username?: string
   bio?: string
   coverImage?: string
+  inventory?: any[]
 }
 
 export function useCurrentUser() {
@@ -71,7 +72,8 @@ export function useCurrentUser() {
               currentStreak: data.student?.currentStreak || 0,
               username: data.student?.username,
               bio: data.student?.bio,
-              coverImage: data.student?.coverImage
+              coverImage: data.student?.coverImage,
+              inventory: data.student?.inventory
             })
 
           } else {
@@ -137,7 +139,8 @@ export function useCurrentUser() {
                 currentStreak: data.student?.currentStreak || 0,
                 username: data.student?.username,
                 bio: data.student?.bio,
-                coverImage: data.student?.coverImage
+                coverImage: data.student?.coverImage,
+                inventory: data.student?.inventory
               })
             } else {
               setUser({

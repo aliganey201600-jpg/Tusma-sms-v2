@@ -85,6 +85,7 @@ model Student {
 
   pointTransactions PointTransaction[]
   badges            StudentBadge[]
+  inventory         StudentItem[]
 }
 
 
@@ -643,3 +644,34 @@ model StudentBadge {
   @@unique([studentId, badgeId])
 }
 
+// ==========================================
+// SHOP & INVENTORY MODELS
+// ==========================================
+
+model ShopItem {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  type        String   // FRAME, THEME, BADGE
+  priceXp     Int
+  iconUrl     String?
+  rarity      String   @default("COMMON") // COMMON, RARE, EPIC, LEGENDARY
+  
+  owners      StudentItem[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model StudentItem {
+  id          String   @id @default(uuid())
+  studentId   String
+  student     Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  itemId      String
+  item        ShopItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  
+  acquiredAt  DateTime @default(now())
+  isEquipped  Boolean  @default(false)
+
+  @@unique([studentId, itemId])
+}

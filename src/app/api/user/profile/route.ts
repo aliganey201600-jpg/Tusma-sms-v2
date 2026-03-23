@@ -19,6 +19,7 @@ export async function GET(request: Request) {
             studentId: true,
             status: true,
             classId: true,
+            // @ts-ignore
             totalXp: true,
             // @ts-ignore
             level: true,
@@ -30,6 +31,8 @@ export async function GET(request: Request) {
             bio: true,
             // @ts-ignore
             coverImage: true,
+            // @ts-ignore
+            inventory: { select: { itemId: true } }
           }
         }
       }

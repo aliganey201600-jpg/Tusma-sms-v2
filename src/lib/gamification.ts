@@ -1,186 +1,225 @@
-import prisma from "@/lib/prisma";
+"use server"
 
-// ==========================================
-// TUSMA GAMIFICATION ENGINE - BACKEND LOGIC
-// ==========================================
+import prisma from "@/lib/prisma"
 
 /**
- * 1. Nidaamka Dhibcaha (Points Ledger)
- * Applies designated points for an action and triggers Level Up checks.
+ * GAMIFICATION ENGINE v2.0
+ * Features: Points, Dynamic Leveling, Economy (Shields), Classroom Battles (Squads)
+ */
+
+/**
+ * 1. Nidaamka Dhibcaha (The Points System)
+ * Awards XP to students and handles dynamic leveling.
+ * 
+ * RequiredXP = 100 * (currentLevel ^ 1.5)
  */
 export async function awardPoints(studentId: string, points: number, reason: string, relatedId?: string) {
-  // Save transaction to DB
-  // @ts-ignore
-  await prisma.pointTransaction.create({
-    data: { studentId, points, reason, relatedId },
-  });
+  try {
+    const student = await prisma.student.findUnique({
+      where: { id: studentId },
+      select: { 
+        id: true, 
+        totalXp: true, 
+        level: true,
+        firstName: true,
+        // @ts-ignore
+        classId: true
+      }
+    })
 
-  const student = await prisma.student.findUnique({ where: { id: studentId } });
-  if (!student) return;
+    if (!student) return
 
-  const currentTotalXp = student.totalXp + points;
-  
-  // Dynamic Leveling Formula: RequiredXP = 100 * (currentLevel ^ 1.5)
-  // We calculate the level by checking if the total XP exceeds the cumulative sum
-  let calculatedLevel = 1;
-  let remainingXp = currentTotalXp;
-  
-  while (true) {
-    const xpNeededForNextLevel = Math.floor(100 * Math.pow(calculatedLevel, 1.5));
-    if (remainingXp >= xpNeededForNextLevel) {
-      remainingXp -= xpNeededForNextLevel;
-      calculatedLevel++;
-    } else {
-      break;
+    const oldXp = student.totalXp
+    const newXp = oldXp + points
+    let currentLevel = student.level
+
+    // Level up logic (Dynamic Scaling)
+    const getRequiredXp = (lvl: number) => Math.floor(100 * Math.pow(lvl, 1.5))
+    
+    let nextLevelXp = getRequiredXp(currentLevel)
+    while (newXp >= nextLevelXp) {
+      currentLevel++
+      nextLevelXp = getRequiredXp(currentLevel)
     }
-  }
 
-  await prisma.student.update({
-    where: { id: studentId },
-    data: {
-      totalXp: currentTotalXp,
-      // @ts-ignore
-      level: calculatedLevel > student.level ? calculatedLevel : student.level,
-    },
-  });
+    // Update Student
+    await prisma.student.update({
+      where: { id: studentId },
+      data: {
+        totalXp: newXp,
+        level: currentLevel,
+      }
+    })
 
-  // @ts-ignore
-  if (calculatedLevel > student.level) {
-    // TODO: Trigger Notification ("Congratulations on reaching Level X! 🎉")
+    // Record Transaction
+    await prisma.pointTransaction.create({
+      data: {
+        studentId,
+        points,
+        reason,
+        relatedId
+      }
+    })
+
+    // Squad Live Notification (Simulation logic - In a real app we'd use WebSockets/Pusher)
+    if (points >= 50 && student.classId) {
+       console.log(`[SQUAD_ALERT] Student ${student.firstName} earned ${points} XP for Class ${student.classId}! 🔥`)
+    }
+
+    return { 
+      success: true, 
+      leveledUp: currentLevel > student.level,
+      newLevel: currentLevel 
+    }
+  } catch (error) {
+    console.error("Failed to award points:", error)
+    return { success: false }
   }
 }
 
 /**
- * 1b. XP Economy: Redeem XP for Streak Shields
- * Allows students to spend their hard-earned XP to protect their streaks.
- * Cost: 250 XP per Shield
+ * 2. XP-to-Reward Logic (Economy)
+ * Allows students to spend XP on Streak Shields.
  */
 export async function redeemXpForShield(studentId: string) {
-  const student = await prisma.student.findUnique({
-    where: { id: studentId },
-    // @ts-ignore
-    select: { id: true, totalXp: true, streakShields: true, level: true }
-  });
-
-  if (!student) return { success: false, error: "Student not found" };
-
-  const SHIELD_COST = 250;
-
-  if (student.totalXp < SHIELD_COST) {
-    return { success: false, error: "Not enough XP. Keep learning to earn more!" };
-  }
-
-  // Deduct XP and add Shield
-  const updatedStudent = await prisma.student.update({
-    where: { id: studentId },
-    data: {
-      totalXp: { decrement: SHIELD_COST },
+  const SHIELD_COST = 250
+  
+  try {
+    const student = await prisma.student.findUnique({
+      where: { id: studentId },
       // @ts-ignore
-      streakShields: { increment: 1 }
-    }
-  });
+      select: { totalXp: true, streakShields: true }
+    })
 
-  // Log the transaction
-  // @ts-ignore
-  await prisma.pointTransaction.create({
-    data: {
-      studentId,
-      points: -SHIELD_COST,
-      reason: "REDEEM_STREAK_SHIELD",
-    }
-  });
-
-  return { 
-    success: true, 
-    newXp: updatedStudent.totalXp, 
+    if (!student) return { success: false, error: "Student not found" }
     // @ts-ignore
-    newShields: updatedStudent.streakShields 
-  };
+    if (student.totalXp < SHIELD_COST) return { success: false, error: "Not enough XP" }
+
+    await prisma.student.update({
+      where: { id: studentId },
+      data: {
+        totalXp: { decrement: SHIELD_COST },
+        // @ts-ignore
+        streakShields: { increment: 1 }
+      }
+    })
+
+    // Log the transaction
+    await prisma.pointTransaction.create({
+      data: {
+        studentId,
+        points: -SHIELD_COST,
+        reason: "REDEEM_SHIELD"
+      }
+    })
+
+    return { success: true }
+  } catch (error) {
+    console.error("XP Redemption error:", error)
+    return { success: false }
+  }
 }
 
 /**
- * 2. Daily Check-in & Streak Logic
- * Called automatically every time a student logs in.
+ * 3. Nidaamka Streaks (Persistence)
+ * Refined logic with Streak Shield support.
  */
 export async function processDailyLogin(studentId: string) {
-  const student = await prisma.student.findUnique({ where: { id: studentId } });
-  if (!student) return;
-
   const now = new Date();
-  const lastLogin = student.lastLoginDate;
+  
+  try {
+    const student = await prisma.student.findUnique({
+      where: { id: studentId },
+      // @ts-ignore
+      select: { lastLoginDate: true, currentStreak: true, longestStreak: true, streakShields: true }
+    });
 
-  let currentStreak = student.currentStreak;
-  let longestStreak = student.longestStreak;
-  let shields = student.streakShields;
+    if (!student) return;
 
-  let pointsToAward = 0;
+    // @ts-ignore
+    const lastLogin = student.lastLoginDate;
+    // @ts-ignore
+    let currentStreak = student.currentStreak || 0;
+    // @ts-ignore
+    let longestStreak = student.longestStreak || 0;
+    // @ts-ignore
+    let shields = student.streakShields || 0;
+    
+    let pointsToAward = 0;
 
-  if (lastLogin) {
-    const hoursSinceLastLogin = (now.getTime() - lastLogin.getTime()) / (1000 * 60 * 60);
+    if (lastLogin) {
+      const diffInHours = (now.getTime() - lastLogin.getTime()) / (1000 * 60 * 60);
 
-    if (hoursSinceLastLogin >= 24 && hoursSinceLastLogin <= 48) {
-      // Safe zone -> User maintained streak
-      currentStreak += 1;
-      pointsToAward = 10; // +10 daily check-in points
-    } 
-    else if (hoursSinceLastLogin > 48) {
-      // Streak broken. Check if they have a 'Streak Shield'
-      if (shields > 0) {
-        shields -= 1;
-        currentStreak += 1; // Shield consumed, streak saved
+      if (diffInHours >= 24 && diffInHours < 48) {
+        // Perfect timing (between 24-48 hours since last login)
+        currentStreak += 1;
         pointsToAward = 10;
-        // TODO: Send warning notification ("Streak Shield consumed!")
-      } else {
-        currentStreak = 1; // Streak reset
-        pointsToAward = 10;
+      } else if (diffInHours >= 48) {
+        // Streak Broken! Check for Shields
+        if (shields > 0) {
+          shields -= 1;
+          currentStreak += 1; // Shield consumed, streak saved
+          pointsToAward = 10;
+          // TODO: Send warning notification ("Streak Shield consumed!")
+        } else {
+          currentStreak = 1; // Streak reset
+          pointsToAward = 10;
+        }
       }
+      // If < 24 hrs, it implies multiple logins the same day. Do nothing.
+    } else {
+      // First time login ever
+      currentStreak = 1;
+      pointsToAward = 10;
     }
-    // If < 24 hrs, it implies multiple logins the same day. Do nothing.
-  } else {
-    // First time login ever
-    currentStreak = 1;
-    pointsToAward = 10;
-  }
 
-  // Update longest streak memory
-  if (currentStreak > longestStreak) {
-    longestStreak = currentStreak;
-  }
+    // Update longest streak memory
+    if (currentStreak > longestStreak) {
+      longestStreak = currentStreak;
+    }
 
-  await prisma.student.update({
-    where: { id: studentId },
-    data: {
-      currentStreak,
-      longestStreak,
-      streakShields: shields,
-      lastLoginDate: now,
-    },
-  });
+    await prisma.student.update({
+      where: { id: studentId },
+      data: {
+        // @ts-ignore
+        currentStreak,
+        // @ts-ignore
+        longestStreak,
+        // @ts-ignore
+        streakShields: shields,
+        // @ts-ignore
+        lastLoginDate: now,
+      },
+    });
 
-  if (pointsToAward > 0) {
-    await awardPoints(studentId, pointsToAward, "DAILY_CHECKIN");
-  }
+    if (pointsToAward > 0) {
+      await awardPoints(studentId, pointsToAward, "DAILY_CHECKIN");
+    }
 
-  // Persistence Badge Check (30 days)
-  if (currentStreak === 30) {
-    await unlockBadge(studentId, "Persistence");
+    // Persistence Badge Check (30 days)
+    if (currentStreak === 30) {
+      await unlockBadge(studentId, "Persistence");
+    }
+  } catch (error) {
+    console.error("Streak processing error:", error)
   }
 }
 
 /**
- * 3. Billadaha (Badge Engine)
- * Service that unlocks achievements dynamically based on student activity limits.
+ * 4. Billadaha (Badge Engine)
  */
 export async function unlockBadge(studentId: string, badgeName: string) {
+  // @ts-ignore
   const badge = await prisma.badge.findUnique({ where: { name: badgeName } });
-  if (!badge) return; // Badge not configured in DB
+  if (!badge) return;
 
-  // Avoid duplicates
+  // @ts-ignore
   const existing = await prisma.studentBadge.findUnique({
     where: { studentId_badgeId: { studentId, badgeId: badge.id } },
   });
 
   if (!existing) {
+    // @ts-ignore
     await prisma.studentBadge.create({
       data: { studentId, badgeId: badge.id },
     });
@@ -188,43 +227,35 @@ export async function unlockBadge(studentId: string, badgeName: string) {
     if (badge.xpReward > 0) {
       await awardPoints(studentId, badge.xpReward, `BADGE_UNLOCK_${badgeName.replace(/\s+/g, '_').toUpperCase()}`);
     }
-
-    // TODO: Send Push Notification ("You unlocked a new Badge! 🏆")
   }
 }
 
 /**
- * 4. Helper Event: "Speed Demon" Or "Perfect Score" Quiz checks
- * Should be called whenever a Quiz is Completed.
+ * 5. handleQuizCompletion
  */
 export async function handleQuizCompletion(studentId: string, quizId: string, score: number, timeSpentSec: number) {
-  // Award standard points
   if (score >= 80) {
     await awardPoints(studentId, 100, "QUIZ_PASSED", quizId);
   } else {
-    // Attempt points
     await awardPoints(studentId, 25, "QUIZ_COMPLETED", quizId);
   }
 
-  // Check Perfect Score badge
   if (score === 100) {
     await unlockBadge(studentId, "Perfect Score");
   }
 
-  // Check Speed Demon badge (e.g. less than 2 mins)
   if (timeSpentSec < 120 && score >= 80) {
     await unlockBadge(studentId, "Speed Demon");
   }
 }
 
 /**
- * 5. Tartanka (Social Leaderboard Fetcher)
- * Fetch top students (weekly or globally)
+ * 6. getTopStudents
  */
 export async function getTopStudents(limit: number = 10) {
   return await prisma.student.findMany({
     orderBy: {
-      totalXp: 'desc', // Top XP
+      totalXp: 'desc',
     },
     take: limit,
     select: {
@@ -232,12 +263,112 @@ export async function getTopStudents(limit: number = 10) {
       firstName: true,
       lastName: true,
       totalXp: true,
+      // @ts-ignore
       level: true,
       badges: {
         include: { badge: true }
       }
     }
   });
+}
 
-  // Additional logic can be added to filter by "this week's XP" by reading the PointTransaction table history.
+/**
+ * Squad Battles: Aggregates and averages student XP per class
+ */
+export async function getClassroomRankings() {
+  try {
+    const classes = await prisma.class.findMany({
+      include: {
+        students: {
+          select: {
+            // @ts-ignore
+            totalXp: true,
+            id: true
+          }
+        }
+      }
+    })
+
+    const rankings = classes.map(cls => {
+      const studentCount = cls.students.length
+      // @ts-ignore
+      const totalClassXp = cls.students.reduce((sum, s) => sum + (s.totalXp || 0), 0)
+      const averageXp = studentCount > 0 ? (totalClassXp / studentCount) : 0
+
+      return {
+        id: cls.id,
+        name: cls.name,
+        totalPoints: totalClassXp,
+        averagePoints: Math.round(averageXp),
+        studentCount
+      }
+    })
+
+    return rankings.sort((a, b) => b.averagePoints - a.averagePoints)
+  } catch (error) {
+    console.error("Classroom ranking error:", error)
+    return []
+  }
+}
+
+/**
+ * Rewards students of the top class with a temporary "Victory Badge"
+ */
+export async function rewardTopClass() {
+  try {
+    const rankings = await getClassroomRankings()
+    if (rankings.length === 0) return
+
+    const topClass = rankings[0]
+    
+    // @ts-ignore
+    let victoryBadge = await prisma.badge.findFirst({
+      where: { name: "Victory Badge" }
+    })
+
+    if (!victoryBadge) {
+      // @ts-ignore
+      victoryBadge = await prisma.badge.create({
+        data: {
+          name: "Victory Badge",
+          description: "Top Squad of the Week! 🥇",
+          xpReward: 100
+        }
+      })
+    }
+
+    const students = await prisma.student.findMany({
+      where: { classId: topClass.id }
+    })
+
+    for (const student of students) {
+      // @ts-ignore
+      const alreadyHas = await prisma.studentBadge.findUnique({
+        where: {
+          studentId_badgeId: {
+            studentId: student.id,
+            // @ts-ignore
+            badgeId: victoryBadge.id
+          }
+        }
+      })
+
+      if (!alreadyHas) {
+        // @ts-ignore
+        await prisma.studentBadge.create({
+          data: {
+            studentId: student.id,
+            // @ts-ignore
+            badgeId: victoryBadge.id
+          }
+        })
+        await awardPoints(student.id, 100, "SQUAD_VICTORY")
+      }
+    }
+
+    return { success: true, topClass: topClass.name }
+  } catch (error) {
+    console.error("Squad reward error:", error)
+    return { success: false }
+  }
 }

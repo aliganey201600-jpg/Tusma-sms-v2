@@ -114,7 +114,7 @@ export async function getStudentDashboardOverview(userId: string) {
         lastName: true,
         studentId: true,
         status: true,
-        // @ts-ignore - Prisma TS caching issue
+        // @ts-ignore
         totalXp: true,
         // @ts-ignore
         level: true,
@@ -122,18 +122,10 @@ export async function getStudentDashboardOverview(userId: string) {
         currentStreak: true,
         // @ts-ignore
         streakShields: true,
-        lessonCompletions: {
-          select: { lessonId: true }
-        },
-        attendances: {
-          select: { status: true }
-        },
-        grades: {
-          select: { score: true }
-        },
-        examResults: {
-          select: { marksObtained: true, exam: { select: { maxMarks: true } } }
-        }
+        lessonCompletions: { select: { lessonId: true } },
+        attendances: { select: { status: true } },
+        grades: { select: { score: true } },
+        examResults: { select: { marksObtained: true, exam: { select: { maxMarks: true } } } }
       }
     })
 
