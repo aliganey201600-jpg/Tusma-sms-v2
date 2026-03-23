@@ -7,9 +7,14 @@ import { awardPoints } from "@/lib/gamification"
 
 export async function getPublicProfile(username: string) {
   try {
-    const student = await prisma.student.findUnique({
-      // @ts-ignore
-      where: { username },
+    const student = await prisma.student.findFirst({
+      where: { 
+        // @ts-ignore
+        username: {
+          equals: username,
+          mode: 'insensitive'
+        }
+      },
       include: {
         class: { select: { name: true } },
         // @ts-ignore
