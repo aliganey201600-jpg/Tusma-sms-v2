@@ -15,7 +15,14 @@ export async function GET() {
     `);
     results.push('Col hasSharedRank added/verified');
 
-    return NextResponse.json({ success: true, steps: results })
+    // 2. Diagnostic: List all usernames
+    const allStudents = await prisma.$queryRawUnsafe('SELECT username, "firstName" FROM "Student"');
+    
+    return NextResponse.json({ 
+      success: true, 
+      steps: ["Col hasSharedRank added/verified"],
+      diagnostics: allStudents
+    })
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message, steps: results }, { status: 500 })
   }
