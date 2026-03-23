@@ -512,7 +512,7 @@ export default function StudentDashboardPage() {
       {isShareModalOpen && (
         <ShareRankCard 
           student={{ 
-            ...user?.student, 
+            ...user, 
             id: user?.studentId || "",
             globalRank: overview?.globalRank || 1, 
             totalXp: overview?.totalXp || 0,
