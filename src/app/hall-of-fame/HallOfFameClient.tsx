@@ -8,32 +8,68 @@ import {
 } from "lucide-react"
 import confetti from "canvas-confetti"
 import QRCode from "react-qr-code"
-import { getHallOfFameData } from "./actions"
+import { getHallOfFameData, getLatestBonusAnnouncement } from "./actions"
 import { cn } from "@/lib/utils"
 
 export default function HallOfFameClient({ initialData }: { initialData: any }) {
   const [data, setData] = React.useState(initialData)
   const [isFullscreen, setIsFullscreen] = React.useState(false)
   const [showQr, setShowQr] = React.useState(false)
+  const [currentBonus, setCurrentBonus] = React.useState<any>(null)
+  const [lastBonusId, setLastBonusId] = React.useState<string | null>(null)
+
+  // ─── Sound System (Native Browser AudioContext) ───
+  const playAchievementSound = () => {
+    try {
+      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)()
+      const oscillator = audioCtx.createOscillator()
+      const gainNode = audioCtx.createGain()
+      
+      oscillator.type = 'sine'
+      oscillator.frequency.setValueAtTime(440, audioCtx.currentTime) // A4
+      oscillator.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.1) // A5
+      
+      gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime)
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5)
+      
+      oscillator.connect(gainNode)
+      gainNode.connect(audioCtx.destination)
+      
+      oscillator.start()
+      oscillator.stop(audioCtx.currentTime + 0.5)
+    } catch (e) { console.error("Sound failed", e) }
+  }
 
   // 1. Auto-refresh logic (SWR-like behavior every 60s)
   React.useEffect(() => {
-    const interval = setInterval(async () => {
+    const dataInterval = setInterval(async () => {
       const res = await getHallOfFameData()
       if (res.success && res.podium?.[0]?.id !== data.podium?.[0]?.id) {
-        // Trigger confetti ONLY if Rank #1 has changed
-        confetti({
-          particleCount: 150,
-          spread: 70,
-          origin: { y: 0.6 },
-          colors: ['#fbbf24', '#f59e0b', '#f97316']
-        })
+        confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#fbbf24', '#f59e0b', '#f97316'] })
       }
       if (res.success) setData(res)
     }, 60000)
 
-    return () => clearInterval(interval)
-  }, [data.podium?.[0]?.id])
+    // 2. Fast Polling for Live Bonus Announcements (Every 3 seconds)
+    const bonusInterval = setInterval(async () => {
+      const bonus = await getLatestBonusAnnouncement()
+      if (bonus && bonus.id !== lastBonusId) {
+        setLastBonusId(bonus.id)
+        setCurrentBonus(bonus)
+        playAchievementSound()
+        // Celebrate with special confetti
+        confetti({ particleCount: 200, spread: 100, origin: { y: 0.8 }, zIndex: 1000, colors: ['#6366f1', '#f59e0b', '#ffffff'] })
+        
+        // Hide after 6 seconds
+        setTimeout(() => setCurrentBonus(null), 6000)
+      }
+    }, 3000)
+
+    return () => {
+      clearInterval(dataInterval)
+      clearInterval(bonusInterval)
+    }
+  }, [data.podium?.[0]?.id, lastBonusId])
 
   // 2. Initial Page Load Confetti
   React.useEffect(() => {
@@ -219,6 +255,53 @@ export default function HallOfFameClient({ initialData }: { initialData: any }) 
             ))}
          </div>
       </div>
+
+      {/* ── Live Bonus Achievement Overlay (Legendary Drop Style) ── */}
+      <AnimatePresence>
+        {currentBonus && (
+          <motion.div 
+            initial={{ scale: 0, opacity: 0, rotate: -5 }}
+            animate={{ scale: 1, opacity: 1, rotate: 0 }}
+            exit={{ scale: 1.5, opacity: 0, filter: 'blur(20px)' }}
+            className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-none p-10"
+          >
+            {/* Dark Backdrop Blur */}
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 bg-slate-950/80 backdrop-blur-xl" />
+            
+            <div className="relative flex flex-col items-center">
+               {/* Glowing Background Rays */}
+               <div className="absolute inset-0 bg-indigo-500/20 blur-[150px] rounded-full animate-pulse" />
+               
+               <motion.div 
+                 animate={{ y: [0, -20, 0] }}
+                 transition={{ duration: 2, repeat: Infinity }}
+                 className="relative bg-gradient-to-br from-indigo-500 via-fuchsia-600 to-amber-500 p-[4px] rounded-[60px] shadow-[0_0_100px_rgba(99,102,241,0.5)]"
+               >
+                  <div className="bg-slate-950 rounded-[56px] px-16 py-12 flex flex-col items-center text-center max-w-2xl">
+                     <div className="h-24 w-24 bg-white/10 rounded-full flex items-center justify-center mb-8">
+                        <Trophy className="h-12 w-12 text-amber-500" />
+                     </div>
+                     
+                     <h2 className="text-xl font-black text-indigo-400 uppercase tracking-[.4em] mb-2">XP GAIN DETECTED</h2>
+                     <h1 className="text-7xl font-black tracking-tighter uppercase leading-none mb-6">
+                        BOOM! {currentBonus.studentName}
+                     </h1>
+                     
+                     <div className="flex items-center gap-6 mb-8">
+                        <span className="text-8xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-500">
+                           +{currentBonus.amount} XP
+                        </span>
+                     </div>
+                     
+                     <div className="bg-white/5 border border-white/10 px-8 py-4 rounded-full">
+                        <p className="text-lg font-bold text-slate-400"> Reason: <span className="text-white uppercase italic">{currentBonus.reason}</span></p>
+                     </div>
+                  </div>
+               </motion.div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Tailwind Marquee Styles (Inserted Inline) */}
       <style jsx global>{`
