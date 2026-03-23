@@ -21,6 +21,17 @@ export default async function HomePage() {
     LIMIT 3
   `)
 
+  // 3. Fetch Top 3 Classes (Squad Leaderboard)
+  const topClasses: any[] = await prisma.$queryRawUnsafe(`
+    SELECT c.name, AVG(s."totalXp") as "avgXp"
+    FROM "Class" c
+    JOIN "Student" s ON s."classId" = c.id
+    GROUP BY c.id, c.name
+    HAVING COUNT(s.id) > 0
+    ORDER BY "avgXp" DESC
+    LIMIT 3
+  `)
+
   const stats = {
     totalLessons: Number(totalLessons[0]?.count || 0) + 12000, // Weighted with historical data
     totalBadges: Number(totalBadges[0]?.count || 0) + 8000     // Weighted with historical data
@@ -30,6 +41,7 @@ export default async function HomePage() {
     <HomeClient 
       stats={stats} 
       topStudents={topStudents} 
+      topClasses={topClasses}
     />
   )
 }

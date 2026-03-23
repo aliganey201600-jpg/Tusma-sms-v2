@@ -3,13 +3,14 @@ import React from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowRight, Flame, Trophy, Timer, Crosshair, Sparkles, MapPin, Phone, Mail, Facebook, Twitter, Instagram, ChevronRight, PlayCircle, ExternalLink } from "lucide-react";
+import { ArrowRight, Flame, Trophy, Timer, Crosshair, Sparkles, MapPin, Phone, Mail, Facebook, Twitter, Instagram, ChevronRight, PlayCircle, ExternalLink, TrendingUp } from "lucide-react";
 import { useLanguage } from "@/components/language-provider";
 import { motion } from "framer-motion";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
-export default function HomeClient({ stats, topStudents }: { stats: any, topStudents: any[] }) {
+export default function HomeClient({ stats, topStudents, topClasses }: { stats: any, topStudents: any[], topClasses?: any[] }) {
   const { t } = useLanguage();
+  const classes = topClasses || []
 
   return (
     <div className="flex flex-col min-h-screen text-slate-50 pt-8 md:pt-16">
@@ -84,14 +85,43 @@ export default function HomeClient({ stats, topStudents }: { stats: any, topStud
              </Button>
           </div>
           
-          <div className="grid grid-cols-1 gap-10">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
              
-             {/* Main: Leaderboard (Real Data) */}
+             {/* Left: Top Classes (Squad Rankings) */}
              <div className="bg-slate-800/20 rounded-[35px] border border-white/5 p-8 md:p-10">
                <h4 className="text-lg font-black text-slate-200 mb-8 flex items-center gap-3">
-                  <Crown className="h-6 w-6 text-yellow-500" /> {t.topStudents}
+                  <TrendingUp className="h-6 w-6 text-indigo-500" /> Top Classes
                </h4>
-               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+               <div className="space-y-4">
+                  {classes.map((cls, i) => (
+                    <div key={i} className="flex items-center justify-between p-4 rounded-3xl bg-slate-900/50 border border-white/5 group hover:bg-slate-800/80 transition-all">
+                       <div className="flex items-center gap-4">
+                         <span className="h-10 w-10 rounded-2xl bg-indigo-500/20 flex items-center justify-center font-black text-indigo-400 text-lg">
+                           #{i + 1}
+                         </span>
+                         <div>
+                            <p className="font-black text-slate-100 uppercase tracking-tight">{cls.name}</p>
+                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Active Class Squad</p>
+                         </div>
+                       </div>
+                       <div className="text-right">
+                          <p className="text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-blue-500">{Math.round(cls.avgXp)}</p>
+                          <p className="text-[9px] font-bold text-slate-600 uppercase">AVG XP</p>
+                       </div>
+                    </div>
+                  ))}
+                  {classes.length === 0 && (
+                     <div className="py-12 text-center text-slate-600 font-bold uppercase text-[10px]">Verifyings Squads...</div>
+                  )}
+               </div>
+             </div>
+
+             {/* Right: Top Students (Individual Rankings) */}
+             <div className="bg-slate-800/20 rounded-[35px] border border-white/5 p-8 md:p-10">
+               <h4 className="text-lg font-black text-slate-200 mb-8 flex items-center gap-3">
+                  <Crown className="h-6 w-6 text-yellow-500" /> Top Students
+               </h4>
+               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   {topStudents.map((student, i) => {
                     const themes = [
                       { color: "ring-yellow-400", bg: "bg-yellow-400/5", icon: "🥇", accent: "text-yellow-400" },
@@ -104,25 +134,19 @@ export default function HomeClient({ stats, topStudents }: { stats: any, topStud
                       <motion.div 
                         key={i}
                         whileHover={{ y: -5 }}
-                        className={`flex flex-col items-center p-6 rounded-[32px] border border-white/5 ${theme.bg} relative group`}
+                        className={`flex flex-col items-center p-5 rounded-[32px] border border-white/5 ${theme.bg} relative group`}
                       >
-                         <span className="absolute -top-4 -left-4 text-3xl">{theme.icon}</span>
-                         <Avatar className={`h-20 w-20 ring-4 ${theme.color} ring-offset-4 ring-offset-slate-900 mb-4 shadow-2xl`}>
-                            <AvatarFallback className="bg-slate-800 text-white text-2xl font-black">
+                         <span className="absolute -top-3 -left-3 text-2xl">{theme.icon}</span>
+                         <Avatar className={`h-14 w-14 ring-2 ${theme.color} ring-offset-2 ring-offset-slate-900 mb-3`}>
+                            <AvatarFallback className="bg-slate-800 text-white text-base font-black">
                               {student.firstName?.charAt(0)}
                             </AvatarFallback>
                          </Avatar>
-                         <span className="font-black text-slate-100 text-lg uppercase tracking-tighter">{student.firstName}</span>
-                         <span className={`font-black text-sm ${theme.accent} mt-1`}>{student.totalXp} XP</span>
-                         <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mt-3">LVL {student.level || 1}</p>
+                         <span className="font-black text-slate-100 text-sm uppercase tracking-tighter truncate w-full text-center">{student.firstName}</span>
+                         <span className={`font-black text-xs ${theme.accent} mt-1`}>{student.totalXp} XP</span>
                       </motion.div>
                     )
                   })}
-                  {topStudents.length === 0 && (
-                     <div className="col-span-full py-12 text-center text-slate-600 font-black uppercase tracking-widest text-xs border-2 border-dashed border-white/5 rounded-[32px]">
-                        Retrieving Leaderboard Data...
-                     </div>
-                  )}
                </div>
              </div>
              
