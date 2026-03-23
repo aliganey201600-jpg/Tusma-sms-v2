@@ -84,35 +84,10 @@ export default function HomeClient({ stats, topStudents }: { stats: any, topStud
              </Button>
           </div>
           
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+          <div className="grid grid-cols-1 gap-10">
              
-             {/* Left: Global Stats */}
-             <div className="lg:col-span-1 flex flex-col gap-6">
-               <div className="bg-slate-800/40 rounded-3xl p-8 border border-white/5 group hover:bg-slate-800/60 transition-colors">
-                  <div className="flex items-center justify-between mb-6">
-                     <p className="text-[10px] font-black text-slate-500 tracking-[0.2em] uppercase">{t.learningHours}</p>
-                     <Timer className="h-5 w-5 text-emerald-500" />
-                  </div>
-                  <span className="text-5xl font-black text-white tracking-tighter">
-                    {stats.totalLessons?.toLocaleString() || "1,240"}
-                  </span>
-                  <p className="text-xs text-emerald-400 font-bold mt-2 uppercase tracking-tight">Active Learning Pulse</p>
-               </div>
-               
-               <div className="bg-slate-800/40 rounded-3xl p-8 border border-white/5 group hover:bg-slate-800/60 transition-colors">
-                  <div className="flex items-center justify-between mb-6">
-                     <p className="text-[10px] font-black text-slate-500 tracking-[0.2em] uppercase">{t.achievements}</p>
-                     <Trophy className="h-5 w-5 text-fuchsia-500" />
-                  </div>
-                  <span className="text-5xl font-black text-white tracking-tighter">
-                    {stats.totalBadges?.toLocaleString() || "8,920"}
-                  </span>
-                  <p className="text-xs text-fuchsia-400 font-bold mt-2 uppercase tracking-tight">Badges Unlocked</p>
-               </div>
-             </div>
-
-             {/* Right: Leaderboard (Real Data) */}
-             <div className="lg:col-span-2 bg-slate-800/20 rounded-[35px] border border-white/5 p-8 md:p-10">
+             {/* Main: Leaderboard (Real Data) */}
+             <div className="bg-slate-800/20 rounded-[35px] border border-white/5 p-8 md:p-10">
                <h4 className="text-lg font-black text-slate-200 mb-8 flex items-center gap-3">
                   <Crown className="h-6 w-6 text-yellow-500" /> {t.topStudents}
                </h4>
