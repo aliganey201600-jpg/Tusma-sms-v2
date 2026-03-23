@@ -17,7 +17,7 @@ export async function generateMetadata(
   { params }: Props,
   parent: ResolvingMetadata
 ): Promise<Metadata> {
-  const username = params.username
+  const { username } = await params
   // @ts-ignore
   const res = await getPublicProfile(username)
   
@@ -63,7 +63,7 @@ export async function generateMetadata(
 }
 
 export default async function StudentPublicProfilePage({ params }: Props) {
-  const { username } = params
+  const { username } = await params
   // @ts-ignore
   const res = await getPublicProfile(username)
 
