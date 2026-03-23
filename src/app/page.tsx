@@ -1,203 +1,249 @@
+"use client";
+import React from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowRight, BookOpen, Calendar, GraduationCap, Users } from "lucide-react";
+import { ArrowRight, Flame, Trophy, Timer, Crosshair, Sparkles, MapPin, Phone, Mail, Facebook, Twitter, Instagram, ChevronRight, PlayCircle } from "lucide-react";
+import { useLanguage } from "@/components/language-provider";
+import { motion } from "framer-motion";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 export default function HomePage() {
+  const { t } = useLanguage();
+
   return (
-    <div className="flex flex-col min-h-screen">
-      {/* Hero Section */}
-      <section className="relative w-full py-24 md:py-32 lg:py-40 bg-gradient-to-b from-primary/10 to-background overflow-hidden">
-        <div className="container px-4 md:px-6 flex flex-col items-center text-center space-y-6">
-          <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl text-foreground">
-            Tusmo Primary & Secondary School
-          </h1>
-          <p className="max-w-[800px] text-lg sm:text-xl md:text-2xl text-muted-foreground">
-            Empowering students with knowledge, character, and skills for modern global challenges. We build the leaders of tomorrow.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 mt-8">
-            <Button size="lg" className="rounded-full font-semibold px-8 h-14 text-base" asChild>
-              <Link href="/sign-up">Apply for Admission</Link>
-            </Button>
-            <Button size="lg" variant="outline" className="rounded-full font-semibold px-8 h-14 text-base bg-background" asChild>
-              <Link href="/courses">Explore Programs</Link>
-            </Button>
-          </div>
+    <div className="flex flex-col min-h-screen text-slate-50 overscroll-none overflow-x-hidden pt-8 md:pt-16">
+      
+      {/* 1. HERO - Level Up */}
+      <section className="relative w-full pb-20 overflow-hidden">
+        {/* Neon Glows */}
+        <div className="absolute top-10 start-10 w-72 h-72 bg-blue-600/30 blur-[100px] rounded-full pointer-events-none" />
+        <div className="absolute bottom-10 end-10 w-96 h-96 bg-fuchsia-600/20 blur-[120px] rounded-full pointer-events-none" />
+        
+        <div className="w-full max-w-7xl mx-auto px-4 lg:px-8 relative z-10">
+          <motion.div 
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="text-center max-w-3xl mx-auto space-y-8"
+          >
+            <div className="inline-flex items-center rounded-full border border-fuchsia-500/30 bg-fuchsia-500/10 px-4 py-1.5 text-sm font-bold text-fuchsia-300 backdrop-blur-md shadow-[0_0_15px_rgba(217,70,239,0.2)]">
+              <Sparkles className="h-4 w-4 me-2 text-fuchsia-400" />
+              {t.dailyStreak}
+            </div>
+            
+            <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight leading-[1.1]">
+              {t.heroTitlePart1} <br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-500">
+                {t.heroTitlePart2}
+              </span>
+            </h1>
+            
+            <p className="text-lg md:text-xl text-slate-400 leading-relaxed max-w-2xl mx-auto">
+              {t.heroSubtitle}
+            </p>
+            
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+               <Button size="lg" className="rounded-2xl shadow-[0_0_30px_rgba(37,99,235,0.4)] hover:shadow-[0_0_40px_rgba(37,99,235,0.6)] font-bold px-8 h-14 text-base bg-blue-600 hover:bg-blue-500 text-white transition-all w-full sm:w-auto" asChild>
+                  <Link href="/sign-up">{t.missionStart} <ArrowRight className="ms-2 h-5 w-5 rtl:rotate-180" /></Link>
+               </Button>
+               <Button size="lg" variant="outline" className="rounded-2xl font-bold px-8 h-14 text-base border-slate-700 bg-slate-900/50 hover:bg-slate-800 text-slate-300 backdrop-blur-md transition-all w-full sm:w-auto" asChild>
+                  <Link href="#levels">
+                    <PlayCircle className="me-2 h-5 w-5 text-fuchsia-500" /> {t.unlockFuture}
+                  </Link>
+               </Button>
+            </div>
+          </motion.div>
         </div>
-        {/* Abstract decorative elements */}
-        <div className="absolute top-1/2 left-0 -translate-y-1/2 -translate-x-1/4 w-[400px] h-[400px] bg-primary/20 blur-[100px] rounded-full pointer-events-none" />
-        <div className="absolute top-0 right-0 -translate-y-1/4 translate-x-1/4 w-[500px] h-[500px] bg-blue-500/10 blur-[100px] rounded-full pointer-events-none" />
       </section>
 
-      {/* About Section */}
-      <section className="py-20 md:py-32 bg-background">
-        <div className="container px-4 md:px-6">
-          <div className="grid gap-12 lg:grid-cols-2 items-center">
-            <div className="space-y-6">
-              <h2 className="text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl">About Tusmo School</h2>
-              <p className="text-lg text-muted-foreground leading-relaxed">
-                Tusmo Primary and Secondary School is dedicated to providing an enriching educational experience. 
-                Our holistic approach blends academic excellence with character development, preparing students to be responsible global citizens.
-              </p>
-              <ul className="grid gap-4 mt-6">
-                <li className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
-                    <GraduationCap className="h-5 w-5" />
+      {/* 2. SCHOOL PULSE (Gamified Stats & Leaderboard) */}
+      <section className="relative w-full max-w-7xl mx-auto px-4 lg:px-8 z-20">
+        <motion.div 
+          initial={{ opacity: 0, y: 40 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="bg-slate-900/60 backdrop-blur-2xl border border-slate-800 rounded-3xl p-6 md:p-8 shadow-2xl"
+        >
+          <div className="flex items-center gap-3 mb-8">
+             <Flame className="h-8 w-8 text-orange-500" />
+             <h2 className="text-2xl font-black text-white">{t.schoolPulse}</h2>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 divide-y md:divide-y-0 md:divide-x rtl:divide-x-reverse divide-slate-800">
+             
+             {/* Left: Total Hours and Streak */}
+             <div className="flex flex-col gap-6 pe-0 md:pe-8 pt-4 md:pt-0">
+               <div className="flex items-start justify-between bg-slate-800/50 rounded-3xl p-6 border border-slate-700/50">
+                  <div>
+                    <h4 className="text-slate-400 font-bold mb-1">{t.learningHours}</h4>
+                    <span className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-green-500">
+                      12,450
+                    </span>
                   </div>
-                  <span className="font-medium text-lg">World-class curriculum mapping multiple standards.</span>
+                  <Timer className="h-10 w-10 text-emerald-500/50" />
+               </div>
+               
+               <div className="flex items-start justify-between bg-slate-800/50 rounded-3xl p-6 border border-slate-700/50">
+                  <div>
+                    <h4 className="text-slate-400 font-bold mb-1">{t.achievements}</h4>
+                    <span className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-400 to-pink-500">
+                      8,920
+                    </span>
+                  </div>
+                  <Trophy className="h-10 w-10 text-fuchsia-500/50" />
+               </div>
+             </div>
+
+             {/* Right: Leaderboard */}
+             <div className="ps-0 md:ps-8 flex flex-col pt-6 md:pt-0">
+               <h4 className="text-slate-300 font-bold mb-4 flex items-center gap-2">
+                 <Trophy className="h-5 w-5 text-yellow-400" /> {t.topStudents}
+               </h4>
+               <div className="space-y-4">
+                 {[ 
+                   { name: t.leader1, xp: "14,500 XP", color: "ring-yellow-400", bg: "bg-yellow-400/10", icon: "🥇" },
+                   { name: t.leader2, xp: "13,200 XP", color: "ring-slate-300", bg: "bg-slate-300/10", icon: "🥈" },
+                   { name: t.leader3, xp: "12,950 XP", color: "ring-amber-600", bg: "bg-amber-600/10", icon: "🥉" }
+                 ].map((student, i) => (
+                   <div key={i} className={`flex items-center justify-between p-3 rounded-2xl border border-slate-800 ${student.bg}`}>
+                     <div className="flex items-center gap-3">
+                       <span className="text-2xl">{student.icon}</span>
+                       <Avatar className={`h-10 w-10 ring-2 ${student.color} ring-offset-2 ring-offset-slate-900`}>
+                          <AvatarFallback className="bg-slate-800 text-slate-300 font-bold">
+                            {student.name.charAt(0)}
+                          </AvatarFallback>
+                       </Avatar>
+                       <span className="font-bold text-slate-200">{student.name}</span>
+                     </div>
+                     <span className="font-mono font-bold text-sm text-fuchsia-400">{student.xp}</span>
+                   </div>
+                 ))}
+               </div>
+             </div>
+             
+          </div>
+        </motion.div>
+      </section>
+
+      {/* 3. LEVELS SECTION */}
+      <section id="levels" className="py-24 md:py-32">
+        <div className="w-full max-w-7xl mx-auto px-4 lg:px-8">
+          <motion.div 
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            className="text-center mb-12 space-y-4"
+          >
+            <h2 className="text-3xl font-black tracking-tight sm:text-4xl md:text-5xl text-white">
+              {t.educationLevels}
+            </h2>
+            <p className="max-w-2xl mx-auto text-lg text-slate-400 font-medium">
+              {t.educationLevelsDesc}
+            </p>
+          </motion.div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-start">
+            {[ 
+              { title: t.level1, desc: t.level1Desc, body: t.level1Body, color: "from-blue-500 to-indigo-600", shadow: "shadow-blue-500/20" },
+              { title: t.level2, desc: t.level2Desc, body: t.level2Body, color: "from-fuchsia-500 to-pink-600", shadow: "shadow-fuchsia-500/20" },
+              { title: t.level3, desc: t.level3Desc, body: t.level3Body, color: "from-emerald-500 to-teal-600", shadow: "shadow-emerald-500/20" }
+            ].map((level, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.1 }}
+              >
+                <Card className={`relative overflow-hidden group hover:-translate-y-2 transition-all duration-300 border-slate-800 bg-slate-900/50 backdrop-blur-xl shadow-xl hover:${level.shadow} rounded-3xl`}>
+                  <div className={`absolute inset-0 bg-gradient-to-br ${level.color} opacity-0 group-hover:opacity-10 transition-opacity duration-500`}></div>
+                  <CardHeader className="pb-4 relative z-10 border-b border-slate-800/50">
+                    <div className={`h-12 w-12 rounded-2xl bg-gradient-to-br ${level.color} text-white flex items-center justify-center mb-4 shadow-lg`}>
+                      <Crosshair className="h-6 w-6" />
+                    </div>
+                    <CardTitle className="text-2xl font-black text-white">{level.title}</CardTitle>
+                    <CardDescription className="text-xs font-bold text-slate-400 mt-1 uppercase tracking-wider">{level.desc}</CardDescription>
+                  </CardHeader>
+                  <CardContent className="pt-6 relative z-10">
+                    <p className="text-slate-400 mb-6 font-medium leading-relaxed">
+                      {level.body}
+                    </p>
+                    <Button variant="ghost" className={`p-0 h-auto font-bold text-transparent bg-clip-text bg-gradient-to-r ${level.color} group-hover:opacity-80 transition-opacity`}>
+                      {t.details} <ChevronRight className="ms-1 h-4 w-4 rtl:rotate-180" />
+                    </Button>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* 4. FOOTER (Dark App Style) */}
+      <footer className="bg-slate-950/80 backdrop-blur-3xl text-slate-400 py-16 md:py-20 border-t border-slate-800">
+        <div className="w-full max-w-7xl mx-auto px-4 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 lg:gap-8 text-start">
+            
+            <div className="space-y-6">
+              <h3 className="text-2xl font-black text-white tracking-tight flex items-center gap-2">
+                <Sparkles className="h-6 w-6 text-fuchsia-500" /> Tusma
+              </h3>
+              <p className="leading-relaxed text-sm font-medium">
+                {t.footerAbout}
+              </p>
+            </div>
+
+            <div className="space-y-6">
+              <h4 className="text-lg font-bold text-white">{t.quickLinks}</h4>
+              <ul className="space-y-3 text-sm">
+                <li><Link href="/" className="hover:text-blue-400 transition-colors">{t.home}</Link></li>
+                <li><Link href="/courses" className="hover:text-blue-400 transition-colors">{t.courses}</Link></li>
+                <li><Link href="/events" className="hover:text-blue-400 transition-colors">{t.events}</Link></li>
+              </ul>
+            </div>
+
+            <div className="space-y-6">
+              <h4 className="text-lg font-bold text-white">{t.contactUs}</h4>
+              <ul className="space-y-4 text-sm font-medium">
+                <li className="flex items-start gap-3">
+                  <MapPin className="w-5 h-5 text-blue-500 shrink-0" />
+                  <span>{t.address}</span>
                 </li>
                 <li className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
-                    <Users className="h-5 w-5" />
-                  </div>
-                  <span className="font-medium text-lg">Highly qualified, dedicated educators.</span>
+                  <Phone className="w-5 h-5 text-blue-500 shrink-0" />
+                  <span dir="ltr">+252 61 5328006</span>
+                </li>
+                <li className="flex items-center gap-3">
+                  <Mail className="w-5 h-5 text-blue-500 shrink-0" />
+                  <span>info@tusmaschool.edu.so</span>
                 </li>
               </ul>
             </div>
-            {/* Visual placeholder for about image */}
-            <div className="relative mx-auto w-full max-w-[500px] aspect-square rounded-2xl bg-muted overflow-hidden shadow-2xl flex items-center justify-center">
-               <div className="text-muted-foreground font-medium">🏫 Campus Image</div>
-            </div>
-          </div>
-        </div>
-      </section>
 
-      {/* Featured Courses */}
-      <section className="py-20 md:py-32 bg-slate-50 dark:bg-slate-900/50 border-y">
-        <div className="container px-4 md:px-6">
-          <div className="flex flex-col items-center justify-center space-y-4 text-center mb-12">
-            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl">Featured Courses</h2>
-            <p className="max-w-[700px] text-lg text-muted-foreground">Discover the wide range of subjects designed to challenge and inspire our students.</p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[
-              { title: "Advanced Mathematics", desc: "Algebra, Geometry, and Calculus", grade: "Grade 10-12" },
-              { title: "General Science", desc: "Foundations of Physics, Chemistry, and Biology", grade: "Grade 7-9" },
-              { title: "Computer Science", desc: "Introduction to coding, algorithms, and logic", grade: "Grade 8-12" },
-            ].map((course, i) => (
-              <Card key={i} className="hover:shadow-lg transition-shadow border-none shadow-md bg-background">
-                <CardHeader>
-                  <div className="h-12 w-12 rounded-lg bg-primary/10 text-primary flex items-center justify-center mb-4">
-                    <BookOpen className="h-6 w-6" />
-                  </div>
-                  <CardTitle className="text-xl">{course.title}</CardTitle>
-                  <CardDescription className="text-base">{course.grade}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground mb-6">{course.desc}</p>
-                  <Button variant="ghost" className="p-0 h-auto font-medium text-primary hover:text-primary hover:bg-transparent flex items-center gap-2">
-                    Review Syllabus <ArrowRight className="h-4 w-4" />
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-          <div className="mt-12 text-center">
-            <Button size="lg" variant="outline" className="rounded-full" asChild>
-              <Link href="/courses">View All Courses</Link>
-            </Button>
-          </div>
-        </div>
-      </section>
-
-      {/* Upcoming Events */}
-      <section className="py-20 md:py-32 bg-background">
-        <div className="container px-4 md:px-6">
-          <div className="grid gap-12 lg:grid-cols-[1fr_2fr] items-start">
             <div className="space-y-6">
-              <h2 className="text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl">Upcoming Events</h2>
-              <p className="text-lg text-muted-foreground">Stay up-to-date with the latest school events, workshops, and extracurricular activities.</p>
-              <Button asChild>
-                 <Link href="/events">See Calendar</Link>
-              </Button>
+              <h4 className="text-lg font-bold text-white">{t.socialMedia}</h4>
+              <div className="flex gap-4">
+                <a href="#" className="w-10 h-10 rounded-2xl bg-slate-800 flex items-center justify-center hover:bg-blue-600 hover:text-white transition-colors">
+                  <Facebook className="w-5 h-5" />
+                </a>
+                <a href="#" className="w-10 h-10 rounded-2xl bg-slate-800 flex items-center justify-center hover:bg-sky-500 hover:text-white transition-colors">
+                  <Twitter className="w-5 h-5" />
+                </a>
+                <a href="#" className="w-10 h-10 rounded-2xl bg-slate-800 flex items-center justify-center hover:bg-pink-600 hover:text-white transition-colors">
+                  <Instagram className="w-5 h-5" />
+                </a>
+              </div>
             </div>
-            <div className="grid gap-4 relative">
-              {[
-                { date: "Oct 15", title: "Science Fair 2026", time: "09:00 AM - 03:00 PM" },
-                { date: "Nov 02", title: "Parent-Teacher Conference", time: "04:00 PM - 07:00 PM" },
-                { date: "Dec 10", title: "End of Term Awards", time: "10:00 AM - 12:00 PM" },
-              ].map((ev, i) => (
-                <div key={i} className="flex gap-6 items-start p-6 rounded-2xl bg-muted/50 transition-colors hover:bg-muted">
-                  <div className="flex flex-col items-center justify-center min-w-[80px] h-20 bg-background rounded-xl shadow-sm text-center">
-                    <span className="text-sm font-medium text-primary uppercase">{ev.date.split(" ")[0]}</span>
-                    <span className="text-2xl font-bold">{ev.date.split(" ")[1]}</span>
-                  </div>
-                  <div className="space-y-2 mt-2">
-                    <h3 className="text-xl font-bold">{ev.title}</h3>
-                    <div className="flex items-center text-muted-foreground gap-2">
-                       <Calendar className="h-4 w-4" />
-                       <span className="text-sm">{ev.time}</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
 
-      {/* Testimonials */}
-      <section className="py-20 md:py-32 bg-slate-950 text-slate-50 relative overflow-hidden">
-        <div className="container px-4 md:px-6 relative z-10 text-center">
-          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl mb-12">What Our Community Says</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-            <div className="bg-slate-900 border border-slate-800 p-8 rounded-2xl space-y-6 text-left">
-               <p className="text-lg text-slate-300 italic">"Tusmo has completely transformed my child's approach to learning. The teachers are incredibly supportive and genuinely care."</p>
-               <div>
-                 <p className="font-bold text-slate-50">Amina J.</p>
-                 <p className="text-sm text-slate-400">Parent of Grade 8 Student</p>
-               </div>
-            </div>
-            <div className="bg-slate-900 border border-slate-800 p-8 rounded-2xl space-y-6 text-left">
-               <p className="text-lg text-slate-300 italic">"The learning environment here pushes you to be your best. I've discovered a passion for programming that I never knew I had."</p>
-               <div>
-                 <p className="font-bold text-slate-50">Hassan M.</p>
-                 <p className="text-sm text-slate-400">Grade 11 Student</p>
-               </div>
-            </div>
           </div>
-        </div>
-      </section>
 
-      {/* Footer */}
-      <footer className="bg-background border-t py-12 md:py-16">
-        <div className="container px-4 md:px-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8">
-          <div className="space-y-4">
-            <h3 className="text-xl font-bold text-primary">Tusmo School</h3>
-            <p className="text-sm text-muted-foreground mr-4">Empowering students through rigorous and holistic education to build the leaders of tomorrow.</p>
-          </div>
-          <div className="space-y-4">
-            <h4 className="font-semibold">Quick Links</h4>
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              <li><Link href="/" className="hover:text-primary">Home</Link></li>
-              <li><Link href="/courses" className="hover:text-primary">Courses</Link></li>
-              <li><Link href="/events" className="hover:text-primary">Events</Link></li>
-              <li><Link href="/become-instructor" className="hover:text-primary">Become Instructor</Link></li>
-            </ul>
-          </div>
-          <div className="space-y-4">
-            <h4 className="font-semibold">Portals</h4>
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              <li><Link href="/sign-in" className="hover:text-primary">Student Portal</Link></li>
-              <li><Link href="/sign-in" className="hover:text-primary">Teacher Portal</Link></li>
-              <li><Link href="/sign-in" className="hover:text-primary">Parent Portal</Link></li>
-              <li><Link href="/sign-in" className="hover:text-primary">Admin Portal</Link></li>
-            </ul>
-          </div>
-          <div className="space-y-4">
-            <h4 className="font-semibold">Contact</h4>
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              <li>Mogadishu, Somalia</li>
-              <li>info@tusmoschool.com</li>
-              <li>+252 61 234 5678</li>
-            </ul>
-          </div>
-        </div>
-        <div className="container px-4 md:px-6 mt-12 pt-8 border-t text-sm text-muted-foreground text-center flex flex-col sm:flex-row justify-between items-center gap-4">
-          <p>© {new Date().getFullYear()} Tusmo Primary & Secondary School. All rights reserved.</p>
-          <div className="flex gap-4">
-             <Link href="#" className="hover:text-primary font-medium">Privacy Policy</Link>
-             <Link href="#" className="hover:text-primary font-medium">Terms of Service</Link>
+          <div className="mt-16 pt-8 border-t border-slate-800 flex flex-col md:flex-row items-center justify-between text-sm text-slate-500 gap-4 font-medium">
+            <p>© {new Date().getFullYear()} Tusma. {t.rightsReserved}</p>
+            <div className="flex gap-6">
+              <Link href="#" className="hover:text-white transition-colors">{t.privacyPolicy}</Link>
+              <Link href="#" className="hover:text-white transition-colors">{t.termsOfService}</Link>
+            </div>
           </div>
         </div>
       </footer>

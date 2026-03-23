@@ -1,10 +1,16 @@
 // Added class to Next.js body element for nicer rendering
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
+import { Inter, IBM_Plex_Sans_Arabic } from 'next/font/google'
 import './globals.css'
 import { Navbar } from '@/components/navbar'
+import { LanguageProvider } from '@/components/language-provider'
 
-const inter = Inter({ subsets: ['latin'] })
+const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
+const ibmArabic = IBM_Plex_Sans_Arabic({ 
+  weight: ['400', '500', '600', '700'], 
+  subsets: ['arabic'], 
+  variable: '--font-ibm-arabic' 
+})
 
 export const metadata: Metadata = {
   title: "Tusmo Primary & Secondary School | Excellence in Education",
@@ -26,11 +32,13 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className="antialiased">
-      <body className={`${inter.className} min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950`}>
-        <Navbar />
-        {children}
-        <Toaster position="top-center" richColors />
+    <html lang="en" className="antialiased dark" suppressHydrationWarning>
+      <body className={`${inter.variable} ${ibmArabic.variable} font-sans min-h-screen flex flex-col bg-slate-950 text-slate-50 transition-colors duration-300`}>
+        <LanguageProvider>
+          <Navbar />
+          {children}
+          <Toaster position="top-center" richColors />
+        </LanguageProvider>
       </body>
     </html>
   )
