@@ -1,0 +1,180 @@
+import prisma from "@/lib/prisma";
+
+// ==========================================
+// TUSMA GAMIFICATION ENGINE - BACKEND LOGIC
+// ==========================================
+
+/**
+ * 1. Nidaamka Dhibcaha (Points Ledger)
+ * Applies designated points for an action and triggers Level Up checks.
+ */
+export async function awardPoints(studentId: string, points: number, reason: string, relatedId?: string) {
+  // Save transaction to DB
+  await prisma.pointTransaction.create({
+    data: { studentId, points, reason, relatedId },
+  });
+
+  const student = await prisma.student.findUnique({ where: { id: studentId } });
+  if (!student) return;
+
+  const newTotalXp = student.totalXp + points;
+  
+  // Leveling Up Formula (E.g. Every 500 XP = 1 Level)
+  const newLevel = Math.floor(newTotalXp / 500) + 1;
+
+  await prisma.student.update({
+    where: { id: studentId },
+    data: {
+      totalXp: newTotalXp,
+      level: newLevel > student.level ? newLevel : student.level,
+    },
+  });
+
+  if (newLevel > student.level) {
+    // TODO: Trigger Notification ("Congratulations on reaching Level X! 🎉")
+  }
+}
+
+/**
+ * 2. Daily Check-in & Streak Logic
+ * Called automatically every time a student logs in.
+ */
+export async function processDailyLogin(studentId: string) {
+  const student = await prisma.student.findUnique({ where: { id: studentId } });
+  if (!student) return;
+
+  const now = new Date();
+  const lastLogin = student.lastLoginDate;
+
+  let currentStreak = student.currentStreak;
+  let longestStreak = student.longestStreak;
+  let shields = student.streakShields;
+
+  let pointsToAward = 0;
+
+  if (lastLogin) {
+    const hoursSinceLastLogin = (now.getTime() - lastLogin.getTime()) / (1000 * 60 * 60);
+
+    if (hoursSinceLastLogin >= 24 && hoursSinceLastLogin <= 48) {
+      // Safe zone -> User maintained streak
+      currentStreak += 1;
+      pointsToAward = 10; // +10 daily check-in points
+    } 
+    else if (hoursSinceLastLogin > 48) {
+      // Streak broken. Check if they have a 'Streak Shield'
+      if (shields > 0) {
+        shields -= 1;
+        currentStreak += 1; // Shield consumed, streak saved
+        pointsToAward = 10;
+        // TODO: Send warning notification ("Streak Shield consumed!")
+      } else {
+        currentStreak = 1; // Streak reset
+        pointsToAward = 10;
+      }
+    }
+    // If < 24 hrs, it implies multiple logins the same day. Do nothing.
+  } else {
+    // First time login ever
+    currentStreak = 1;
+    pointsToAward = 10;
+  }
+
+  // Update longest streak memory
+  if (currentStreak > longestStreak) {
+    longestStreak = currentStreak;
+  }
+
+  await prisma.student.update({
+    where: { id: studentId },
+    data: {
+      currentStreak,
+      longestStreak,
+      streakShields: shields,
+      lastLoginDate: now,
+    },
+  });
+
+  if (pointsToAward > 0) {
+    await awardPoints(studentId, pointsToAward, "DAILY_CHECKIN");
+  }
+
+  // Persistence Badge Check (30 days)
+  if (currentStreak === 30) {
+    await unlockBadge(studentId, "Persistence");
+  }
+}
+
+/**
+ * 3. Billadaha (Badge Engine)
+ * Service that unlocks achievements dynamically based on student activity limits.
+ */
+export async function unlockBadge(studentId: string, badgeName: string) {
+  const badge = await prisma.badge.findUnique({ where: { name: badgeName } });
+  if (!badge) return; // Badge not configured in DB
+
+  // Avoid duplicates
+  const existing = await prisma.studentBadge.findUnique({
+    where: { studentId_badgeId: { studentId, badgeId: badge.id } },
+  });
+
+  if (!existing) {
+    await prisma.studentBadge.create({
+      data: { studentId, badgeId: badge.id },
+    });
+
+    if (badge.xpReward > 0) {
+      await awardPoints(studentId, badge.xpReward, `BADGE_UNLOCK_${badgeName.replace(/\s+/g, '_').toUpperCase()}`);
+    }
+
+    // TODO: Send Push Notification ("You unlocked a new Badge! 🏆")
+  }
+}
+
+/**
+ * 4. Helper Event: "Speed Demon" Or "Perfect Score" Quiz checks
+ * Should be called whenever a Quiz is Completed.
+ */
+export async function handleQuizCompletion(studentId: string, quizId: string, score: number, timeSpentSec: number) {
+  // Award standard points
+  if (score >= 80) {
+    await awardPoints(studentId, 100, "QUIZ_PASSED", quizId);
+  } else {
+    // Attempt points
+    await awardPoints(studentId, 25, "QUIZ_COMPLETED", quizId);
+  }
+
+  // Check Perfect Score badge
+  if (score === 100) {
+    await unlockBadge(studentId, "Perfect Score");
+  }
+
+  // Check Speed Demon badge (e.g. less than 2 mins)
+  if (timeSpentSec < 120 && score >= 80) {
+    await unlockBadge(studentId, "Speed Demon");
+  }
+}
+
+/**
+ * 5. Tartanka (Social Leaderboard Fetcher)
+ * Fetch top students (weekly or globally)
+ */
+export async function getTopStudents(limit: number = 10) {
+  return await prisma.student.findMany({
+    orderBy: {
+      totalXp: 'desc', // Top XP
+    },
+    take: limit,
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      totalXp: true,
+      level: true,
+      badges: {
+        include: { badge: true }
+      }
+    }
+  });
+
+  // Additional logic can be added to filter by "this week's XP" by reading the PointTransaction table history.
+}

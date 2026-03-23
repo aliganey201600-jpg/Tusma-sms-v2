@@ -34,6 +34,8 @@ import { fetchStudentCourses } from "./courses/actions"
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
 import { Loader2 } from "lucide-react"
+import { motion } from "framer-motion"
+import confetti from "canvas-confetti"
 
 // ─── Fallback Mock Data ────────────────────────────────────────────────────────
 const mockCourses = [
@@ -94,6 +96,23 @@ export default function StudentDashboardPage() {
       loadData()
     }
   }, [user, userLoading])
+
+  const displayCourses = realCourses.length > 0 ? realCourses : mockCourses
+
+  // Canvas-confetti celebration logic
+  React.useEffect(() => {
+    if (!loadingCourses && displayCourses.length > 0) {
+      const hasPerfectCourse = displayCourses.some((c: any) => c.progress === 100)
+      if (hasPerfectCourse) {
+        confetti({
+          particleCount: 150,
+          spread: 70,
+          origin: { y: 0.6 },
+          colors: ['#2563EB', '#D946EF', '#22C55E']
+        })
+      }
+    }
+  }, [loadingCourses, displayCourses])
 
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -170,7 +189,7 @@ export default function StudentDashboardPage() {
     )
   }
 
-  const displayCourses = realCourses.length > 0 ? realCourses : mockCourses
+  // displayCourses is already declared above
 
   return (
     <div className="pb-24 pt-4 md:py-8 px-4 md:px-8 space-y-8 max-w-[1600px] mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -182,9 +201,14 @@ export default function StudentDashboardPage() {
         <div className="absolute bottom-0 left-10 w-40 h-40 bg-indigo-400/20 rounded-full blur-2xl" />
 
         <div className="relative z-10 space-y-4">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 border border-white/10 backdrop-blur-md">
-            <SparklesIcon className="h-3 w-3 text-yellow-300" />
-            <span className="text-[10px] font-black uppercase tracking-widest text-white">Student Portal</span>
+          <div className="flex items-center gap-3">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 border border-white/10 backdrop-blur-md">
+              <SparklesIcon className="h-3 w-3 text-yellow-300" />
+              <span className="text-[10px] font-black uppercase tracking-widest text-white">Student Portal</span>
+            </div>
+            {!loadingOverview && overview?.currentStreak > 0 && (
+              <StreakFlame streak={overview.currentStreak} />
+            )}
           </div>
           <h1 className="text-4xl md:text-5xl font-black tracking-tighter shrink-0 break-words max-w-full">
             Welcome, <br className="md:hidden" />
@@ -209,6 +233,20 @@ export default function StudentDashboardPage() {
       {/* ── Stats Cards (Horizontal Scroll on Mobile) ── */}
       <div className="flex overflow-x-auto pb-4 -mx-4 px-4 md:mx-0 md:px-0 md:grid md:grid-cols-4 gap-4 no-scrollbar snap-x">
         <StatCard
+          title="User Level"
+          value={loadingOverview ? "..." : (overview?.level || 1).toString()}
+          icon={<Zap className="h-5 w-5 md:h-6 md:w-6" />}
+          color="amber"
+          href="#"
+        />
+        <StatCard
+          title="Total XP"
+          value={loadingOverview ? "..." : (overview?.totalXp || 0).toLocaleString()}
+          icon={<Star className="h-5 w-5 md:h-6 md:w-6" />}
+          color="emerald"
+          href="/dashboard/student/leaderboard"
+        />
+        <StatCard
           title="Courses"
           value={loadingOverview ? "..." : (overview?.coursesCount || realCourses.length || 0).toString()}
           icon={<BookOpen className="h-5 w-5 md:h-6 md:w-6" />}
@@ -216,25 +254,11 @@ export default function StudentDashboardPage() {
           href="/dashboard/student/courses"
         />
         <StatCard
-          title="Grades"
-          value={loadingOverview ? "..." : (overview?.overallGPA || "N/A")}
-          icon={<Award className="h-5 w-5 md:h-6 md:w-6" />}
-          color="emerald"
-          href="/dashboard/student/grades"
-        />
-        <StatCard
           title="Assignments"
           value={loadingOverview ? "..." : (overview?.pendingAssignments || 0).toString()}
           icon={<ClipboardList className="h-5 w-5 md:h-6 md:w-6" />}
-          color="amber"
-          href="/dashboard/student/assignments"
-        />
-        <StatCard
-          title="Attendance"
-          value={loadingOverview ? "..." : `${overview?.attendance || 100}%`}
-          icon={<CheckCircle2 className="h-5 w-5 md:h-6 md:w-6" />}
           color="blue"
-          href="/dashboard/student/attendance"
+          href="/dashboard/student/assignments"
         />
       </div>
 
@@ -445,5 +469,20 @@ function GradeDarkItem({ grade }: any) {
         <p className="text-[10px] font-bold text-slate-500 block">{grade.date}</p>
       </div>
     </div>
+  )
+}
+
+function StreakFlame({ streak }: { streak: number }) {
+  if (streak < 1) return null;
+  return (
+    <motion.div 
+      initial={{ scale: 0.8, opacity: 0 }}
+      animate={{ scale: [1, 1.1, 1], opacity: 1 }}
+      transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
+      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-500 border border-orange-400/50 shadow-[0_0_15px_rgba(249,115,22,0.6)] backdrop-blur-md"
+    >
+      <Flame className="h-4 w-4 text-white fill-white" />
+      <span className="text-xs font-black text-white">{streak} Day Streak!</span>
+    </motion.div>
   )
 }

@@ -108,7 +108,7 @@ function SidebarInner({ className, role }: SidebarProps) {
     STUDENT: [
       { label: "Overview", icon: LayoutDashboard, href: "/dashboard/student" },
       { label: "My Courses", icon: BookOpen, href: "/dashboard/student/courses" },
-      { label: "Leaderboard", icon: Trophy, href: "/dashboard/student/leaderboard" },
+      { label: "Leaderboard", icon: Trophy, href: "/dashboard/student/leaderboard", badge: "Lv up!" },
       { label: "Assignments", icon: LayoutDashboard, href: "/dashboard/student/assignments" },
       { label: "My Grades", icon: GraduationCap, href: "/dashboard/student/grades" },
       { label: "Gradebook", icon: FileText, href: "/dashboard/student/grading?view=gradebook" },
@@ -166,14 +166,23 @@ function SidebarInner({ className, role }: SidebarProps) {
                   key={route.href}
                   variant={active ? "secondary" : "ghost"}
                   className={cn(
-                    "w-full justify-start",
+                    "w-full justify-between items-center",
                     active && "bg-secondary font-medium"
                   )}
                   asChild
                 >
-                  <Link href={route.href}>
-                    <route.icon className="mr-2 h-4 w-4" />
-                    {route.label}
+                  <Link href={route.href} className="w-full flex items-center justify-between pr-2">
+                    <div className="flex items-center">
+                      <route.icon className="mr-2 h-4 w-4 shrink-0" />
+                      {route.label}
+                    </div>
+                    {/* @ts-ignore - Route badge optional property */}
+                    {route.badge && (
+                      <span className="bg-fuchsia-500 text-white text-[10px] uppercase font-black px-1.5 py-0.5 rounded-md shadow-[0_0_10px_rgba(217,70,239,0.5)] animate-pulse shrink-0">
+                        {/* @ts-ignore */}
+                        {route.badge}
+                      </span>
+                    )}
                   </Link>
                 </Button>
               )

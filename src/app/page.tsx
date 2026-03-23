@@ -12,7 +12,7 @@ export default function HomePage() {
   const { t } = useLanguage();
 
   return (
-    <div className="flex flex-col min-h-screen text-slate-50 overscroll-none overflow-x-hidden pt-8 md:pt-16">
+    <div className="flex flex-col min-h-screen text-slate-50 pt-8 md:pt-16">
       
       {/* 1. HERO - Level Up */}
       <section className="relative w-full pb-20 overflow-hidden">

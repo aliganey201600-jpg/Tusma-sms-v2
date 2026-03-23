@@ -73,7 +73,15 @@ model Student {
   quizAttempts  QuizAttempt[]
   lessonCompletions LessonCompletion[]
   certificates  Certificate[]
-  totalXp       Int      @default(0)
+  totalXp         Int      @default(0)
+  level           Int      @default(1)
+  currentStreak   Int      @default(0)
+  longestStreak   Int      @default(0)
+  lastLoginDate   DateTime?
+  streakShields   Int      @default(0)
+
+  pointTransactions PointTransaction[]
+  badges            StudentBadge[]
 }
 
 
@@ -587,5 +595,47 @@ model WhatsAppConfig {
   qrCode        String?  @db.Text
   lastConnected DateTime?
   updatedAt     DateTime @updatedAt
+}
+
+// ==========================================
+// GAMIFICATION MODELS (ROADMAP)
+// ==========================================
+
+model PointTransaction {
+  id          String   @id @default(uuid())
+  studentId   String
+  student     Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  points      Int      // e.g. +10, +50
+  reason      String   // e.g. "DAILY_LOGIN", "QUIZ_PASSED", "HELPED_PEER"
+  relatedId   String?  // e.g. QuizId or LessonId
+  
+  createdAt   DateTime @default(now())
+
+  @@index([studentId])
+}
+
+model Badge {
+  id          String   @id @default(uuid())
+  name        String   @unique // e.g. "Early Bird", "Speed Demon", "Perfect Score", "Persistence"
+  description String
+  iconUrl     String?  
+  xpReward    Int      @default(0) // points awarded when badge is unlocked
+  
+  students    StudentBadge[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model StudentBadge {
+  id          String   @id @default(uuid())
+  studentId   String
+  student     Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  badgeId     String
+  badge       Badge    @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+  
+  earnedAt    DateTime @default(now())
+
+  @@unique([studentId, badgeId])
 }
 
