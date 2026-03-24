@@ -66,24 +66,63 @@ export async function GET(request: Request) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // ── Determine current Somali hour (UTC+3) ──────────────
+    // ── Determine current Somali time (UTC+3) ──────────────
     const now = new Date();
     const somaliHour = forceHour
         ? parseInt(forceHour)
         : (now.getUTCHours() + 3) % 24;
+    const somaliMinutes = now.getUTCMinutes();
 
     const dateStr = now.toLocaleDateString("en-CA", { timeZone: "Africa/Mogadishu" }); // YYYY-MM-DD
     const todayStart = new Date(`${dateStr}T00:00:00.000Z`);
 
     logCron("INFO", `═══════════════════════════════════════`);
-    logCron("INFO", `Cron triggered — Somali Hour: ${somaliHour}, Date: ${dateStr}`);
+    logCron("INFO", `Cron triggered — Somali Time: ${somaliHour}:${somaliMinutes < 10 ? '0' + somaliMinutes : somaliMinutes}, Date: ${dateStr}`);
+    const results: any = { hour: somaliHour, minute: somaliMinutes, date: dateStr, actions: [] };
 
     try {
 
         // ══════════════════════════════════════════════════════
-        // 09:00 — Absence Notifications → Parents
+        // 08:00 - 13:00 — Teacher Attendance Reminder (Hourly)
+        // Sends reminder to teachers who haven't submitted attendance for their class yet today.
         // ══════════════════════════════════════════════════════
-        if (somaliHour === 9) {
+        if (somaliHour >= 8 && somaliHour <= 13) {
+            const allClasses = await prisma.class.findMany({
+                include: { teacher: true },
+            });
+
+            // Get which classIds already have attendance logged today
+            const submittedRaw = await prisma.attendance.findMany({
+                where: { date: { gte: todayStart } },
+                select: { student: { select: { classId: true } } },
+            });
+            const submittedClassIds = new Set(
+                submittedRaw.map((r) => r.student?.classId).filter(Boolean)
+            );
+
+            let sent = 0;
+            for (const cls of allClasses) {
+                if (submittedClassIds.has(cls.id)) continue; // already done
+                const phone = cls.teacher?.phone;
+                if (!phone) continue;
+                const msg =
+                    `*Tusmo School — Xusuusin*\n\n` +
+                    `Salaan macalin *${cls.teacher!.firstName}*,\n` +
+                    `Maanta weli ma aadan soo gudbin xaadirinta fasalka *${cls.name}*.\n` +
+                    `Fadlan isla hadda dhammaystir si ardaydu u helaan diiwaanka.\n\n` +
+                    `_${dateStr}_`;
+                const ok = await sendWhatsApp(phone, msg);
+                if (ok) sent++;
+            }
+
+            logCron("INFO", `[${somaliHour}:${somaliMinutes < 10 ? '0' + somaliMinutes : somaliMinutes}] Teacher reminders sent: ${sent}`);
+            results.actions.push({ type: "TEACHER_REMINDER", sent });
+        }
+
+        // ══════════════════════════════════════════════════════
+        // 09:00 — Absence Notifications → Parents (Once per hour at :00)
+        // ══════════════════════════════════════════════════════
+        if (somaliHour === 9 && somaliMinutes < 10) {
             const absentStudents = await prisma.attendance.findMany({
                 where: {
                     date: { gte: todayStart },
@@ -124,49 +163,13 @@ export async function GET(request: Request) {
             }
 
             logCron("INFO", `[09:00] Absence alerts completed. Sent: ${sent}`);
-            return NextResponse.json({ success: true, type: "ABSENCE", count: sent });
+            results.actions.push({ type: "ABSENCE_ALERT", sent });
         }
 
         // ══════════════════════════════════════════════════════
-        // 12:00 — Teacher Attendance Reminder
+        // 15:00 — Dismissal Notification → All Parents (Once per hour at :00)
         // ══════════════════════════════════════════════════════
-        if (somaliHour === 12) {
-            const allClasses = await prisma.class.findMany({
-                include: { teacher: true },
-            });
-
-            // Get which classIds already have attendance logged today
-            const submittedRaw = await prisma.attendance.findMany({
-                where: { date: { gte: todayStart } },
-                select: { student: { select: { classId: true } } },
-            });
-            const submittedClassIds = new Set(
-                submittedRaw.map((r) => r.student?.classId).filter(Boolean)
-            );
-
-            let sent = 0;
-            for (const cls of allClasses) {
-                if (submittedClassIds.has(cls.id)) continue; // already done
-                const phone = cls.teacher?.phone;
-                if (!phone) continue;
-                const msg =
-                    `*Tusmo School — Xusuusin*\n\n` +
-                    `Salaan macalin *${cls.teacher!.firstName}*,\n` +
-                    `Maanta weli ma aadan soo gudbin xaadirinta fasalka *${cls.name}*.\n` +
-                    `Fadlan isla hadda dhammaystir si ardaydu u helaan diiwaanka.\n\n` +
-                    `_${dateStr}_`;
-                const ok = await sendWhatsApp(phone, msg);
-                if (ok) sent++;
-            }
-
-            logCron("INFO", `[12:00] Teacher reminders sent: ${sent}`);
-            return NextResponse.json({ success: true, type: "TEACHER_REMINDER", count: sent });
-        }
-
-        // ══════════════════════════════════════════════════════
-        // 15:00 — Dismissal Notification → All Parents
-        // ══════════════════════════════════════════════════════
-        if (somaliHour === 15) {
+        if (somaliHour === 15 && somaliMinutes < 10) {
             const students = await prisma.student.findMany({
                 where: { guardianPhone: { not: null } },
                 select: { guardianPhone: true, guardianName: true }
@@ -192,13 +195,14 @@ export async function GET(request: Request) {
                 if (ok) sent++;
             }
 
-            return NextResponse.json({ success: true, type: "DISMISSAL", count: sent });
+            logCron("INFO", `[15:00] Dismissal completed. Sent: ${sent}`);
+            results.actions.push({ type: "DISMISSAL", sent });
         }
 
         // ══════════════════════════════════════════════════════
-        // 20:00 — Daily XP Progress Report → Parents
+        // 20:00 — Daily XP Progress Report → Parents (Once per hour at :00)
         // ══════════════════════════════════════════════════════
-        if (somaliHour === 20) {
+        if (somaliHour === 20 && somaliMinutes < 10) {
             const transactions = await prisma.pointTransaction.findMany({
                 where: { createdAt: { gte: todayStart } },
                 include: {
@@ -238,12 +242,15 @@ export async function GET(request: Request) {
             }
 
             logCron("INFO", `[20:00] XP Reports sent: ${sent}`);
-            return NextResponse.json({ success: true, type: "PROGRESS_REPORT", count: sent });
+            results.actions.push({ type: "PROGRESS_REPORT", sent });
         }
 
-        // No matching hour
-        logCron("INFO", `No cron action defined for hour ${somaliHour}.`);
-        return NextResponse.json({ success: true, message: "No action for this hour.", hour: somaliHour });
+        if (results.actions.length === 0) {
+            logCron("INFO", `No cron action defined for hour ${somaliHour}.`);
+            return NextResponse.json({ success: true, message: "No action for this hour.", results });
+        }
+
+        return NextResponse.json({ success: true, results });
 
     } catch (err: any) {
         logCron("ERROR", `CRON CRASH: ${err.message}\n${err.stack}`);
