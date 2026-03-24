@@ -35,8 +35,13 @@ async function connectToWhatsApp() {
             keys: makeCacheableSignalKeyStore(state.keys, logger),
         },
         logger,
-        browser: ["Tusmo SMS", "Chrome", "1.0.0"],
+        browser: ["Ubuntu", "Chrome", "20.0.04"],
         printQRInTerminal: true,
+        connectTimeoutMs: 60000,
+        defaultQueryTimeoutMs: 60000,
+        keepAliveIntervalMs: 10000,
+        emitOwnEvents: true,
+        generateHighQualityLinkPreview: true
     });
 
     sock.ev.on('connection.update', async (update: any) => {

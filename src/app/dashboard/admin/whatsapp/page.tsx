@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import QRCode from "react-qr-code"
 import WhatsAppManager from "./WhatsAppManager"
+import PushManager from "./PushManager"
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -160,6 +161,7 @@ export default async function WhatsAppSettingsPage() {
 
       {/* ── BROADCAST & LOG MANAGER ────────────────────── */}
       <WhatsAppManager />
+      <PushManager />
     </div>
   )
 }

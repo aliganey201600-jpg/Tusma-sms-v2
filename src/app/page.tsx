@@ -40,8 +40,8 @@ export default async function HomePage() {
   return (
     <HomeClient 
       stats={stats} 
-      topStudents={topStudents} 
-      topClasses={topClasses}
+      topStudents={topStudents.map(s => ({ ...s, totalXp: Number(s.totalXp) }))} 
+      topClasses={topClasses.map(c => ({ ...c, avgXp: Number(c.avgXp) }))}
     />
   )
 }

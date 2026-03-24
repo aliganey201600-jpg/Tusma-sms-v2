@@ -36,9 +36,13 @@ export async function getHallOfFameData() {
 
     return {
       success: true,
-      podium: topStudents.slice(0, 3),
-      leaderboard: topStudents.slice(3, 10),
-      classes: topClasses,
+      podium: topStudents.slice(0, 3).map(s => ({ ...s, totalXp: Number(s.totalXp) })),
+      leaderboard: topStudents.slice(3, 10).map(s => ({ ...s, totalXp: Number(s.totalXp) })),
+      classes: topClasses.map(c => ({
+          className: c.className,
+          avgXp: Number(c.avgXp),
+          studentCount: Number(c.studentCount)
+      })),
       news: news.map(n => ({
         text: `${n.firstName} just earned the '${n.badgeName}' Badge! 🔥`,
         earnedAt: n.earnedAt

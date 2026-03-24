@@ -61,8 +61,13 @@ async function connectToWhatsApp() {
             keys: (0, baileys_1.makeCacheableSignalKeyStore)(state.keys, logger),
         },
         logger,
-        browser: ["Tusmo SMS", "Chrome", "1.0.0"],
+        browser: ["Ubuntu", "Chrome", "20.0.04"],
         printQRInTerminal: true,
+        connectTimeoutMs: 60000,
+        defaultQueryTimeoutMs: 60000,
+        keepAliveIntervalMs: 10000,
+        emitOwnEvents: true,
+        generateHighQualityLinkPreview: true
     });
     sock.ev.on('connection.update', async (update) => {
         const { connection, lastDisconnect, qr } = update;
@@ -122,7 +127,7 @@ async function processQueue() {
         catch (err) {
             console.error(`[Failed] To: ${phone}:`, err);
         }
-        const delay = Math.floor(Math.random() * 5000) + 5000;
+        const delay = Math.floor(Math.random() * 10000) + 10000;
         await new Promise(resolve => setTimeout(resolve, delay));
     }
     isProcessing = false;
