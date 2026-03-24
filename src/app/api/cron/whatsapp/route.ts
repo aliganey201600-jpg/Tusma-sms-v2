@@ -97,21 +97,33 @@ export async function GET(request: Request) {
             });
 
             logCron("INFO", `[09:00] Found ${absentStudents.length} absent students.`);
-            let sent = 0;
-
+            
+            // Deduplicate parents for absence (if a parent has 2 kids absent, send 1 combined message or just 1 message)
+            const distinctParents = new Map<string, { name: string, studentNames: string[] }>();
             for (const att of absentStudents) {
                 const phone = att.student.guardianPhone;
                 if (!phone) continue;
-                const name = `${att.student.firstName} ${att.student.lastName}`;
+                if (!distinctParents.has(phone)) {
+                    distinctParents.set(phone, { name: att.student.guardianName || "Waalid", studentNames: [] });
+                }
+                distinctParents.get(phone)!.studentNames.push(`${att.student.firstName} ${att.student.lastName}`);
+            }
+
+            let sent = 0;
+            for (const [phone, data] of distinctParents.entries()) {
+                const namesStr = data.studentNames.join(", ");
                 const msg =
                     `*Tusmo School — Ogeysiiska Maqnaanshaha*\n\n` +
-                    `Salaan sare mudan/marwo *${att.student.guardianName || "Waalid"}*,\n` +
-                    `Ardayga *${name}* wuu ka maqan yahay dugsiga maanta (_${dateStr}_).\n\n` +
-                    `Haddii aad ogtahay sabab, fadlan nala soo xiriir: *+252 61 5328006*`;
+                    `Salaan sare mudan/marwo *${data.name}*,\n` +
+                    `Ardayga (ama ardayda) *${namesStr}* waa ay ka maqan yihiin dugsiga maanta (_${dateStr}_).\n\n` +
+                    `Haddii aad ogtahay sababta, fadlan nala soo xiriir: *+252 61 5328006*`;
+                
+                logCron("INFO", `[09:00] Attempting send to ${phone} for ${namesStr}...`);
                 const ok = await sendWhatsApp(phone, msg);
                 if (ok) sent++;
             }
 
+            logCron("INFO", `[09:00] Absence alerts completed. Sent: ${sent}`);
             return NextResponse.json({ success: true, type: "ABSENCE", count: sent });
         }
 
