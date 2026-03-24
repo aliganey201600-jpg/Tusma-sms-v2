@@ -4,6 +4,7 @@ import * as React from "react"
 import { Sidebar, SidebarMobile } from "@/components/dashboard/sidebar"
 import { NotificationCenter } from "@/components/dashboard/notification-center"
 import { Search } from "lucide-react"
+import { PushNotificationButton } from "@/components/PushNotificationButton"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import {
@@ -74,6 +75,7 @@ export default function StudentDashboardLayout({
           <div className="ml-auto flex items-center gap-2 md:gap-4">
             {mounted ? (
               <>
+                <PushNotificationButton className="hidden sm:flex h-9 rounded-xl text-xs" />
                 <NotificationCenter userId={user?.id || ""} />
 
                 <DropdownMenu>
