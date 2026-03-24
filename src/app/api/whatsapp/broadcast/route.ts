@@ -34,47 +34,49 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { message, target } = await request.json();
-    // target: "ALL_PARENTS" | "ALL_TEACHERS" | "SPECIFIC" (future)
-
-    if (!message || !target) {
-        return NextResponse.json({ error: "message and target are required" }, { status: 400 });
-    }
-
+    const { message, target, recipients: providedRecipients } = await request.json();
     const dateStr = new Date().toLocaleDateString("en-CA", { timeZone: "Africa/Mogadishu" });
-    let sent = 0;
-    let failed = 0;
 
-    if (target === "ALL_PARENTS" || target === "ALL") {
-        const students = await prisma.student.findMany({
-            where: { guardianPhone: { not: null } },
-            select: { guardianPhone: true, guardianName: true }
-        });
-        
-        // Remove duplicates so parents with multiple kids only get 1 message
-        const distinctParents = new Map<string, string>();
-        for (const s of students) {
-            if (s.guardianPhone) distinctParents.set(s.guardianPhone, s.guardianName || "Waalid");
+    // ── Mode 1: Fetch Recipients Only ────────────────────────
+    if (target && !message) {
+        const recipients: { name: string; phone: string }[] = [];
+        if (target === "ALL_PARENTS" || target === "ALL") {
+            const students = await prisma.student.findMany({
+                where: { guardianPhone: { not: null } },
+                select: { guardianPhone: true, guardianName: true }
+            });
+            const distinct = new Map<string, string>();
+            for (const s of students) if (s.guardianPhone) distinct.set(s.guardianPhone, s.guardianName || "Waalid");
+            for (const [phone, name] of distinct.entries()) recipients.push({ name, phone });
         }
-
-        for (const [phone, name] of distinctParents.entries()) {
-            const fullMsg = `*Tusmo School — Ogeysiis Guud*\n\nMudan/Marwo ${name},\n\n${message}\n\n_${dateStr}_`;
-            const ok = await sendWhatsApp(phone, fullMsg);
-            ok ? sent++ : failed++;
+        if (target === "ALL_TEACHERS" || target === "ALL") {
+            const teachers = await prisma.teacher.findMany({ where: { phone: { not: null } } });
+            for (const t of teachers) if (t.phone) recipients.push({ name: t.firstName, phone: t.phone });
         }
+        return NextResponse.json({ success: true, recipients });
     }
 
-    if (target === "ALL_TEACHERS" || target === "ALL") {
-        const teachers = await prisma.teacher.findMany({
-            where: { phone: { not: null } },
-        });
-        for (const t of teachers) {
-            if (!t.phone) continue;
-            const fullMsg = `*Tusmo School — Ogeysiis*\n\nMacalin ${t.firstName},\n\n${message}\n\n_${dateStr}_`;
-            const ok = await sendWhatsApp(t.phone, fullMsg);
-            ok ? sent++ : failed++;
+    // ── Mode 2: Send Single Message (Or loop) ─────────────────
+    if (message && providedRecipients) {
+        let sent = 0;
+        let failed = 0;
+        const failedRecipients: any[] = [];
+
+        for (const r of providedRecipients) {
+            const isTeacher = r.name.startsWith("Macalin"); // simplistic check
+            const fullMsg = isTeacher 
+                ? `*Tusmo School — Ogeysiis*\n\nMacalin ${r.name},\n\n${message}\n\n_${dateStr}_`
+                : `*Tusmo School — Ogeysiis Guud*\n\nMudan/Marwo ${r.name},\n\n${message}\n\n_${dateStr}_`;
+            
+            const ok = await sendWhatsApp(r.phone, fullMsg);
+            if (ok) sent++;
+            else {
+                failed++;
+                failedRecipients.push(r);
+            }
         }
+        return NextResponse.json({ success: true, sent, failed, failedRecipients });
     }
 
-    return NextResponse.json({ success: true, sent, failed, target });
+    return NextResponse.json({ error: "Invalid request" }, { status: 400 });
 }
