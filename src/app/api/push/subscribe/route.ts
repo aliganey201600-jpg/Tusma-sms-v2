@@ -46,6 +46,13 @@ export async function POST(request: Request) {
     }
 }
 
+export async function GET(request: Request) {
+    const counts = await prisma.auditLog.count({
+        where: { action: "PUSH_SUBSCRIBE" }
+    });
+    return NextResponse.json({ count: counts });
+}
+
 export async function DELETE(request: Request) {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
