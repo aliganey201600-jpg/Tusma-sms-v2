@@ -120,6 +120,12 @@ async function processQueue() {
         const { phone, message } = messageQueue.shift();
         try {
             let cleanPhone = phone.replace(/\D/g, "");
+            if (cleanPhone.startsWith("0") && cleanPhone.length === 10) {
+                cleanPhone = "252" + cleanPhone.substring(1);
+            }
+            else if (cleanPhone.length === 9) {
+                cleanPhone = "252" + cleanPhone;
+            }
             const id = `${cleanPhone}@s.whatsapp.net`;
             await sock.sendMessage(id, { text: message });
             console.log(`[Sent] To: ${cleanPhone}`);
