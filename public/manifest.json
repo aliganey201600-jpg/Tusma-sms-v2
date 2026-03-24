@@ -1,0 +1,43 @@
+{
+  "name": "Tusmo School",
+  "short_name": "Tusmo",
+  "description": "Tusmo School Management System — Attendance, Grades, and Gamification",
+  "start_url": "/dashboard/student",
+  "display": "standalone",
+  "background_color": "#020617",
+  "theme_color": "#4f46e5",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["education", "productivity"],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "url": "/dashboard/student",
+      "description": "Go to Student Dashboard"
+    },
+    {
+      "name": "Courses",
+      "url": "/dashboard/student/courses",
+      "description": "View My Courses"
+    },
+    {
+      "name": "Hall of Fame",
+      "url": "/hall-of-fame",
+      "description": "View Leaderboard"
+    }
+  ]
+}
