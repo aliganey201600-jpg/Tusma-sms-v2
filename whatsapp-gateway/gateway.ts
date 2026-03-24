@@ -103,7 +103,7 @@ async function processQueue() {
             console.error(`[Failed] To: ${phone}:`, err);
         }
         
-        const delay = Math.floor(Math.random() * 5000) + 5000;
+        const delay = Math.floor(Math.random() * 10000) + 10000;
         await new Promise(resolve => setTimeout(resolve, delay));
     }
 

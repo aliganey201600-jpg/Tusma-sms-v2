@@ -49,3 +49,20 @@ export async function getHallOfFameData() {
     return { success: false }
   }
 }
+
+export async function getLatestBonusAnnouncement() {
+  try {
+    const latest: any[] = await prisma.$queryRawUnsafe(`
+      SELECT pt.id, pt.points as amount, pt.reason, pt."createdAt",
+             s."firstName" as "studentName"
+      FROM "PointTransaction" pt
+      JOIN "Student" s ON pt."studentId" = s.id
+      WHERE pt."createdAt" > NOW() - INTERVAL '60 seconds'
+      ORDER BY pt."createdAt" DESC
+      LIMIT 1
+    `)
+    return latest[0] || null
+  } catch {
+    return null
+  }
+}

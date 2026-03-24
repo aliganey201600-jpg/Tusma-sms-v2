@@ -1,0 +1,20 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/whatsapp?secret=tusmo_secret_key_2026&hour=9",
+      "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/whatsapp?secret=tusmo_secret_key_2026&hour=12",
+      "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/whatsapp?secret=tusmo_secret_key_2026&hour=15",
+      "schedule": "0 12 * * *"
+    },
+    {
+      "path": "/api/cron/whatsapp?secret=tusmo_secret_key_2026&hour=20",
+      "schedule": "0 17 * * *"
+    }
+  ]
+}

@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import QRCode from "react-qr-code"
+import WhatsAppManager from "./WhatsAppManager"
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
@@ -58,7 +59,7 @@ export default async function WhatsAppSettingsPage() {
               <div className="space-y-10">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
                   <div className="space-y-6">
-                    <p className="text-slate-600 text-base leading-relaxed font-medium">Link your school's WhatsApp account to trigger automated notifications for attendance and grades.</p>
+                    <p className="text-slate-600 text-base leading-relaxed font-medium">Link your school&apos;s WhatsApp account to trigger automated notifications for attendance and grades.</p>
                     <ul className="space-y-5">
                       {[
                         "Open WhatsApp on your phone",
@@ -77,7 +78,7 @@ export default async function WhatsAppSettingsPage() {
                   <div className="flex items-center justify-center">
                      {config.qrCode ? (
                        <div className="p-8 bg-white rounded-[2.5rem] border-4 border-slate-50 shadow-2xl relative group">
-                          <QRCode value={config.qrCode} size={256} viewBox={`0 0 256 256`} style={{ height: "auto", maxWidth: "100%", width: "100%" }} />
+                          <QRCode value={config.qrCode} size={256} viewBox="0 0 256 256" style={{ height: "auto", maxWidth: "100%", width: "100%" }} />
                           <div className="absolute inset-0 bg-emerald-600/5 opacity-0 group-hover:opacity-100 transition-opacity rounded-[2.2rem]" />
                        </div>
                      ) : (
@@ -93,7 +94,7 @@ export default async function WhatsAppSettingsPage() {
                    <Shield className="h-8 w-8 text-amber-600 shrink-0" />
                    <div>
                       <p className="text-sm font-black text-amber-800 uppercase tracking-tight mb-1">Session Security</p>
-                      <p className="text-xs font-bold text-amber-700/80 leading-relaxed">This session is only stored on this server. Be aware that sending bulk messages too quickly may result in WhatsApp flagging your account. Anti-ban delays are enabled.</p>
+                      <p className="text-xs font-bold text-amber-700/80 leading-relaxed">This session is only stored on this server. Anti-ban delays of 10–20s are applied per message.</p>
                    </div>
                 </div>
               </div>
@@ -107,16 +108,13 @@ export default async function WhatsAppSettingsPage() {
                  </div>
                  <div>
                     <h3 className="text-2xl font-black text-slate-900 tracking-tight uppercase">Successfully Connected</h3>
-                    <p className="text-slate-500 font-bold text-sm mt-2">{config.status === "CONNECTED" && 'sessionName' in config ? config.sessionName : "Linked Device"}</p>
+                    <p className="text-slate-500 font-bold text-sm mt-2">Linked Device Active</p>
                  </div>
                  <Badge variant="outline" className="mt-8 bg-emerald-50/50 text-emerald-700 border-emerald-100 font-black text-[10px] py-2 px-6 tracking-[0.2em] rounded-full uppercase">
                     All notifications are online
                  </Badge>
-                 
                  <form action={async () => {
                     'use server'
-                    // This would call the gateway API to logout
-                    // But we'll just reset status for now to demonstrate
                     await prisma.whatsAppConfig.update({ where: { id: "default" }, data: { status: 'DISCONNECTED', qrCode: null } });
                  }}>
                     <Button variant="ghost" className="mt-8 text-rose-600 hover:text-rose-700 hover:bg-rose-50 font-black text-[10px] uppercase tracking-widest gap-2">
@@ -128,17 +126,17 @@ export default async function WhatsAppSettingsPage() {
           </div>
         </Card>
 
-        {/* Right: Stats and Info */}
+        {/* Right: Stats and Schedule */}
         <div className="space-y-10">
            <Card className="p-8 rounded-[2.5rem] border-2 border-slate-50 shadow-sm bg-white overflow-hidden relative group">
               <div className="absolute top-0 right-0 h-full w-24 bg-emerald-500/5 -skew-x-12 translate-x-10 group-hover:translate-x-5 transition-transform duration-700" />
               <div className="relative">
                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Network Health</p>
                  <h3 className="text-2xl font-black text-slate-900 leading-none">Excellent</h3>
-                 <div className="mt-6 flex gap-1 h-2 outline-none">
+                 <div className="mt-6 flex gap-1 h-2">
                     {[1,2,3,4,5].map(i => <div key={i} className={`flex-1 rounded-full ${i <= 4 ? 'bg-emerald-500' : 'bg-slate-100'}`} />)}
                  </div>
-                 <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-3">Latency: 45ms</p>
+                 <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-3">Anti-ban: 10-20s delay</p>
               </div>
            </Card>
 
@@ -148,15 +146,20 @@ export default async function WhatsAppSettingsPage() {
                  <div className="h-12 w-12 rounded-2xl bg-white/10 flex items-center justify-center mb-6">
                     <PhoneIcon className="h-6 w-6 text-emerald-400" />
                  </div>
-                 <h3 className="text-xl font-black tracking-tight mb-2 uppercase">Bulk Broadcasts</h3>
-                 <p className="text-slate-400 text-xs font-bold leading-relaxed mb-8">Send announcements to all parents at once with zero manual effort.</p>
-                 <Button className="w-full h-12 bg-white text-slate-900 font-black text-[10px] uppercase tracking-[0.2em] rounded-xl hover:bg-emerald-400 hover:text-white transition-all">
-                    START BROADCAST
-                 </Button>
+                 <h3 className="text-xl font-black tracking-tight mb-4 uppercase">Cron Schedule</h3>
+                 <ul className="text-slate-400 text-xs font-bold leading-relaxed space-y-2">
+                    <li>🕘 <span className="text-white">09:00</span> — Maqnaanshaha waalidiinta</li>
+                    <li>🕛 <span className="text-white">12:00</span> — Xaadirinta macallimiinta</li>
+                    <li>🕒 <span className="text-white">15:00</span> — Dhammayska dugsiga</li>
+                    <li>🕗 <span className="text-white">20:00</span> — Warbixinta XP-ga</li>
+                 </ul>
               </div>
            </Card>
         </div>
       </div>
+
+      {/* ── BROADCAST & LOG MANAGER ────────────────────── */}
+      <WhatsAppManager />
     </div>
   )
 }
