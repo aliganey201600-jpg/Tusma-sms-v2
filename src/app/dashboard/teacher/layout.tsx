@@ -3,6 +3,7 @@
 import * as React from "react"
 import { Sidebar, SidebarMobile } from "@/components/dashboard/sidebar"
 import { NotificationCenter } from "@/components/dashboard/notification-center"
+import { PushNotificationAutoPrompt } from "@/components/PushNotificationAutoPrompt"
 import { Search } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -64,7 +65,10 @@ export default function TeacherDashboardLayout({ children }: { children: React.R
             ) : <div className="h-9 w-32 bg-slate-100 animate-pulse rounded-full" />}
           </div>
         </header>
-        <main className="flex-1 p-4 md:p-8 overflow-y-auto">{children}</main>
+        <main className="flex-1 p-4 md:p-8 overflow-y-auto">
+          <PushNotificationAutoPrompt />
+          {children}
+        </main>
       </div>
     </div>
   )

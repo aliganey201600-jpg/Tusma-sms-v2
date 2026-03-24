@@ -74,11 +74,26 @@ export async function POST(request: Request) {
         }
     }
 
-    // Cleanup dead subscriptions
-    if (dead.length > 0)
-        await prisma.auditLog.deleteMany({
-            where: { userId: { in: dead.filter((id): id is string => id !== null) as string[] }, action: "PUSH_SUBSCRIBE" }
-        });
+    // Also create in-app notifications in the DB so they are visible on the dashboard bell
+    try {
+        const students = await prisma.student.findMany({ select: { userId: true } });
+        const validUserIds = students.map(s => s.userId).filter((id): id is string => id !== null);
+
+        if (validUserIds.length > 0) {
+            await prisma.notification.createMany({
+                data: validUserIds.map(uid => ({
+                    userId: uid,
+                    title,
+                    message: body,
+                    link: url,
+                    isRead: false
+                })),
+                skipDuplicates: true
+            });
+        }
+    } catch (e) {
+        console.error("Failed to create in-app notifications:", e);
+    }
 
     return NextResponse.json({ success: true, sent, failed, cleaned: dead.length });
 }

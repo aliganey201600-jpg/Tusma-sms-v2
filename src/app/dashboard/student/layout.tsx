@@ -5,6 +5,7 @@ import { Sidebar, SidebarMobile } from "@/components/dashboard/sidebar"
 import { NotificationCenter } from "@/components/dashboard/notification-center"
 import { Search } from "lucide-react"
 import { PushNotificationButton } from "@/components/PushNotificationButton"
+import { PushNotificationAutoPrompt } from "@/components/PushNotificationAutoPrompt"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import {
@@ -119,6 +120,7 @@ export default function StudentDashboardLayout({
 
         {/* Dynamic Content */}
         <main className="flex-1 p-4 md:p-8 overflow-y-auto">
+          <PushNotificationAutoPrompt />
           {children}
         </main>
       </div>
