@@ -4,11 +4,7 @@ import prisma from "@/lib/prisma";
 import { createClient } from "@/utils/supabase/server";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
 
-webpush.setVapidDetails(
-    "mailto:info@tusmaschool.edu.so",
-    process.env.VAPID_PUBLIC_KEY!,
-    process.env.VAPID_PRIVATE_KEY!
-);
+// VAPID details are set dynamically per request to avoid build-time crashes (Vercel builds evaluate top-level code)
 
 export async function POST(request: Request) {
     // Rate limit: 5 broadcast push per minute (admin only)
@@ -28,6 +24,16 @@ export async function POST(request: Request) {
     if (!user || !["ADMIN", "SUPER_ADMIN"].includes(role)) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    if (!process.env.VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY) {
+        return NextResponse.json({ error: "Push notifications are not configured." }, { status: 500 });
+    }
+
+    webpush.setVapidDetails(
+        "mailto:info@tusmaschool.edu.so",
+        process.env.VAPID_PUBLIC_KEY,
+        process.env.VAPID_PRIVATE_KEY
+    );
 
     const { title, body, url = "/dashboard" } = await request.json();
     if (!title || !body) {
