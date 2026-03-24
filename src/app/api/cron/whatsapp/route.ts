@@ -24,16 +24,19 @@ function logCron(level: "INFO" | "ERROR" | "WARN", message: string) {
 // ============================================================
 async function sendWhatsApp(phone: string, message: string): Promise<boolean> {
     if (!phone) return false;
-    // Clean phone: ensure it has country code
     let cleanPhone = phone.replace(/\D/g, "");
-    if (cleanPhone.length === 9) cleanPhone = "252" + cleanPhone; // Somalia prefix
+    if (cleanPhone.startsWith("0") && cleanPhone.length === 10) {
+        cleanPhone = "252" + cleanPhone.substring(1);
+    } else if (cleanPhone.length === 9) {
+        cleanPhone = "252" + cleanPhone;
+    }
 
     try {
         const res = await fetch(WHATSAPP_GATEWAY_URL, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ phone: cleanPhone, message }),
-            signal: AbortSignal.timeout(5000),
+            signal: AbortSignal.timeout(10000),
         });
         const data = await res.json();
         if (data.success) {

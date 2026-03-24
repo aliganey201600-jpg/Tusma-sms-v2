@@ -6,13 +6,18 @@ const WHATSAPP_GATEWAY_URL = process.env.WHATSAPP_GATEWAY_URL || "http://localho
 
 async function sendWhatsApp(phone: string, message: string) {
     let cleanPhone = phone.replace(/\D/g, "");
-    if (cleanPhone.length === 9) cleanPhone = "252" + cleanPhone;
+    if (cleanPhone.startsWith("0") && cleanPhone.length === 10) {
+        cleanPhone = "252" + cleanPhone.substring(1);
+    } else if (cleanPhone.length === 9) {
+        cleanPhone = "252" + cleanPhone;
+    }
+    
     try {
         const res = await fetch(WHATSAPP_GATEWAY_URL, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ phone: cleanPhone, message }),
-            signal: AbortSignal.timeout(5000),
+            signal: AbortSignal.timeout(10000),
         });
         return res.ok;
     } catch {
