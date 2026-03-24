@@ -87,6 +87,11 @@ model Student {
   badges            StudentBadge[]
   inventory         StudentItem[]
   hasSharedRank     Boolean  @default(false)
+
+  @@index([classId])
+  @@index([totalXp(sort: Desc)])
+  @@index([batchId])
+  @@index([status])
 }
 
 
@@ -419,6 +424,8 @@ model Attendance {
   createdAt     DateTime @default(now())
 
   @@unique([studentId, date])
+  @@index([studentId, date])
+  @@index([date])
 }
 
 enum AttendanceStatus {
@@ -534,7 +541,9 @@ enum PaymentStatus {
   COMPLETED
   FAILED
   REFUNDED
-}enum ExamType {
+}
+
+enum ExamType {
   MIDTERM
   FINAL
   QUIZ
@@ -572,6 +581,8 @@ model ExamResult {
   updatedAt     DateTime @updatedAt
 
   @@unique([examId, studentId])
+  @@index([studentId, examId])
+  @@index([examId])
 }
 
 model TeacherAssignment {
