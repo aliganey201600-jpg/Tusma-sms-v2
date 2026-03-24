@@ -97,12 +97,12 @@ export async function GET(request: Request) {
             let sent = 0;
 
             for (const att of absentStudents) {
-                const phone = att.student.parent?.phone;
+                const phone = att.student.guardianPhone;
                 if (!phone) continue;
                 const name = `${att.student.firstName} ${att.student.lastName}`;
                 const msg =
                     `*Tusmo School — Ogeysiiska Maqnaanshaha*\n\n` +
-                    `Salaan sare waalid,\n` +
+                    `Salaan sare mudan/marwo *${att.student.guardianName || "Waalid"}*,\n` +
                     `Ardayga *${name}* wuu ka maqan yahay dugsiga maanta (_${dateStr}_).\n\n` +
                     `Haddii aad ogtahay sabab, fadlan nala soo xiriir: *+252 61 5328006*`;
                 const ok = await sendWhatsApp(phone, msg);
@@ -152,22 +152,28 @@ export async function GET(request: Request) {
         // 15:00 — Dismissal Notification → All Parents
         // ══════════════════════════════════════════════════════
         if (somaliHour === 15) {
-            const parents = await prisma.parent.findMany({
-                where: { phone: { not: null } },
+            const students = await prisma.student.findMany({
+                where: { guardianPhone: { not: null } },
+                select: { guardianPhone: true, guardianName: true }
             });
 
-            logCron("INFO", `[15:00] Sending dismissal to ${parents.length} parents.`);
+            // Deduplicate parents
+            const distinctParents = new Map<string, string>();
+            for (const s of students) {
+              if (s.guardianPhone) distinctParents.set(s.guardianPhone, s.guardianName || "Waalid");
+            }
+
+            logCron("INFO", `[15:00] Sending dismissal to ${distinctParents.size} distinct parents.`);
             let sent = 0;
 
-            for (const p of parents) {
-                if (!p.phone) continue;
+            for (const [phone, name] of distinctParents.entries()) {
                 const msg =
                     `*Tusmo School — Ogeysiis*\n\n` +
-                    `Salaan waalid,\n` +
+                    `Salaan mudan/marwo *${name}*,\n` +
                     `Waxaan kugu ogeysiinaynaa in dugsigu *dhammaaday* maanta (_${dateStr}_).\n` +
                     `Carruurtu waxay ku soo jiraan wadada. Dee soo dhawoow!\n\n` +
                     `📍 Degmada Tusmo, Muqdisho`;
-                const ok = await sendWhatsApp(p.phone, msg);
+                const ok = await sendWhatsApp(phone, msg);
                 if (ok) sent++;
             }
 
@@ -186,13 +192,14 @@ export async function GET(request: Request) {
             });
 
             // Aggregate XP per student
-            const statsMap: Record<string, { name: string; xp: number; phone: string | null; level: number }> = {};
+            const statsMap: Record<string, { name: string; xp: number; phone: string | null; guardianName: string | null; level: number }> = {};
             for (const tx of transactions) {
                 if (!statsMap[tx.studentId]) {
                     statsMap[tx.studentId] = {
                         name: `${tx.student.firstName} ${tx.student.lastName}`,
                         xp: 0,
-                        phone: tx.student.parent?.phone || null,
+                        phone: tx.student.guardianPhone || null,
+                        guardianName: tx.student.guardianName || "Waalid",
                         level: tx.student.level,
                     };
                 }
@@ -205,7 +212,7 @@ export async function GET(request: Request) {
                 if (!s.phone || s.xp <= 0) continue;
                 const msg =
                     `*Tusmo School — Warbixinta Maanta*\n\n` +
-                    `Salaan waalid,\n` +
+                    `Salaan mudan/marwo *${s.guardianName}*,\n` +
                     `Ardayga *${s.name}* maanta wuxuu helay:\n` +
                     `⭐ *${s.xp} XP* (dhibcood)\n` +
                     `🏆 Heerkiisu: Level *${s.level}*\n\n` +
