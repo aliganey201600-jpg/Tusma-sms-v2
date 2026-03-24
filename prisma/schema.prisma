@@ -219,6 +219,7 @@ model Course {
   teacherAssignments TeacherAssignment[]
   sections      CourseSection[]
   certificates  Certificate[]
+  attendances   Attendance[]
 
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -421,9 +422,12 @@ model Attendance {
   studentId     String
   student       Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
   
+  courseId      String?
+  course        Course?  @relation(fields: [courseId], references: [id], onDelete: SetNull)
+
   createdAt     DateTime @default(now())
 
-  @@unique([studentId, date])
+  @@unique([studentId, date, courseId])
   @@index([studentId, date])
   @@index([date])
 }

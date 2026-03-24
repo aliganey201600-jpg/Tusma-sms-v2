@@ -86,10 +86,17 @@ export async function saveAttendance(records: { studentId: string; status: strin
 
       studentDetails.forEach(student => {
         const record = records.find(r => r.studentId === student.id);
-        if (!record) return;
-        const statusText = record.status === "ABSENT" ? "ka maqnaa" : "ku habsaamay (Late)";
+        if (!record || record.status !== "ABSENT") return;
+        
         const studentName = `${student.firstName} ${student.lastName}`;
-        const message = `Salaam, Nidaamka Tusmo School: Ardayga ${studentName} wuxuu ${statusText} fasalka (${student.class_name}) maanta oo ay taariikhdu tahay ${readableDate}. Fadlan nala soo xidhiidh. Mahadsanid.`;
+        const guardianName = student.guardianName || "Waalid";
+        
+        // Improved message format
+        const message = 
+            `*Tusmo School — Ogeysiis Maqnaanshaha*\n\n` +
+            `Salaan mudan/marwo *${guardianName}*,\n` +
+            `Waxaan kugu ogeysiinaynaa in ardayga *${studentName}* uu ka maqnaa fasalka *${student.class_name}* maanta oo ay taariikhdu tahay *${readableDate}*.\n\n` +
+            `Fadlan nala soo xiriir haddii aad ogtahay sababta. Mahadsanid.`;
 
         if (student.guardianPhone) sendWhatsAppNotification({ phone: student.guardianPhone, message });
         if (student.student_phone) sendWhatsAppNotification({ phone: student.student_phone, message });
