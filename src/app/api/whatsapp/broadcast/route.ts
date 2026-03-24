@@ -40,19 +40,26 @@ export async function POST(request: Request) {
     let sent = 0;
     let failed = 0;
 
-    if (target === "ALL_PARENTS") {
-        const parents = await prisma.parent.findMany({
-            where: { phone: { not: null } },
+    if (target === "ALL_PARENTS" || target === "ALL") {
+        const students = await prisma.student.findMany({
+            where: { guardianPhone: { not: null } },
+            select: { guardianPhone: true, guardianName: true }
         });
-        for (const p of parents) {
-            if (!p.phone) continue;
-            const fullMsg = `*Tusmo School — Ogeysiis Guud*\n\n${message}\n\n_${dateStr}_`;
-            const ok = await sendWhatsApp(p.phone, fullMsg);
+        
+        // Remove duplicates so parents with multiple kids only get 1 message
+        const distinctParents = new Map<string, string>();
+        for (const s of students) {
+            if (s.guardianPhone) distinctParents.set(s.guardianPhone, s.guardianName || "Waalid");
+        }
+
+        for (const [phone, name] of distinctParents.entries()) {
+            const fullMsg = `*Tusmo School — Ogeysiis Guud*\n\nMudan/Marwo ${name},\n\n${message}\n\n_${dateStr}_`;
+            const ok = await sendWhatsApp(phone, fullMsg);
             ok ? sent++ : failed++;
         }
     }
 
-    if (target === "ALL_TEACHERS") {
+    if (target === "ALL_TEACHERS" || target === "ALL") {
         const teachers = await prisma.teacher.findMany({
             where: { phone: { not: null } },
         });
@@ -60,23 +67,6 @@ export async function POST(request: Request) {
             if (!t.phone) continue;
             const fullMsg = `*Tusmo School — Ogeysiis*\n\nMacalin ${t.firstName},\n\n${message}\n\n_${dateStr}_`;
             const ok = await sendWhatsApp(t.phone, fullMsg);
-            ok ? sent++ : failed++;
-        }
-    }
-
-    if (target === "ALL") {
-        const [parents, teachers] = await Promise.all([
-            prisma.parent.findMany({ where: { phone: { not: null } } }),
-            prisma.teacher.findMany({ where: { phone: { not: null } } }),
-        ]);
-        for (const p of parents) {
-            if (!p.phone) continue;
-            const ok = await sendWhatsApp(p.phone, `*Tusmo School*\n\n${message}\n\n_${dateStr}_`);
-            ok ? sent++ : failed++;
-        }
-        for (const t of teachers) {
-            if (!t.phone) continue;
-            const ok = await sendWhatsApp(t.phone, `*Tusmo School*\n\nMacalin ${t.firstName},\n\n${message}\n\n_${dateStr}_`);
             ok ? sent++ : failed++;
         }
     }
